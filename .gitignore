@@ -23,7 +23,3 @@ env/
 # OS
 .DS_Store
 Thumbs.db
-
-# Project outputs
-plots/
-data/
