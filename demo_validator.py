@@ -23,7 +23,7 @@ validator = Validator(ws, goal_a=(1, 3), goal_b=(1, 1))
 
 # Test 1: correct path
 path = ["S", "L", "U", "S", "R", "R", "S", "D", "L"]
-result = validator.run(path, plot=True, plot_name="validator_correct_path.png")
+result = validator.run(path, plot=True, plot_name="validator_correct_path")
 print(result)
 
 # reset
@@ -33,5 +33,5 @@ ws._control = "A"
 
 # Test 2: invalid move mid-path
 bad_path = ["S", "L", "U", "S", "R", "U", "S", "D", "L"]
-result = validator.run(bad_path, plot=True, plot_name="validator_invalid_path.png")
+result = validator.run(bad_path, plot=True, plot_name="validator_invalid_path")
 print(result)
