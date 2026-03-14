@@ -23,20 +23,21 @@ class State:
         control : 'A' or 'B' — which robot is currently being controlled
     """
 
-    def __init__(self,
-                 pos_a:   tuple[int, int],
-                 pos_b:   tuple[int, int],
-                 control: str):
-        self.pos_a   = pos_a
-        self.pos_b   = pos_b
+    def __init__(self, pos_a: tuple[int, int], pos_b: tuple[int, int], control: str):
+        self.pos_a = pos_a
+        self.pos_b = pos_b
         self.control = control  # 'A' or 'B'
 
     # ── Hashable + comparable (required for BFS sets/dicts) ──
 
-    def __eq__(self, other: "State") -> bool:
-        return (self.pos_a   == other.pos_a  and
-                self.pos_b   == other.pos_b  and
-                self.control == other.control)
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, State):
+            return NotImplemented
+        return (
+            self.pos_a == other.pos_a
+            and self.pos_b == other.pos_b
+            and self.control == other.control
+        )
 
     def __hash__(self) -> int:
         return hash((self.pos_a, self.pos_b, self.control))
@@ -44,20 +45,19 @@ class State:
     # ── Dunder ───────────────────────────────────────────
 
     def __repr__(self):
-        return (f"State(A={self.pos_a}, B={self.pos_b}, "
-                f"control={self.control!r})")
+        return f"State(A={self.pos_a}, B={self.pos_b}, " f"control={self.control!r})"
 
 
 # ── Sanity check ─────────────────────────────────────────
 
 if __name__ == "__main__":
-    s1 = State(pos_a=(1,1), pos_b=(1,3), control='A')
-    s2 = State(pos_a=(1,1), pos_b=(1,3), control='A')
-    s3 = State(pos_a=(1,2), pos_b=(1,3), control='B')
+    s1 = State(pos_a=(1, 1), pos_b=(1, 3), control="A")
+    s2 = State(pos_a=(1, 1), pos_b=(1, 3), control="A")
+    s3 = State(pos_a=(1, 2), pos_b=(1, 3), control="B")
 
     print(s1)
-    print("s1 == s2:", s1 == s2)   # True  — same situation
-    print("s1 == s3:", s1 == s3)   # False — different
+    print("s1 == s2:", s1 == s2)  # True  — same situation
+    print("s1 == s3:", s1 == s3)  # False — different
 
     # Works as a dict key and in a set (needed for BFS)
     visited = {s1, s2, s3}
