@@ -16,6 +16,7 @@ This is the only place where:
 
 from grid  import Grid
 from robot import Robot
+from state import State
 
 
 DIRECTIONS = {
