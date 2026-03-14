@@ -10,26 +10,65 @@ from src.validator import Validator
 from src.workspace import Workspace
 
 tiles = [
-    [1, 1, 0, 1, 1],
-    [1, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 1, 0, 0, 1, 1, 1],
+    [1, 0, 0, 1, 0, 0, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1],
 ]
+
 grid = Grid(tiles)
-a = Robot("A", 1, 1, 1)
-b = Robot("B", 1, 1, 3)
+a = Robot("A", 2, 2, 1)
+b = Robot("B", 2, 4, 1)
 ws = Workspace(grid, a, b)
 
-validator = Validator(ws, goal_a=(1, 3), goal_b=(1, 1))
+validator = Validator(ws, goal_a=(4, 1), goal_b=(2, 1))
 
 # Test 1: correct path
-path = ["S", "L", "U", "S", "R", "R", "S", "D", "L"]
+path = [
+    "U",
+    "S",
+    "U",
+    "R",
+    "R",
+    "R",
+    "R",
+    "R",
+    "S",
+    "D",
+    "D",
+    "R",
+    "R",
+    "R",
+    "U",
+    "U",
+    "S",
+    "L",
+    "L",
+    "L",
+    "L",
+    "L",
+    "U",
+    "U",
+    "S",
+    "D",
+    "D",
+    "L",
+    "L",
+    "L",
+    "D",
+    "S",
+    "D",
+]
 result = validator.run(path, plot=True, plot_name="validator_correct_path")
 print(result)
 
 # reset
 a.row, a.col = 1, 1
 b.row, b.col = 1, 3
-ws._control = "A"
+ws._control = a.label
 
 # Test 2: invalid move mid-path
 bad_path = ["S", "L", "U", "S", "R", "U", "S", "D", "L"]
