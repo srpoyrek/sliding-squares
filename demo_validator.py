@@ -5,9 +5,10 @@ Manual demo for the validator.
 """
 
 from src.grid import Grid
+from src.path_resolver import PathResolver
 from src.robot import Robot
 from src.validator import Validator
-from src.workspace import Workspace
+from src.workspace import COMMANDS, Workspace
 
 tiles = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -28,41 +29,16 @@ validator = Validator(ws, goal_a=(4, 1), goal_b=(2, 1))
 
 # Test 1: correct path
 path = [
-    "U",
-    "S",
-    "U",
-    "R",
-    "R",
-    "R",
-    "R",
-    "R",
-    "S",
-    "D",
-    "D",
-    "R",
-    "R",
-    "R",
-    "U",
-    "U",
-    "S",
-    "L",
-    "L",
-    "L",
-    "L",
-    "L",
-    "U",
-    "U",
-    "S",
-    "D",
-    "D",
-    "L",
-    "L",
-    "L",
-    "D",
-    "S",
+    "US",
+    "U5RS",
+    "2D3R2US",
+    "5L2US",
+    "2D3LDS",
     "D",
 ]
-result = validator.run(path, plot=True, plot_name="validator_correct_path")
+resolver = PathResolver(valid_commands=set(COMMANDS.values()))
+path_resolved = resolver.resolve(path)
+result = validator.run(path_resolved, plot=True, plot_name="validator_correct_path")
 print(result)
 
 # reset
@@ -71,6 +47,7 @@ b.row, b.col = 1, 3
 ws._control = a.label
 
 # Test 2: invalid move mid-path
-bad_path = ["S", "L", "U", "S", "R", "U", "S", "D", "L"]
-result = validator.run(bad_path, plot=True, plot_name="validator_invalid_path")
+bad_path = ["S", "LUS", "RUS", "DL"]
+bad_path_resolved = resolver.resolve(bad_path)
+result = validator.run(bad_path_resolved, plot=True, plot_name="validator_invalid_path")
 print(result)

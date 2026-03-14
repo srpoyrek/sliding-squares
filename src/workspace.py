@@ -25,6 +25,14 @@ DIRECTIONS = {
     "R": (0, 1),
 }
 
+COMMANDS = {
+    "UP": "U",
+    "DOWN": "D",
+    "LEFT": "L",
+    "RIGHT": "R",
+    "CONTROL_SWITCH": "S",
+}
+
 
 class Workspace:
     """
@@ -35,7 +43,7 @@ class Workspace:
         self.grid = grid
         self.robot_a = robot_a
         self.robot_b = robot_b
-        self._control = "A"  # which robot is currently being controlled
+        self._control = self.robot_a.label  # which robot is currently being controlled
 
     # ── Grid queries ────────────────────────────────────
 
@@ -85,7 +93,7 @@ class Workspace:
             return False
 
         # Check collision with other robot
-        other = self.robot_b if robot.label == "A" else self.robot_a
+        other = self.robot_b if robot.label == self.robot_a.label else self.robot_a
         if self.robots_overlap(new_row, new_col, robot.n, other.row, other.col, other.n):
             return False
 

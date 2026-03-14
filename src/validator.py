@@ -10,7 +10,7 @@ from typing import Optional
 
 from src.directories import plots_path
 from src.visualizer import draw_sequence
-from src.workspace import Workspace
+from src.workspace import COMMANDS, Workspace
 
 
 class ValidationResult:
@@ -48,7 +48,7 @@ class Validator:
         result.titles.append("start")
 
         for i, cmd in enumerate(path):
-            if cmd == "S":
+            if cmd == COMMANDS["CONTROL_SWITCH"]:
                 ws._control = (
                     self.ws.robot_b.label
                     if ws._control == self.ws.robot_a.label
@@ -57,7 +57,7 @@ class Validator:
                 result.switches += 1
                 label = f"{i}: switch to {ws._control} (sw={result.switches})"
 
-            elif cmd in ("U", "D", "L", "R"):
+            elif cmd in COMMANDS.values():
                 robot = ws.robot_a if ws._control == self.ws.robot_a.label else ws.robot_b
 
                 if not ws.can_move(robot, cmd):
