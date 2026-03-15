@@ -119,6 +119,18 @@ def _extract_turns(snapshots, titles):
     n = len(snapshots)
     start = 0
 
+    # always show initial state as first panel
+    a_0, b_0 = snapshots[0]
+    turns.append(
+        {
+            "title": titles[0],
+            "waypoints": [(a_0.col + a_0.n / 2, a_0.row + a_0.n / 2)],
+            "moving_end": deepcopy(a_0),
+            "stationary": deepcopy(b_0),
+            "moving_start": deepcopy(a_0),
+        }
+    )
+
     for i in range(1, n):
         is_switch = "switch" in titles[i].lower()
         is_last = i == n - 1
@@ -130,6 +142,11 @@ def _extract_turns(snapshots, titles):
             a_e, b_e = snapshots[end]
 
             a_moved = a_s.row != a_e.row or a_s.col != a_e.col
+            b_moved = b_s.row != b_e.row or b_s.col != b_e.col
+
+            if not a_moved and not b_moved:
+                start = i
+                continue
 
             # collect waypoints (center of moving robot) at each step in this turn
             waypoints = []

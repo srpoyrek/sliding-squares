@@ -33,7 +33,7 @@ print(result)
 print(result.path)
 
 # 4. validate the path
-vr = Validator(ws, goal_a=(b.row, b.col), goal_b=(a.row, a.col)).run(result.path)
+vr = Validator(ws, goal_a=(b.row, b.col), goal_b=(a.row, a.col)).run(result.path, plot=False)
 print(vr)  # ValidationResult(valid=True, switches=2)
 
 # 5. plot
