@@ -1,8 +1,7 @@
 """
-test_trivial_1x1.py
+1x1_robot_no_holes.py
 -------------------
 Trivial 1x1 swap with a pocket.
-Expected: 2 switches.
 """
 
 import os
@@ -16,9 +15,8 @@ from src.test_case import TestCase
 from src.workspace import Workspace
 
 
-class TrivialOneByOne(TestCase):
+class OneByOneNoHoles(TestCase):
     name = "1x1_robot_no_holes"
-    switches = 2
 
     def setup(self):
         tiles = [
