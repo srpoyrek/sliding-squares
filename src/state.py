@@ -12,6 +12,8 @@ Does NOT hold robot objects (those live in workspace).
 Just the minimum data needed to uniquely describe a situation.
 """
 
+from src.robot import Robot
+
 
 class State:
     """
@@ -20,13 +22,13 @@ class State:
     Fields:
         pos_a   : (row, col) of robot A's top-left corner
         pos_b   : (row, col) of robot B's top-left corner
-        control : 'A' or 'B' — which robot is currently being controlled
+        control : Robot — which robot is currently being controlled
     """
 
-    def __init__(self, pos_a: tuple[int, int], pos_b: tuple[int, int], control: str):
+    def __init__(self, pos_a: tuple[int, int], pos_b: tuple[int, int], control: Robot):
         self.pos_a = pos_a
         self.pos_b = pos_b
-        self.control = control  # 'A' or 'B'
+        self.control = control  # A or B robot
 
     # ── Hashable + comparable (required for BFS sets/dicts) ──
 
@@ -51,9 +53,12 @@ class State:
 # ── Sanity check ─────────────────────────────────────────
 
 if __name__ == "__main__":
-    s1 = State(pos_a=(1, 1), pos_b=(1, 3), control="A")
-    s2 = State(pos_a=(1, 1), pos_b=(1, 3), control="A")
-    s3 = State(pos_a=(1, 2), pos_b=(1, 3), control="B")
+    A = Robot(label="A", n=2, row=1, col=1)
+    B = Robot(label="B", n=2, row=1, col=3)
+
+    s1 = State(pos_a=(1, 1), pos_b=(1, 3), control=A)
+    s2 = State(pos_a=(1, 1), pos_b=(1, 3), control=A)
+    s3 = State(pos_a=(1, 2), pos_b=(1, 3), control=B)
 
     print(s1)
     print("s1 == s2:", s1 == s2)  # True  — same situation

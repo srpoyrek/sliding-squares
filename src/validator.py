@@ -49,16 +49,12 @@ class Validator:
 
         for i, cmd in enumerate(path):
             if cmd == COMMANDS["CONTROL_SWITCH"]:
-                ws._control = (
-                    self.ws.robot_b.label
-                    if ws._control == self.ws.robot_a.label
-                    else self.ws.robot_a.label
-                )
+                ws._control = self.ws.robot_b if ws._control == self.ws.robot_a else self.ws.robot_a
                 result.switches += 1
-                label = f"{i}: switch to {ws._control} (sw={result.switches})"
+                label = f"{i}: switch to {ws._control.label} (sw={result.switches})"
 
             elif cmd in COMMANDS.values():
-                robot = ws.robot_a if ws._control == self.ws.robot_a.label else ws.robot_b
+                robot = ws._control
 
                 if not ws.can_move(robot, cmd):
                     result.failed_at = i
@@ -70,7 +66,7 @@ class Validator:
                     return result
 
                 ws.do_move(robot, cmd)
-                label = f"{i}: {ws._control} {cmd}"
+                label = f"{i}: {ws._control.label} {cmd}"
 
             else:
                 result.failed_at = i
@@ -93,7 +89,7 @@ class Validator:
         return result
 
     def _plot(self, result: ValidationResult, name: str):
-        if not result.snapshots:
+        if not result.snapshots or len(result.snapshots) < 2:
             return
         snapshots = [[a, b] for a, b in result.snapshots]
         draw_sequence(

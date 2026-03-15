@@ -43,7 +43,7 @@ class Workspace:
         self.grid = grid
         self.robot_a = robot_a
         self.robot_b = robot_b
-        self._control = self.robot_a.label  # which robot is currently being controlled
+        self._control = self.robot_a  # which robot is currently being controlled
 
     # ── Grid queries ────────────────────────────────────
 
@@ -114,18 +114,18 @@ class Workspace:
 
     # ── State snapshot (for BFS) ────────────────────────
 
-    def get_state(self) -> "State":
+    def get_state(self) -> State:
         """
         Return a frozen State snapshot of current robot positions.
         BFS uses this to track visited situations.
         """
-        from state import State
+        from src.state import State
 
         return State(
             pos_a=self.robot_a.position(), pos_b=self.robot_b.position(), control=self._control
         )
 
-    def load_state(self, state: "State"):
+    def load_state(self, state: State):
         """
         Restore robot positions from a State snapshot.
         BFS uses this to backtrack.
@@ -148,8 +148,9 @@ class Workspace:
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    from directories import plots_path
-    from visualizer import draw
+
+    from src.directories import plots_path
+    from src.visualizer import draw
 
     tiles = [
         [1, 1, 1, 1, 1],

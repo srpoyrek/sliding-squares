@@ -29,9 +29,9 @@ class Robot:
         col   : top-left col
         """
         self.label = label
-        self.n     = n
-        self.row   = row
-        self.col   = col
+        self.n = n
+        self.row = row
+        self.col = col
 
     # ── Queries ─────────────────────────────────────────
 
@@ -41,11 +41,7 @@ class Robot:
 
     def cells(self) -> list[tuple[int, int]]:
         """All (row, col) tiles this robot occupies."""
-        return [
-            (self.row + dr, self.col + dc)
-            for dr in range(self.n)
-            for dc in range(self.n)
-        ]
+        return [(self.row + dr, self.col + dc) for dr in range(self.n) for dc in range(self.n)]
 
     # ── Clone (for BFS) ─────────────────────────────────
 
@@ -56,21 +52,26 @@ class Robot:
     # ── Dunder ──────────────────────────────────────────
 
     def __repr__(self):
-        return (f"Robot(label={self.label!r}, n={self.n}, "
-                f"row={self.row}, col={self.col})")
+        return f"Robot(label={self.label!r}, n={self.n}, " f"row={self.row}, col={self.col})"
+
+    def __eq__(self, other):
+        return self.label == other.label and self.n == other.n
+
+    def __hash__(self):
+        return hash((self.label, self.n))
 
 
 # ── Sanity check ────────────────────────────────────────
 
 if __name__ == "__main__":
-    a = Robot('A', 2, 1, 1)
+    a = Robot("A", 2, 1, 1)
     print(a)
     print("position:", a.position())
-    print("cells:",    a.cells())
+    print("cells:", a.cells())
 
     b = a.clone()
     b.row += 1
     print("original:", a)
     print("clone after row+=1:", b)
     print("b position:", b.position())
-    print("b cells:",    b.cells())
+    print("b cells:", b.cells())

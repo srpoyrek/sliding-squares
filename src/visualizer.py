@@ -21,8 +21,8 @@ COLOR_ROBOT_B = "#122fd3"
 COLOR_LABEL = "white"
 COLOR_ARROW_A = "#ff4639"  # arrow color when A moves
 COLOR_ARROW_B = "#11c0df"  # arrow color when B moves
-ARROW_LW = 5  # arrow line width
-ARROW_SCALE = 50  # arrowhead size
+ARROW_LW = 3  # arrow line width
+ARROW_SCALE = 25  # arrowhead size
 ROBOT_FONTSIZE = 20  # robot label font size
 
 
@@ -84,7 +84,7 @@ def draw(grid, robots=None, title="Workspace", ax=None, show=True):
                 robot.label,
                 ha="center",
                 va="center",
-                fontsize=ROBOT_FONTSIZE,
+                fontsize=ROBOT_FONTSIZE * robot.n,
                 fontweight="bold",
                 color=COLOR_LABEL,
                 zorder=4,
@@ -153,7 +153,7 @@ def _extract_turns(snapshots, titles):
     return turns
 
 
-def draw_sequence(grid, snapshots, titles=None, cols_per_row=5, save_path=None):
+def draw_sequence(grid, snapshots, titles=None, cols_per_row=5, save_path=None, robot_size=1):
     """
     Draw one panel per turn (between control switches).
 
@@ -222,7 +222,7 @@ def draw_sequence(grid, snapshots, titles=None, cols_per_row=5, save_path=None):
             st.label,
             ha="center",
             va="center",
-            fontsize=ROBOT_FONTSIZE,
+            fontsize=ROBOT_FONTSIZE * robot_size,
             fontweight="bold",
             color=COLOR_LABEL,
             zorder=4,
@@ -263,7 +263,7 @@ def draw_sequence(grid, snapshots, titles=None, cols_per_row=5, save_path=None):
             me.label,
             ha="center",
             va="center",
-            fontsize=ROBOT_FONTSIZE,
+            fontsize=ROBOT_FONTSIZE * robot_size,
             fontweight="bold",
             color=COLOR_LABEL,
             zorder=5,
@@ -284,14 +284,16 @@ def draw_sequence(grid, snapshots, titles=None, cols_per_row=5, save_path=None):
                         xytext=(x0, y0),
                         arrowprops=dict(
                             arrowstyle="->",
-                            lw=ARROW_LW,
-                            mutation_scale=ARROW_SCALE,
+                            lw=ARROW_LW * robot_size,
+                            mutation_scale=ARROW_SCALE * robot_size,
                             color=arrow_color,
                         ),
                         zorder=6,
                     )
                 else:
-                    ax.plot([x0, x1], [y0, y1], color=arrow_color, lw=ARROW_LW, zorder=6)
+                    ax.plot(
+                        [x0, x1], [y0, y1], color=arrow_color, lw=ARROW_LW * robot_size, zorder=6
+                    )
 
     for i in range(n_steps, n_rows * n_cols):
         axes[i // n_cols][i % n_cols].set_visible(False)
