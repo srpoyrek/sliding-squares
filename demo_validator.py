@@ -44,7 +44,7 @@ print(result)
 # reset
 a.row, a.col = 1, 1
 b.row, b.col = 1, 3
-ws._control = a.label
+ws._control = a
 
 # Test 2: invalid move mid-path
 bad_path = ["S", "LUS", "RUS", "DL"]
