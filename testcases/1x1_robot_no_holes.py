@@ -19,15 +19,15 @@ class OneByOneNoHoles(TestCase):
     name = "1x1_robot_no_holes"
 
     def setup(self):
-        tiles = [
-            [1, 1, 0, 1, 1],
-            [1, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1],
-        ]
+        grid = Grid(rows=3, cols=5)
+        grid.add_obstacle(row=2, col=0, height=1, width=5)
+        grid.add_obstacle(row=0, col=0, height=2, width=1)
+        grid.add_obstacle(row=0, col=4, height=2, width=1)
+        grid.add_obstacle(row=0, col=1)
+        grid.add_obstacle(row=0, col=3)
         robot_size = 1
         pos_a = (1, 1)
         pos_b = (1, 2)
-        grid = Grid(tiles)
         a = Robot("A", robot_size, *pos_a)
         b = Robot("B", robot_size, *pos_b)
         ws = Workspace(grid, a, b)

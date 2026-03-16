@@ -20,20 +20,15 @@ class TwoByTwoNonHoles(TestCase):
     name = "2x2_robot_non_holes"
 
     def setup(self):
-        tiles = [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 1, 0, 0, 1, 1, 1],
-            [1, 0, 0, 1, 0, 0, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-        ]
+        grid = Grid(rows=7, cols=9)
+        grid.add_boundary()
+        grid.add_obstacle(row=1, col=3, height=2, width=1)
+        grid.add_obstacle(row=1, col=6, height=2, width=2)
+        grid.add_obstacle(row=5, col=3, height=1, width=5)
 
         robot_size = 2
         pos_a = (2, 1)
         pos_b = (4, 1)
-        grid = Grid(tiles)
         a = Robot("A", robot_size, *pos_a)
         b = Robot("B", robot_size, *pos_b)
         ws = Workspace(grid, a, b)
