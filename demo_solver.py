@@ -6,10 +6,9 @@ from src.visualizer import draw_sequence, plots_path
 from src.workspace import Workspace
 
 grid = Grid(rows=7, cols=9)
-grid.add_boundary()
-grid.add_obstacle(row=1, col=3, height=2, width=1)
-grid.add_obstacle(row=1, col=6, height=2, width=2)
-grid.add_obstacle(row=5, col=3, height=1, width=5)
+grid.add_boundary(row=1, col=3, height=2, width=1)
+grid.add_boundary(row=1, col=6, height=2, width=2)
+grid.add_boundary(row=5, col=3, height=1, width=5)
 
 robot_size = 2
 pos_a = (2, 1)

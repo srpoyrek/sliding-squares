@@ -20,11 +20,11 @@ class OneByOneNoHoles(TestCase):
 
     def setup(self):
         grid = Grid(rows=3, cols=5)
-        grid.add_obstacle(row=2, col=0, height=1, width=5)
-        grid.add_obstacle(row=0, col=0, height=2, width=1)
-        grid.add_obstacle(row=0, col=4, height=2, width=1)
-        grid.add_obstacle(row=0, col=1)
-        grid.add_obstacle(row=0, col=3)
+        grid.add_boundary(row=2, col=0, height=1, width=5)
+        grid.add_boundary(row=0, col=0, height=2, width=1)
+        grid.add_boundary(row=0, col=4, height=2, width=1)
+        grid.add_boundary(row=0, col=1, height=1, width=1)
+        grid.add_boundary(row=0, col=3, height=1, width=1)
         robot_size = 1
         pos_a = (1, 1)
         pos_b = (1, 2)

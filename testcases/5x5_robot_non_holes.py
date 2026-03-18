@@ -21,8 +21,8 @@ class FiveByFiveNonHoles(TestCase):
 
     def setup(self):
         grid = Grid(rows=27, cols=20)
-        grid.add_boundary()
-        grid.add_obstacle(row=1, col=1, height=3, width=8)
+        grid.add_rect_boundary()
+        grid.add_boundary(row=1, col=1, height=3, width=8)
 
         robot_size = 5
         pos_a = (20, 10)
