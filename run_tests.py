@@ -104,4 +104,17 @@ def run_all():
 
 
 if __name__ == "__main__":
-    run_all()
+    if len(sys.argv) > 1:
+        name = sys.argv[1].lower()
+        classes = discover_test_cases()
+        matched = [cls for cls in classes if name in cls().name.lower()]
+        if not matched:
+            print(f"No test case matching '{sys.argv[1]}'")
+            sys.exit(1)
+        for cls in matched:
+            r = run_one(cls)
+            print(r)
+            if r.plot_path:
+                print(f"         plot -> {r.plot_path}")
+    else:
+        run_all()
