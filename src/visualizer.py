@@ -170,7 +170,99 @@ def _extract_turns(snapshots, titles):
     return turns
 
 
-def draw_sequence(grid, snapshots, titles=None, cols_per_row=5, save_path=None, robot_size=1):
+def _draw_turn(ax, grid, turn, color_map, arrow_map, robot_size):
+    draw(grid, robots=None, title=turn["title"], ax=ax, show=False)
+
+    st = turn["stationary"]
+    ax.add_patch(
+        patches.Rectangle(
+            (st.col, st.row),
+            st.n,
+            st.n,
+            linewidth=2,
+            edgecolor="white",
+            facecolor=color_map.get(st.label, "#888"),
+            alpha=0.85,
+            zorder=3,
+        )
+    )
+    ax.text(
+        st.col + st.n / 2,
+        st.row + st.n / 2,
+        st.label,
+        ha="center",
+        va="center",
+        fontsize=ROBOT_FONTSIZE * robot_size,
+        fontweight="bold",
+        color=COLOR_LABEL,
+        zorder=4,
+    )
+
+    ms = turn["moving_start"]
+    ax.add_patch(
+        patches.Rectangle(
+            (ms.col, ms.row),
+            ms.n,
+            ms.n,
+            linewidth=1,
+            edgecolor="white",
+            facecolor=color_map.get(ms.label, "#888"),
+            alpha=0.25,
+            zorder=3,
+        )
+    )
+
+    me = turn["moving_end"]
+    ax.add_patch(
+        patches.Rectangle(
+            (me.col, me.row),
+            me.n,
+            me.n,
+            linewidth=2,
+            edgecolor="white",
+            facecolor=color_map.get(me.label, "#888"),
+            alpha=0.90,
+            zorder=4,
+        )
+    )
+    ax.text(
+        me.col + me.n / 2,
+        me.row + me.n / 2,
+        me.label,
+        ha="center",
+        va="center",
+        fontsize=ROBOT_FONTSIZE * robot_size,
+        fontweight="bold",
+        color=COLOR_LABEL,
+        zorder=5,
+    )
+
+    wpts = turn["waypoints"]
+    arrow_color = arrow_map.get(ms.label, COLOR_ARROW_A)
+    if len(wpts) > 1:
+        for k in range(len(wpts) - 1):
+            x0, y0 = wpts[k]
+            x1, y1 = wpts[k + 1]
+            if k == len(wpts) - 2:
+                ax.annotate(
+                    "",
+                    xy=(x1, y1),
+                    xytext=(x0, y0),
+                    arrowprops=dict(
+                        arrowstyle="->",
+                        lw=ARROW_LW * robot_size,
+                        mutation_scale=ARROW_SCALE * robot_size,
+                        color=arrow_color,
+                    ),
+                    zorder=6,
+                )
+            else:
+                ax.plot([x0, x1], [y0, y1], color=arrow_color, lw=ARROW_LW * robot_size, zorder=6)
+
+
+def draw_sequence(
+    grid, snapshots, titles=None, cols_per_row=5, save_path=None, save_dir=None, robot_size=1
+):
     """
     Draw one panel per turn (between control switches).
 
@@ -212,105 +304,21 @@ def draw_sequence(grid, snapshots, titles=None, cols_per_row=5, save_path=None, 
     color_map = {first.label: COLOR_ROBOT_A, second.label: COLOR_ROBOT_B}
     arrow_map = {first.label: COLOR_ARROW_A, second.label: COLOR_ARROW_B}
 
+    if save_dir:
+        os.makedirs(save_dir, exist_ok=True)
+        for i, turn in enumerate(turns):
+            fig, ax = plt.subplots(figsize=(grid.cols * 0.7 + 0.5, grid.rows * 0.7 + 0.5))
+            _draw_turn(ax, grid, turn, color_map, arrow_map, robot_size)
+            plt.tight_layout()
+            plt.savefig(os.path.join(save_dir, f"turn_{i:02d}.png"), dpi=150, bbox_inches="tight")
+            plt.close()
+        return
+
     for i, turn in enumerate(turns):
         r = i // n_cols
         c = i % n_cols
         ax = axes[r][c]
-
-        draw(grid, robots=None, title=turn["title"], ax=ax, show=False)
-
-        # stationary robot
-        st = turn["stationary"]
-        ax.add_patch(
-            patches.Rectangle(
-                (st.col, st.row),
-                st.n,
-                st.n,
-                linewidth=2,
-                edgecolor="white",
-                facecolor=color_map.get(st.label, "#888"),
-                alpha=0.85,
-                zorder=3,
-            )
-        )
-        ax.text(
-            st.col + st.n / 2,
-            st.row + st.n / 2,
-            st.label,
-            ha="center",
-            va="center",
-            fontsize=ROBOT_FONTSIZE * robot_size,
-            fontweight="bold",
-            color=COLOR_LABEL,
-            zorder=4,
-        )
-
-        # moving robot — faded at start
-        ms = turn["moving_start"]
-        ax.add_patch(
-            patches.Rectangle(
-                (ms.col, ms.row),
-                ms.n,
-                ms.n,
-                linewidth=1,
-                edgecolor="white",
-                facecolor=color_map.get(ms.label, "#888"),
-                alpha=0.25,
-                zorder=3,
-            )
-        )
-
-        # moving robot — full at end
-        me = turn["moving_end"]
-        ax.add_patch(
-            patches.Rectangle(
-                (me.col, me.row),
-                me.n,
-                me.n,
-                linewidth=2,
-                edgecolor="white",
-                facecolor=color_map.get(me.label, "#888"),
-                alpha=0.90,
-                zorder=4,
-            )
-        )
-        ax.text(
-            me.col + me.n / 2,
-            me.row + me.n / 2,
-            me.label,
-            ha="center",
-            va="center",
-            fontsize=ROBOT_FONTSIZE * robot_size,
-            fontweight="bold",
-            color=COLOR_LABEL,
-            zorder=5,
-        )
-
-        # draw path as connected segments
-        wpts = turn["waypoints"]
-        arrow_color = arrow_map.get(ms.label, COLOR_ARROW_A)
-        if len(wpts) > 1:
-            for k in range(len(wpts) - 1):
-                x0, y0 = wpts[k]
-                x1, y1 = wpts[k + 1]
-                is_last_seg = k == len(wpts) - 2
-                if is_last_seg:
-                    ax.annotate(
-                        "",
-                        xy=(x1, y1),
-                        xytext=(x0, y0),
-                        arrowprops=dict(
-                            arrowstyle="->",
-                            lw=ARROW_LW * robot_size,
-                            mutation_scale=ARROW_SCALE * robot_size,
-                            color=arrow_color,
-                        ),
-                        zorder=6,
-                    )
-                else:
-                    ax.plot(
-                        [x0, x1], [y0, y1], color=arrow_color, lw=ARROW_LW * robot_size, zorder=6
-                    )
+        _draw_turn(ax, grid, turn, color_map, arrow_map, robot_size)
 
     for i in range(n_steps, n_rows * n_cols):
         axes[i // n_cols][i % n_cols].set_visible(False)
@@ -322,6 +330,105 @@ def draw_sequence(grid, snapshots, titles=None, cols_per_row=5, save_path=None, 
     else:
         plt.show()
 
+    plt.close()
+
+
+def draw_bfs_frontier(grid, frontier, switch_num, robot_size, save_dir=None):
+    """
+    Draw all states in a BFS frontier on a single plot.
+    Each state = one panel showing where A and B are.
+    """
+    from src.robot import Robot
+
+    states = list(frontier)
+    n = len(states)
+    if n == 0:
+        return
+
+    cols = min(n, 5)
+    rows = (n + cols - 1) // cols
+
+    fig, axes = plt.subplots(
+        rows, cols, figsize=(cols * (grid.cols * 0.4 + 0.5), rows * (grid.rows * 0.4 + 0.5))
+    )
+
+    if rows == 1 and cols == 1:
+        axes = [[axes]]
+    elif rows == 1:
+        axes = [list(axes)]
+    elif cols == 1:
+        axes = [[a] for a in axes]
+
+    for i, state in enumerate(states):
+        r, c = i // cols, i % cols
+        ax = axes[r][c]
+
+        title = f"S{switch_num} | A={state.pos_a} B={state.pos_b} ctrl={state.control.label}"
+        draw(grid, robots=None, title=title, ax=ax, show=False)
+
+        ra = Robot("A", robot_size, state.pos_a[0], state.pos_a[1])
+        ax.add_patch(
+            patches.Rectangle(
+                (ra.col, ra.row),
+                ra.n,
+                ra.n,
+                linewidth=2,
+                edgecolor="white",
+                facecolor=COLOR_ROBOT_A,
+                alpha=0.85,
+                zorder=3,
+            )
+        )
+        ax.text(
+            ra.col + ra.n / 2,
+            ra.row + ra.n / 2,
+            "A",
+            ha="center",
+            va="center",
+            fontsize=10,
+            fontweight="bold",
+            color="white",
+            zorder=4,
+        )
+
+        rb = Robot("B", robot_size, state.pos_b[0], state.pos_b[1])
+        ax.add_patch(
+            patches.Rectangle(
+                (rb.col, rb.row),
+                rb.n,
+                rb.n,
+                linewidth=2,
+                edgecolor="white",
+                facecolor=COLOR_ROBOT_B,
+                alpha=0.85,
+                zorder=3,
+            )
+        )
+        ax.text(
+            rb.col + rb.n / 2,
+            rb.row + rb.n / 2,
+            "B",
+            ha="center",
+            va="center",
+            fontsize=10,
+            fontweight="bold",
+            color="white",
+            zorder=4,
+        )
+
+    for i in range(n, rows * cols):
+        axes[i // cols][i % cols].set_visible(False)
+
+    plt.suptitle(f"BFS Switch {switch_num} — {n} states", fontsize=14, fontweight="bold")
+    plt.tight_layout()
+
+    if save_dir:
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = os.path.join(save_dir, f"switch_{switch_num:02d}.png")
+        plt.savefig(save_path, dpi=100, bbox_inches="tight")
+        print(f"Saved {save_path}")
+    else:
+        plt.show()
     plt.close()
 
 

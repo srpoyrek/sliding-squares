@@ -53,18 +53,17 @@ def run_one(cls: type) -> TestResult:
             return result
 
         plots_tests_dir = os.path.join(get_plots_dir(), "tests")
-        os.makedirs(plots_tests_dir, exist_ok=True)
-        plot_file = os.path.join(plots_tests_dir, f"{tc.name.replace(' ', '_')}.png")
+        plot_dir = os.path.join(plots_tests_dir, tc.name.replace(" ", "_"))
 
         snapshots = [[a, b] for a, b in vr.snapshots]
         draw_sequence(
             ws.grid,
             snapshots,
             titles=vr.titles,
-            save_path=plot_file,
+            save_dir=plot_dir,
             robot_size=ws.robot_a.n,
         )
-        result.plot_path = plot_file
+        result.plot_path = plot_dir
         result.passed = True
 
     except Exception as e:

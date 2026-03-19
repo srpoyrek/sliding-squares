@@ -13,6 +13,7 @@ from collections import deque
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.state import State
+from src.visualizer import draw_bfs_frontier
 from src.workspace import COMMANDS, DIRECTIONS
 
 
@@ -57,7 +58,7 @@ def flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
     return list(visited.items())  # [(pos, [cmds]), ...]
 
 
-def bfs(workspace, goal_a, goal_b) -> dict | None:
+def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
     """
     Layered BFS — finds minimum control switches and reconstructs path.
 
@@ -135,6 +136,15 @@ def bfs(workspace, goal_a, goal_b) -> dict | None:
                     "path": _reconstruct(parent, state),
                     "visited": visited,
                 }
+
+        if draw:
+            draw_bfs_frontier(
+                workspace.grid,
+                next_frontier,
+                switches,
+                n,
+                save_path=f"plots/bfs/switch_{switches:02d}.png",
+            )
 
         if not next_frontier:
             return None
