@@ -5,6 +5,8 @@ Base class for all test cases.
 Every test case in testcases/ subclasses this.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Optional
 

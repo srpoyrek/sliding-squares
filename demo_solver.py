@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from src.grid import Grid
 from src.robot import Robot
 from src.solver import Solver

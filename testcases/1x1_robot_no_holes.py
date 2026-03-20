@@ -4,6 +4,8 @@
 Trivial 1x1 swap with a pocket.
 """
 
+from __future__ import annotations
+
 import os
 import sys
 

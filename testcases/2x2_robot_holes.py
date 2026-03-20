@@ -5,6 +5,8 @@ Test case for a 2x2 robot scenario with holes.
 swap robot positions
 """
 
+from __future__ import annotations
+
 import os
 import sys
 

@@ -14,6 +14,8 @@ Layout assumed:
         testcases/   <- test case files go here
 """
 
+from __future__ import annotations
+
 import os
 
 # ── Root ────────────────────────────────────────────────

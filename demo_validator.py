@@ -4,6 +4,8 @@ demo_validator.py
 Manual demo for the validator.
 """
 
+from __future__ import annotations
+
 from src.grid import Grid
 from src.path_resolver import PathResolver
 from src.robot import Robot

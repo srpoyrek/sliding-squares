@@ -6,6 +6,8 @@ The physical environment — a 2D map of free tiles and obstacles.
 Knows nothing about robots.
 """
 
+from __future__ import annotations
+
 from typing import Optional
 
 FREE = 0

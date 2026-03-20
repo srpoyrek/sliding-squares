@@ -14,6 +14,8 @@ Does NOT know about:
   - whether a move is valid
 """
 
+from __future__ import annotations
+
 
 class Robot:
     """

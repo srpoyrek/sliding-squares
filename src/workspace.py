@@ -14,6 +14,8 @@ This is the only place where:
   - valid moves are determined
 """
 
+from __future__ import annotations
+
 from src.grid import Grid
 from src.robot import Robot
 from src.state import State

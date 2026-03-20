@@ -12,6 +12,8 @@ Does NOT hold robot objects (those live in workspace).
 Just the minimum data needed to uniquely describe a situation.
 """
 
+from __future__ import annotations
+
 from src.robot import Robot
 
 

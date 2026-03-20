@@ -5,6 +5,8 @@ Given a workspace, a path, and goal positions:
 validates every move, counts control switches, and plots the sequence.
 """
 
+from __future__ import annotations
+
 from copy import deepcopy
 from typing import Optional
 

@@ -15,6 +15,8 @@ Rules:
     - Valid commands: U D L R S
 """
 
+from __future__ import annotations
+
 import re
 
 

@@ -14,7 +14,7 @@ pip install -r requirements.txt
 python -m pre_commit install
 ```
 
-Requires Python 3.12+.
+Requires Python 3.8+.
 
 ## Structure
 

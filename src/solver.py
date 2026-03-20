@@ -6,6 +6,8 @@ to swap two robots in a given workspace.
 Returns minimum switches and the actual command path.
 """
 
+from __future__ import annotations
+
 from src.bfs import bfs
 from src.workspace import Workspace
 

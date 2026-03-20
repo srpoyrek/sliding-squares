@@ -9,6 +9,8 @@ Two functions:
                   tracks parent pointers to reconstruct path
 """
 
+from __future__ import annotations
+
 from collections import deque
 from typing import Any, Dict, List, Optional, Tuple
 

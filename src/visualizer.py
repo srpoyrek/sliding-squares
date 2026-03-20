@@ -5,6 +5,8 @@ Renders the Grid and Robots using matplotlib.
 Completely separate from simulation logic.
 """
 
+from __future__ import annotations
+
 import os
 from copy import deepcopy
 
