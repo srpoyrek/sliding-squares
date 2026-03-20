@@ -46,27 +46,56 @@ class Grid:
         else:
             raise ValueError("Provide either tiles or both rows and cols.")
 
+        self._holes: set = set()
+        self._boundaries: set = set()
+
+        if tiles is not None:
+            for r in range(self.rows):
+                for c in range(self.cols):
+                    if self.tiles[r][c] == HOLE:
+                        self._holes.add((r, c))
+                    elif self.tiles[r][c] == BOUNDARY:
+                        self._boundaries.add((r, c))
+
     # ── Construction helpers ─────────────────────────────
     def add_hole(self, row: int, col: int, height: int = 1, width: int = 1):
         """Set a rectangle of cells as internal holes/islands."""
         for dr in range(height):
             for dc in range(width):
                 self.tiles[row + dr][col + dc] = HOLE
+                self._holes.add((row + dr, col + dc))
 
     def add_boundary(self, row: int, col: int, height: int = 1, width: int = 1):
         """Set a rectangle of cells as boundary — same as add_hole but marks as BOUNDARY."""
         for dr in range(height):
             for dc in range(width):
                 self.tiles[row + dr][col + dc] = BOUNDARY
+                self._boundaries.add((row + dr, col + dc))
 
     def add_rect_boundary(self):
         """Draw the full perimeter of the grid as boundary."""
         for c in range(self.cols):
             self.tiles[0][c] = BOUNDARY
             self.tiles[self.rows - 1][c] = BOUNDARY
+            self._boundaries.add((0, c))
+            self._boundaries.add((self.rows - 1, c))
         for r in range(1, self.rows - 1):
             self.tiles[r][0] = BOUNDARY
             self.tiles[r][self.cols - 1] = BOUNDARY
+            self._boundaries.add((r, 0))
+            self._boundaries.add((r, self.cols - 1))
+
+    def get_holes(self) -> set:
+        """Return set of all hole cell positions (row, col)."""
+        return set(self._holes)
+
+    def get_boundaries(self) -> set:
+        """Return set of all boundary cell positions (row, col)."""
+        return set(self._boundaries)
+
+    def get_all_obstacles(self) -> set:
+        """Return set of all obstacle positions — both holes and boundaries."""
+        return self._holes | self._boundaries
 
     # ── Queries ─────────────────────────────────────────
 

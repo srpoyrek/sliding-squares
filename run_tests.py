@@ -13,6 +13,7 @@ import inspect
 import os
 import sys
 import traceback
+from multiprocessing import Pool
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -86,9 +87,12 @@ def run_all():
     print("=" * 60)
 
     results = []
-    for cls in classes:
-        r = run_one(cls)
-        results.append(r)
+
+    if __name__ == "__main__":
+        with Pool(processes=2) as pool:
+            results = pool.map(run_one, classes)
+
+    for r in results:
         print(r)
         if r.plot_path:
             print(f"         plot -> {r.plot_path}")
