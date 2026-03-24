@@ -10,18 +10,19 @@ Usage:
 from __future__ import annotations
 
 import inspect
+import multiprocessing as mp
 import os
 import sys
 import traceback
-from multiprocessing import Pool
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.directories import get_plots_dir, get_testcases_dir
 from src.solver import Solver
 from src.test_case import TestCase, TestResult
 from src.validator import Validator
 from src.visualizer import draw_sequence
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
 
 
 def discover_test_cases() -> list[type]:
@@ -38,8 +39,26 @@ def discover_test_cases() -> list[type]:
     return cases
 
 
-def run_one(cls: type) -> TestResult:
-    tc = cls()
+def run_one(cls_name: str) -> TestResult:
+    sys.path.insert(0, BASE_DIR)
+    sys.path.insert(0, get_testcases_dir())
+
+    from src.directories import get_testcases_dir as _get_testcases_dir
+    from src.test_case import TestCase, TestResult
+
+    cls = None
+    for fname in sorted(os.listdir(_get_testcases_dir())):
+        if not fname.endswith(".py") or fname.startswith("_"):
+            continue
+        module = __import__(fname[:-3])
+        for _, obj in inspect.getmembers(module, inspect.isclass):
+            if issubclass(obj, TestCase) and obj is not TestCase and obj.__name__ == cls_name:
+                cls = obj
+                break
+        if cls:
+            break
+
+    tc = cls()  # type: ignore
     result = TestResult(name=tc.name, passed=False)
 
     try:
@@ -87,15 +106,12 @@ def run_all():
     print("=" * 60)
 
     results = []
-
-    if __name__ == "__main__":
-        with Pool(processes=4) as pool:
-            results = pool.map(run_one, classes)
-
-    for r in results:
-        print(r)
-        if r.plot_path:
-            print(f"         plot -> {r.plot_path}")
+    with mp.get_context("spawn").Pool(processes=min(8, mp.cpu_count())) as pool:
+        for r in pool.imap_unordered(run_one, [cls.__name__ for cls in classes]):
+            results.append(r)
+            print(r, flush=True)
+            if r.plot_path:
+                print(f"         plot -> {r.plot_path}", flush=True)
 
     passed = [r for r in results if r.passed]
     failed = [r for r in results if not r.passed]
@@ -117,7 +133,7 @@ if __name__ == "__main__":
             print(f"No test case matching '{sys.argv[1]}'")
             sys.exit(1)
         for cls in matched:
-            r = run_one(cls)
+            r = run_one(cls.__name__)
             print(r)
             if r.plot_path:
                 print(f"         plot -> {r.plot_path}")
