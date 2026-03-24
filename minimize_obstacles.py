@@ -1,22 +1,26 @@
 """
 minimize_obstacles.py
 ---------------------
-Greedy obstacle minimizer.
+Finds the minimum set of obstacles/boundaries needed to maintain the baseline
+switch count.
 
-Given a workspace, start/goal positions, and a baseline control switch count,
-removes obstacles one at a time and checks if the switch count drops.
-Irrelevant obstacles are removed permanently from the grid.
+For every obstacle and boundary cell in the original grid, we:
+  1. Deep-copy the entire workspace
+  2. Disable that single cell (set it FREE)
+  3. Run the solver
+  4. Return whether that cell is *required* (removing it breaks or degrades
+     the solution)
 
-Returns the minimal set of obstacles that still forces the same switch count.
+Parallel execution via multiprocessing.Pool.
+After the search: plots the original grid, then the minimal grid + full path.
 
 Usage:
-    from minimize_obstacles import minimize_obstacles
-    minimal_grid, essential_obstacles = minimize_obstacles(ws, goal_a, goal_b)
+    python minimize_obstacles.py <test_case_name>
 """
 
 from __future__ import annotations
 
-import copy
+import multiprocessing as mp
 import os
 import sys
 
@@ -27,82 +31,165 @@ from src.robot import Robot
 from src.solver import Solver
 from src.workspace import Workspace
 
+# ---------------------------------------------------------------------------
+# Worker
+# ---------------------------------------------------------------------------
+
+
+def _test_cell(args: tuple) -> dict:
+    """
+    Worker function.
+
+    Deep-copies the full workspace, disables *one* cell (obstacle or boundary),
+    solves, and returns whether that cell is required.
+
+    Parameters (packed into args for Pool.map compatibility)
+    ---------------------------------------------------------
+    workspace_tiles : list[list[int]]   — tile grid (copied, not mutated)
+    rows, cols      : int               — grid dimensions
+    r, c            : int               — cell to disable
+    robot_a_info    : tuple             — (label, n, row, col)
+    robot_b_info    : tuple             — (label, n, row, col)
+    goal_a          : tuple             — (row, col)
+    goal_b          : tuple             — (row, col)
+    baseline_switches : int             — switches on the original grid
+
+    Returns
+    -------
+    dict with keys: r, c, switches, required
+        required=True  → removing this cell broke/degraded the solution
+        required=False → safe to remove
+    """
+    (
+        workspace_tiles,
+        rows,
+        cols,
+        r,
+        c,
+        robot_a_info,
+        robot_b_info,
+        goal_a,
+        goal_b,
+        baseline_switches,
+    ) = args
+
+    # local imports so each worker is self-contained
+    from src.grid import Grid
+    from src.robot import Robot
+    from src.solver import Solver
+    from src.workspace import Workspace
+
+    # --- deep-copy the tile grid, then disable the target cell ---
+    tiles_copy = [row[:] for row in workspace_tiles]
+    tiles_copy[r][c] = FREE
+
+    grid = Grid(tiles=tiles_copy)
+    robot_a = Robot(*robot_a_info)
+    robot_b = Robot(*robot_b_info)
+    ws = Workspace(grid, robot_a, robot_b)
+
+    result = Solver(ws, goal_a, goal_b).solve()
+
+    if not result.solvable:
+        switches = -1
+        required = True  # removing it made the problem unsolvable
+    else:
+        switches = result.switches
+        # required if removing the cell keeps or worsens switch count
+        required = switches >= baseline_switches
+
+    return {"r": r, "c": c, "switches": switches, "required": required}
+
+
+# ---------------------------------------------------------------------------
+# Main minimizer
+# ---------------------------------------------------------------------------
+
 
 def minimize_obstacles(
     ws: Workspace,
     goal_a: tuple,
     goal_b: tuple,
+    baseline_switches: int,
+    processes: int = 4,
 ) -> tuple[Grid, set]:
     """
-    Greedily remove obstacles that don't contribute to the max switch count.
-
-    Parameters
-    ----------
-    ws     : Workspace with the original grid and robots
-    goal_a : (row, col) goal for robot A
-    goal_b : (row, col) goal for robot B
+    Test every obstacle and boundary cell in parallel.
 
     Returns
     -------
-    (minimal_grid, essential_obstacles)
-        minimal_grid       : Grid with only essential obstacles remaining
-        essential_obstacles: set of (row, col) positions that are load-bearing
+    minimal_grid : Grid   — grid containing only the required cells
+    required_set : set    — {(r, c), ...} of cells that must be kept
     """
-    # ── baseline solve ───────────────────────────────────
-    baseline = Solver(ws, goal_a, goal_b).solve()
-    if not baseline.solvable:
-        raise ValueError("Original workspace is not solvable.")
+    original_tiles = [row[:] for row in ws.grid.tiles]
+    original_grid = ws.grid
 
-    baseline_switches = baseline.switches
-    print(f"Baseline control switches: {baseline_switches}")
+    # collect ALL non-free cells (obstacles + boundaries)
+    all_cells = sorted(original_grid.get_all_obstacles())  # adjust if you
+    # have a separate get_all_boundaries(); just extend all_cells with those
 
-    # ── work on a deep copy of the grid ─────────────────
-    grid = copy.deepcopy(ws.grid)
-    all_obstacles = grid.get_all_obstacles()
-    essential = all_obstacles.copy()
+    print(f"Cells to test : {len(all_cells)}  (obstacles + boundaries)")
+    print(f"Baseline switches : {baseline_switches}")
+    print(f"Workers : {processes}\n")
 
-    print(f"Total obstacles: {len(all_obstacles)}")
+    robot_a_info = (ws.robot_a.label, ws.robot_a.n, ws.robot_a.row, ws.robot_a.col)
+    robot_b_info = (ws.robot_b.label, ws.robot_b.n, ws.robot_b.row, ws.robot_b.col)
 
-    removed = 0
-    for i, (r, c) in enumerate(sorted(all_obstacles)):
-        original_val = grid.tiles[r][c]
+    args = [
+        (
+            original_tiles,
+            original_grid.rows,
+            original_grid.cols,
+            r,
+            c,
+            robot_a_info,
+            robot_b_info,
+            goal_a,
+            goal_b,
+            baseline_switches,
+        )
+        for r, c in all_cells
+    ]
 
-        # temporarily remove this obstacle
-        grid.tiles[r][c] = FREE
+    # --- parallel execution ---
+    # Use "spawn" explicitly to avoid deadlocks on macOS/Linux with
+    # modules that use threads internally (matplotlib, etc.).
+    ctx = mp.get_context("spawn")
+    required_set: set = set()
+    done = 0
+    with ctx.Pool(processes=processes) as pool:
+        for res in pool.imap_unordered(_test_cell, args):
+            done += 1
+            r, c, switches, required = res["r"], res["c"], res["switches"], res["required"]
+            tag = switches if switches != -1 else "unsolvable"
+            if required:
+                required_set.add((r, c))
+                print(
+                    f"  [{done:>3}/{len(all_cells)}] KEEP ({r},{c}) switches without it → {tag}",
+                    flush=True,
+                )
+            else:
+                print(
+                    f"  [{done:>3}/{len(all_cells)}] REMOVE ({r},{c}) switches without it → {tag}",
+                    flush=True,
+                )
 
-        # rebuild workspace with modified grid
-        robot_a = Robot(ws.robot_a.label, ws.robot_a.n, ws.robot_a.row, ws.robot_a.col)
-        robot_b = Robot(ws.robot_b.label, ws.robot_b.n, ws.robot_b.row, ws.robot_b.col)
-        test_ws = Workspace(grid, robot_a, robot_b)
+    print(f"\nRequired cells : {len(required_set)} / {len(all_cells)}")
 
-        result = Solver(test_ws, goal_a, goal_b).solve()
+    # --- build minimal grid: start blank, re-add only required cells ---
+    minimal_grid = Grid(rows=original_grid.rows, cols=original_grid.cols)
+    for r, c in required_set:
+        minimal_grid.tiles[r][c] = original_tiles[r][c]
 
-        if result.solvable and result.switches <= baseline_switches:  # type: ignore
-            # obstacle is load-bearing — restore it
-            grid.tiles[r][c] = original_val
-            print(
-                f"  [{i+1}/{len(all_obstacles)}] kept ({r},{c}) — switches dropped to {
-                    result.switches}"
-            )
-        else:
-            # obstacle not needed — keep it removed
-            essential.discard((r, c))
-            removed += 1
-            print(
-                f"  [{i+1}/{len(all_obstacles)}] removed ({r},{c}) — switches {
-                    result.switches if result.solvable else 'unsolvable'}"
-            )
+    return minimal_grid, required_set
 
-    print(f"\nDone. Removed {removed} / {len(all_obstacles)} obstacles.")
-    print(f"Essential obstacles remaining: {len(essential)}")
 
-    return grid, essential
-
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     import inspect
-    import os
-    import sys
 
     from src.test_case import TestCase
     from src.validator import Validator
@@ -110,7 +197,6 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         print("Usage: python minimize_obstacles.py <test_case_name>")
-        print("Example: python minimize_obstacles.py 2x2_robot_no_holes")
         sys.exit(1)
 
     test_name = sys.argv[1]
@@ -129,43 +215,69 @@ if __name__ == "__main__":
     out_dir = os.path.join("plots", "minimize", test_name)
     os.makedirs(out_dir, exist_ok=True)
 
-    # ── baseline ─────────────────────────────────────────
+    # ------------------------------------------------------------------ #
+    # 1. BASELINE — solve + plot the original grid                        #
+    # ------------------------------------------------------------------ #
+    print("=" * 60)
+    print("ORIGINAL GRID")
+    print("=" * 60)
+    ws.grid.display()
+
     baseline_result = Solver(ws, goal_a, goal_b).solve()
-    print(f"Baseline switches: {baseline_result.switches}")
+    baseline_switches = baseline_result.switches
+    print(f"Baseline switches: {baseline_switches}\n")
 
     vr_baseline = Validator(ws, goal_a, goal_b).run(baseline_result.path, plot=False)
-    snapshots = [[a, b] for a, b in vr_baseline.snapshots]
     draw_sequence(
         ws.grid,
-        snapshots,
+        [[a, b] for a, b in vr_baseline.snapshots],
         titles=vr_baseline.titles,
-        save_dir=os.path.join(out_dir, "baseline"),
+        save_dir=os.path.join(out_dir, "original"),
         robot_size=ws.robot_a.n,
     )
-    print(f"Baseline turns saved to {os.path.join(out_dir, 'baseline')}")
+    print(f"Original plot saved → {os.path.join(out_dir, 'original')}\n")
 
-    ws.robot_a.row, ws.robot_a.col = tc.setup()[0].robot_a.row, tc.setup()[0].robot_a.col
-    ws.robot_b.row, ws.robot_b.col = tc.setup()[0].robot_b.row, tc.setup()[0].robot_b.col
+    # ------------------------------------------------------------------ #
+    # 2. MINIMIZE — parallel search                                       #
+    # ------------------------------------------------------------------ #
+    print("=" * 60)
+    print("MINIMIZING")
+    print("=" * 60)
 
-    # ── minimize ─────────────────────────────────────────
-    minimal_grid, essential = minimize_obstacles(ws, goal_a, goal_b)
+    ws_fresh, goal_a, goal_b = tc.setup()  # fresh robots for minimize call
+    minimal_grid, required_set = minimize_obstacles(
+        ws_fresh,
+        goal_a,
+        goal_b,
+        baseline_switches,
+        processes=4,  # type: ignore
+    )
 
-    # solve minimal grid
-    robot_a = Robot(ws.robot_a.label, ws.robot_a.n, ws.robot_a.row, ws.robot_a.col)
-    robot_b = Robot(ws.robot_b.label, ws.robot_b.n, ws.robot_b.row, ws.robot_b.col)
+    print("\n" + "=" * 60)
+    print("MINIMAL GRID")
+    print("=" * 60)
+    minimal_grid.display()
+
+    # ------------------------------------------------------------------ #
+    # 3. FINAL SOLVE — on the minimal grid, plot the full solution path   #
+    # ------------------------------------------------------------------ #
+    robot_a = Robot(
+        ws_fresh.robot_a.label, ws_fresh.robot_a.n, ws_fresh.robot_a.row, ws_fresh.robot_a.col
+    )
+    robot_b = Robot(
+        ws_fresh.robot_b.label, ws_fresh.robot_b.n, ws_fresh.robot_b.row, ws_fresh.robot_b.col
+    )
     minimal_ws = Workspace(minimal_grid, robot_a, robot_b)
 
     minimal_result = Solver(minimal_ws, goal_a, goal_b).solve()
-    print(f"Minimal switches: {minimal_result.switches}")
+    print(f"Minimal grid switches: {minimal_result.switches}")
 
     vr_minimal = Validator(minimal_ws, goal_a, goal_b).run(minimal_result.path, plot=False)
-    snapshots_min = [[a, b] for a, b in vr_minimal.snapshots]
     draw_sequence(
         minimal_grid,
-        snapshots_min,
+        [[a, b] for a, b in vr_minimal.snapshots],
         titles=vr_minimal.titles,
         save_dir=os.path.join(out_dir, "minimal"),
-        robot_size=ws.robot_a.n,
+        robot_size=ws_fresh.robot_a.n,
     )
-    print(f"Minimal turns saved to {os.path.join(out_dir, 'minimal')}")
-    print(f"\nEssential obstacles: {len(essential)} / {len(ws.grid.get_all_obstacles())}")
+    print(f"Minimal plot  saved → {os.path.join(out_dir, 'minimal')}")

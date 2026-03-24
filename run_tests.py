@@ -89,7 +89,7 @@ def run_all():
     results = []
 
     if __name__ == "__main__":
-        with Pool(processes=2) as pool:
+        with Pool(processes=4) as pool:
             results = pool.map(run_one, classes)
 
     for r in results:
