@@ -145,7 +145,7 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
                 next_frontier,
                 switches,
                 n,
-                save_path=f"plots/bfs/switch_{switches:02d}.png",
+                save_path=f"plots/bfs/switch_{switches:02d}.png",  # type: ignore
             )
 
         if not next_frontier:

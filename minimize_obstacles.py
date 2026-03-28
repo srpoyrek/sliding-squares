@@ -111,7 +111,7 @@ def minimize_obstacles(
     goal_a: tuple,
     goal_b: tuple,
     baseline_switches: int,
-    processes: int = 4,
+    processes: int = 2,
 ) -> tuple[Grid, set]:
     """
     Test every obstacle and boundary cell in parallel.
@@ -249,7 +249,7 @@ if __name__ == "__main__":
         ws_fresh,
         goal_a,
         goal_b,
-        baseline_switches,
+        baseline_switches,  # type: ignore
         processes=4,  # type: ignore
     )
 
