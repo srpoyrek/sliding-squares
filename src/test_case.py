@@ -17,10 +17,13 @@ class TestResult:
     passed: bool
     plot_path: Optional[str] = None
     error: Optional[str] = None
+    time: Optional[float] = None
 
     def __repr__(self):
         status = "PASS" if self.passed else "FAIL"
         parts = [f"[{status}] {self.name}"]
+        if self.time is not None:
+            parts.append(f"time={self.time}s")
         if self.error:
             parts.append(f"error={self.error!r}")
         return "  ".join(parts)

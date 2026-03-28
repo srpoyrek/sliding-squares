@@ -13,6 +13,7 @@ import inspect
 import multiprocessing as mp
 import os
 import sys
+import time
 import traceback
 
 from src.directories import get_plots_dir, get_testcases_dir
@@ -64,7 +65,15 @@ def run_one(cls_name: str) -> TestResult:
     try:
         ws, goal_a, goal_b = tc.setup()
 
+        start = time.time()
         solver_result = Solver(ws, goal_a, goal_b).solve()
+        elapsed = time.time() - start
+        if elapsed < 0.001:
+            result.time = f"{elapsed*1_000_000:.1f}u"  # type: ignore
+        elif elapsed < 1:
+            result.time = f"{elapsed*1000:.1f}m"  # type: ignore
+        else:
+            result.time = f"{elapsed:.2f}"  # type: ignore
         if not solver_result.solvable:
             result.error = "Solver returned solvable=False"
             return result
@@ -96,6 +105,7 @@ def run_one(cls_name: str) -> TestResult:
 
 
 def run_all():
+    wall_start = time.time()
     classes = discover_test_cases()
 
     if not classes:
@@ -122,6 +132,11 @@ def run_all():
         print(f"FAILED: {len(failed)}")
         for r in failed:
             print(f"  {r.name}: {r.error}")
+
+    times = [r.time for r in results if r.time is not None]
+    if times:
+        print(f"\nSlowest: {max(times)}  Fastest: {min(times)}")
+    print(f"\nTotal wall time: {round(time.time() - wall_start, 2)}")
 
 
 if __name__ == "__main__":

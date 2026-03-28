@@ -18,8 +18,15 @@ from src.state import State
 from src.visualizer import draw_bfs_frontier
 from src.workspace import COMMANDS, DIRECTIONS
 
+# ---------------------------------------------------------------------------
+# Memoization cache
+# key: (pos_static, n)
+# value: dict { pos_moving: list of (pos, [cmds]) }
+# ---------------------------------------------------------------------------
+_FLOOD_CACHE: Dict[Tuple, Dict] = {}
 
-def flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
+
+def _original_flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
     """
     Find all positions the moving robot can reach without switching.
     Returns list of (pos, commands_to_get_there) tuples.
@@ -60,6 +67,28 @@ def flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
     return list(visited.items())  # [(pos, [cmds]), ...]
 
 
+def _build_cache(workspace, pos_static, n) -> dict:
+    result = {}
+    for r in range(workspace.grid.rows):
+        for c in range(workspace.grid.cols):
+            start = (r, c)
+            if not all(
+                workspace.grid.is_free(r + dr, c + dc) for dr in range(n) for dc in range(n)
+            ):
+                continue
+            if workspace.robots_overlap(r, c, n, pos_static[0], pos_static[1], n):
+                continue
+            result[start] = _original_flood_fill(workspace, start, pos_static, n)
+    return result
+
+
+def flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
+    cache_key = (pos_static, n)
+    if cache_key not in _FLOOD_CACHE:
+        _FLOOD_CACHE[cache_key] = _build_cache(workspace, pos_static, n)
+    return _FLOOD_CACHE[cache_key].get(pos_moving, [])
+
+
 def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
     """
     Layered BFS — finds minimum control switches and reconstructs path.
@@ -78,6 +107,7 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
         visited  : dict state -> switches count
     or None if no solution.
     """
+    _FLOOD_CACHE.clear()  # clear cache to avoid stale entries from previous workspaces
     n = workspace.robot_a.n
     start_state = workspace.get_state()
     start_a, start_b = start_state.pos_a, start_state.pos_b
