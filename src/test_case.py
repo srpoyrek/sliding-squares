@@ -23,7 +23,7 @@ class TestResult:
         status = "PASS" if self.passed else "FAIL"
         parts = [f"[{status}] {self.name}"]
         if self.time is not None:
-            parts.append(f"time={self.time}s")
+            parts.append(f"Solver time={self.time}s")
         if self.error:
             parts.append(f"error={self.error!r}")
         return "  ".join(parts)

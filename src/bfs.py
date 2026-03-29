@@ -145,7 +145,6 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
             next_robot = (
                 workspace.robot_b if state.control == workspace.robot_a else workspace.robot_a
             )
-
             pos_moving = state.pos_b if next_robot == workspace.robot_b else state.pos_a
             pos_static = state.pos_a if next_robot == workspace.robot_b else state.pos_b
 
@@ -193,6 +192,8 @@ def _reconstruct(parent: dict, goal_state: State) -> list[str]:
 
     while parent.get(state) is not None:
         prev_state, cmds = parent[state]
+        if prev_state is None:
+            break
         path = cmds + path
         state = prev_state
 

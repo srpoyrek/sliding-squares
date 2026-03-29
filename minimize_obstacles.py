@@ -92,11 +92,11 @@ def _test_cell(args: tuple) -> dict:
 
     if not result.solvable:
         switches = -1
-        required = True  # removing it made the problem unsolvable
+        required = False  # removing it made the problem unsolvable
     else:
         switches = result.switches
         # required if removing the cell keeps or worsens switch count
-        required = switches >= baseline_switches
+        required = switches < baseline_switches
 
     return {"r": r, "c": c, "switches": switches, "required": required}
 
