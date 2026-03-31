@@ -17,14 +17,13 @@ from typing import Any, Dict, List, Optional, Tuple
 from src.state import State
 from src.visualizer import draw_bfs_frontier
 from src.workspace import COMMANDS, DIRECTIONS
-
 # ---------------------------------------------------------------------------
 # Memoization cache
-# key: (pos_static, n)
-# value: dict { pos_moving: list of (pos, [cmds]) }
+# _FLOOD_CACHE key: (pos_static, n) -> { pos_moving: list of (pos, [cmds]) }
+# _VALID_POS_CACHE key: n -> set of (row, col) where robot of size n fits
 # ---------------------------------------------------------------------------
 _FLOOD_CACHE: Dict[Tuple, Dict] = {}
-
+_VALID_POS_CACHE: Dict[int, set] = {}
 
 def _original_flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
     """
@@ -42,8 +41,20 @@ def _original_flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
     -------
     list of ( (row,col), [cmd, cmd, ...] ) — position + moves to reach it
     """
-    # visited: pos -> list of commands from pos_moving to reach it
-    visited = {pos_moving: []}
+
+    # 1. Precompute valid grid positions for this robot size (ignores the other robot)
+    if n not in _VALID_POS_CACHE:
+        valid_set = set()
+        for r in range(workspace.grid.rows - n + 1):
+            for c in range(workspace.grid.cols - n + 1):
+                if all(workspace.grid.is_free(r + dr, c + dc) for dr in range(n) for dc in range(n)):
+                    valid_set.add((r, c))
+        _VALID_POS_CACHE[n] = valid_set
+    valid_positions = _VALID_POS_CACHE[n]
+
+    # 2. Use a parent map to avoid O(K^2) list concatenations
+    # parent_map[pos] = (previous_pos, command_taken_to_get_here)
+    parent_map = {pos_moving: (None, None)}
     queue = deque([pos_moving])
 
     while queue:
@@ -54,39 +65,41 @@ def _original_flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
             nr, nc = row + dr, col + dc
             npos = (nr, nc)
 
-            if npos in visited:
+            if npos in parent_map:
                 continue
-            if not all(workspace.grid.is_free(nr + r, nc + c) for r in range(n) for c in range(n)):
+            # O(1) grid obstacle check instead of O(N^2)
+            if npos not in valid_positions:
                 continue
+            # Dynamic robot collision check
             if workspace.robots_overlap(nr, nc, n, pos_static[0], pos_static[1], n):
                 continue
 
-            visited[npos] = visited[pos] + [name]
+            parent_map[npos] = (pos, name)
             queue.append(npos)
 
-    return list(visited.items())  # [(pos, [cmds]), ...]
+    # 3. Reconstruct command paths only at the very end
+    results = []
+    for target in parent_map:
+        cmds = []
+        curr = target
+        while curr != pos_moving:
+            curr, cmd = parent_map[curr]
+            cmds.append(cmd)
+        cmds.reverse()
+        results.append((target, cmds))
 
-
-def _build_cache(workspace, pos_static, n) -> dict:
-    result = {}
-    for r in range(workspace.grid.rows):
-        for c in range(workspace.grid.cols):
-            start = (r, c)
-            if not all(
-                workspace.grid.is_free(r + dr, c + dc) for dr in range(n) for dc in range(n)
-            ):
-                continue
-            if workspace.robots_overlap(r, c, n, pos_static[0], pos_static[1], n):
-                continue
-            result[start] = _original_flood_fill(workspace, start, pos_static, n)
-    return result
+    return results
 
 
 def flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
+    """Lazy evaluation wrapper for the fast flood fill."""
     cache_key = (pos_static, n)
     if cache_key not in _FLOOD_CACHE:
-        _FLOOD_CACHE[cache_key] = _build_cache(workspace, pos_static, n)
-    return _FLOOD_CACHE[cache_key].get(pos_moving, [])
+        _FLOOD_CACHE[cache_key] = {}
+    # Only compute the flood fill if we haven't checked this specific moving position
+    if pos_moving not in _FLOOD_CACHE[cache_key]:
+        _FLOOD_CACHE[cache_key][pos_moving] = _fast_flood_fill(workspace, pos_moving, pos_static, n)
+    return _FLOOD_CACHE[cache_key][pos_moving]
 
 
 def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
@@ -108,13 +121,12 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
     or None if no solution.
     """
     _FLOOD_CACHE.clear()  # clear cache to avoid stale entries from previous workspaces
+    _VALID_POS_CACHE.clear()
     n = workspace.robot_a.n
     start_state = workspace.get_state()
     start_a, start_b = start_state.pos_a, start_state.pos_b
     # ── Layer 0: flood fill A from start ────────────────
-    parent: Dict[State, Tuple[Optional[Tuple[Any, Any, int]], List[str]]] = {
-        start_state: (None, [])
-    }
+    parent = {start_state: (None, [], False)}
     visited = {}
     frontier = set()
 
@@ -122,7 +134,7 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
         state = State(pos_a, start_b, workspace.robot_a)
         visited[state] = 0
         if state not in parent:
-            parent[state] = (start_state, cmds)
+            parent[state] = (start_state, cmds, False)
         frontier.add(state)
 
     switches = 0
@@ -156,7 +168,7 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
                 if new_state in visited:
                     continue
                 visited[new_state] = switches
-                parent[new_state] = (state, [COMMANDS["CONTROL_SWITCH"]] + move_cmds)
+                parent[new_state] = (state, move_cmds, True)
                 next_frontier.add(new_state)
 
         # check goal
@@ -191,10 +203,14 @@ def _reconstruct(parent: dict, goal_state: State) -> list[str]:
     state = goal_state
 
     while parent.get(state) is not None:
-        prev_state, cmds = parent[state]
+        prev_state, cmds, needs_switch = parent[state]
         if prev_state is None:
             break
-        path = cmds + path
+        for cmd in reversed(cmds):
+            path.append(cmd)
+        if needs_switch:
+            path.append(COMMANDS["CONTROL_SWITCH"])
         state = prev_state
 
+    path.reverse()
     return path
