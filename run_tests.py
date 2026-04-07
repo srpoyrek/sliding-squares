@@ -135,8 +135,8 @@ def run_all():
 
     times = [r.time for r in results if r.time is not None]
     if times:
-        print(f"\nSlowest: {min(times)}  Fastest: {max(times)}")
-    print(f"\nTotal wall time: {round(time.time() - wall_start, 2)}")
+        print(f"\nSlowest: {max(times)}s  Fastest: {min(times)}s")
+    print(f"\nTotal wall time: {round(time.time() - wall_start, 2)}s")
 
 
 if __name__ == "__main__":

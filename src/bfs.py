@@ -42,7 +42,7 @@ def _original_flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
     list of ( (row,col), [cmd, cmd, ...] ) — position + moves to reach it
     """
 
-    # 1. Precompute valid grid positions for this robot size (ignores the other robot)
+    # Precompute valid grid positions for this robot size (ignores the other robot)
     if n not in _VALID_POS_CACHE:
         valid_set = set()
         for r in range(workspace.grid.rows - n + 1):
@@ -52,7 +52,6 @@ def _original_flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
         _VALID_POS_CACHE[n] = valid_set
     valid_positions = _VALID_POS_CACHE[n]
 
-    # 2. Use a parent map to avoid O(K^2) list concatenations
     # parent_map[pos] = (previous_pos, command_taken_to_get_here)
     parent_map = {pos_moving: (None, None)}
     queue = deque([pos_moving])
@@ -67,17 +66,15 @@ def _original_flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
 
             if npos in parent_map:
                 continue
-            # O(1) grid obstacle check instead of O(N^2)
             if npos not in valid_positions:
                 continue
-            # Dynamic robot collision check
             if workspace.robots_overlap(nr, nc, n, pos_static[0], pos_static[1], n):
                 continue
 
             parent_map[npos] = (pos, name)
             queue.append(npos)
 
-    # 3. Reconstruct command paths only at the very end
+    # Reconstruct command paths only at the very end
     results = []
     for target in parent_map:
         cmds = []
@@ -98,7 +95,7 @@ def flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
         _FLOOD_CACHE[cache_key] = {}
     # Only compute the flood fill if we haven't checked this specific moving position
     if pos_moving not in _FLOOD_CACHE[cache_key]:
-        _FLOOD_CACHE[cache_key][pos_moving] = _fast_flood_fill(workspace, pos_moving, pos_static, n)
+        _FLOOD_CACHE[cache_key][pos_moving] = _original_flood_fill(workspace, pos_moving, pos_static, n)
     return _FLOOD_CACHE[cache_key][pos_moving]
 
 
