@@ -12,46 +12,38 @@ Two functions:
 from __future__ import annotations
 
 from collections import deque
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, Tuple
 
 from src.state import State
 from src.visualizer import draw_bfs_frontier
 from src.workspace import COMMANDS, DIRECTIONS
+
 # ---------------------------------------------------------------------------
 # Memoization cache
-# _FLOOD_CACHE key: (pos_static, n) -> { pos_moving: list of (pos, [cmds]) }
+# _FLOOD_CACHE key: (pos_static, n) -> {"usable": set, "flood": {pos_moving: result}}
+#   "usable" is the set of positions valid for a robot of size n that also
+#   don't overlap the static robot — precomputed once per (pos_static, n).
 # _VALID_POS_CACHE key: n -> set of (row, col) where robot of size n fits
 # ---------------------------------------------------------------------------
 _FLOOD_CACHE: Dict[Tuple, Dict] = {}
 _VALID_POS_CACHE: Dict[int, set] = {}
 
-def _original_flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
+
+def _original_flood_fill(usable, pos_moving) -> list[tuple]:
     """
     Find all positions the moving robot can reach without switching.
     Returns list of (pos, commands_to_get_there) tuples.
 
     Parameters
     ----------
-    workspace  : Workspace instance
+    usable     : set of (row, col) positions the robot can occupy
+                 (already excludes walls and positions overlapping the static robot)
     pos_moving : (row, col) current position of moving robot
-    pos_static : (row, col) position of the stationary robot
-    n          : robot size
 
     Returns
     -------
     list of ( (row,col), [cmd, cmd, ...] ) — position + moves to reach it
     """
-
-    # Precompute valid grid positions for this robot size (ignores the other robot)
-    if n not in _VALID_POS_CACHE:
-        valid_set = set()
-        for r in range(workspace.grid.rows - n + 1):
-            for c in range(workspace.grid.cols - n + 1):
-                if all(workspace.grid.is_free(r + dr, c + dc) for dr in range(n) for dc in range(n)):
-                    valid_set.add((r, c))
-        _VALID_POS_CACHE[n] = valid_set
-    valid_positions = _VALID_POS_CACHE[n]
-
     # parent_map[pos] = (previous_pos, command_taken_to_get_here)
     parent_map = {pos_moving: (None, None)}
     queue = deque([pos_moving])
@@ -66,9 +58,7 @@ def _original_flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
 
             if npos in parent_map:
                 continue
-            if npos not in valid_positions:
-                continue
-            if workspace.robots_overlap(nr, nc, n, pos_static[0], pos_static[1], n):
+            if npos not in usable:
                 continue
 
             parent_map[npos] = (pos, name)
@@ -92,11 +82,30 @@ def flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
     """Lazy evaluation wrapper for the fast flood fill."""
     cache_key = (pos_static, n)
     if cache_key not in _FLOOD_CACHE:
-        _FLOOD_CACHE[cache_key] = {}
+        # Precompute valid positions for this robot size (ignores the other robot)
+        if n not in _VALID_POS_CACHE:
+            valid_set = set()
+            for r in range(workspace.grid.rows - n + 1):
+                for c in range(workspace.grid.cols - n + 1):
+                    if all(
+                        workspace.grid.is_free(r + dr, c + dc) for dr in range(n) for dc in range(n)
+                    ):
+                        valid_set.add((r, c))
+            _VALID_POS_CACHE[n] = valid_set
+        valid_positions = _VALID_POS_CACHE[n]
+
+        # Subtract positions overlapping the static robot — one pass, reused by every flood
+        sr, sc = pos_static
+        usable = {
+            (r, c) for (r, c) in valid_positions if not workspace.robots_overlap(r, c, n, sr, sc, n)
+        }
+        _FLOOD_CACHE[cache_key] = {"usable": usable, "flood": {}}
+
+    bucket = _FLOOD_CACHE[cache_key]
     # Only compute the flood fill if we haven't checked this specific moving position
-    if pos_moving not in _FLOOD_CACHE[cache_key]:
-        _FLOOD_CACHE[cache_key][pos_moving] = _original_flood_fill(workspace, pos_moving, pos_static, n)
-    return _FLOOD_CACHE[cache_key][pos_moving]
+    if pos_moving not in bucket["flood"]:
+        bucket["flood"][pos_moving] = _original_flood_fill(bucket["usable"], pos_moving)
+    return bucket["flood"][pos_moving]
 
 
 def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
