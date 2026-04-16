@@ -255,11 +255,32 @@ def _canonical_key(free_set, pos_a, pos_b):
 
 
 # ---------------------------------------------------------------------------
+# Dig strategies
+# ---------------------------------------------------------------------------
+#
+# A dig strategy decides what cell-set to dig in one BFS step.
+# It receives the current state and yields candidate cell-sets (frozensets).
+# Each yielded set is treated as one atomic dig (one BFS depth increment).
+#
+# The default strategy yields one cell at a time (the current behavior).
+# Future strategies (e.g., n-cell strips for n*n robots) can drop in by
+# swapping the function — the BFS itself doesn't care how many cells per dig.
+# ---------------------------------------------------------------------------
+
+
+def _dig_options_single_cell(free_cells, frontier, valid, rows, cols, n):
+    for cell in frontier:
+        yield frozenset({cell})
+
+
+# ---------------------------------------------------------------------------
 # Dig search
 # ---------------------------------------------------------------------------
 
 
-def dig_search(rows, cols, n, pos_a, pos_b, max_depth_past_first, logs):
+def dig_search(
+    rows, cols, n, pos_a, pos_b, max_depth_past_first, logs, dig_options=_dig_options_single_cell
+):
     goal_a, goal_b = pos_b, pos_a
 
     block_a = _robot_block(pos_a, n)
@@ -351,9 +372,9 @@ def dig_search(rows, cols, n, pos_a, pos_b, max_depth_past_first, logs):
         ):
             continue
 
-        for cell in frontier:
+        for cells_to_dig in dig_options(free_cells, frontier, valid, rows, cols, n):
             expansions_total += 1
-            new_free_set = free_cells | {cell}
+            new_free_set = free_cells | cells_to_dig
             new_key = frozenset(new_free_set)
 
             t0 = time.perf_counter()
@@ -366,10 +387,14 @@ def dig_search(rows, cols, n, pos_a, pos_b, max_depth_past_first, logs):
             visited.add(new_canon)
 
             t0 = time.perf_counter()
-            new_frontier = _extend_frontier(frontier, cell, new_free_set, rows, cols)
+            new_frontier = frontier
+            for cell in cells_to_dig:
+                new_frontier = _extend_frontier(new_frontier, cell, new_free_set, rows, cols)
             t_frontier += time.perf_counter() - t0
 
-            new_valid = _extend_valid(valid, cell, new_free_set, rows, cols, n)
+            new_valid = valid
+            for cell in cells_to_dig:
+                new_valid = _extend_valid(new_valid, cell, new_free_set, rows, cols, n)
 
             queue.append((new_key, new_frontier, new_valid, depth + 1))
 
