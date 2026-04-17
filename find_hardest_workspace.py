@@ -163,11 +163,19 @@ _BIT_STRIDE = None  # grid width in cols; used to pack (r, c) into a single bit 
 
 
 def _init_transform_tables(rows, cols, n):
-    """Populate module-level transform tables. Called once per process
-    (main process directly, worker processes via Pool initializer)."""
+    """Build and set module-level transform tables. Called once in main process."""
     global _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE
     _N_KINDS, _CELL_TABLE, _POS_TABLE = _build_transform_table(rows, cols, n)
     _BIT_STRIDE = cols
+
+
+def _set_transform_tables(n_kinds, cell_table, pos_table, bit_stride):
+    """Assign pre-built transform tables in worker processes (no recomputation)."""
+    global _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE
+    _N_KINDS = n_kinds
+    _CELL_TABLE = cell_table
+    _POS_TABLE = pos_table
+    _BIT_STRIDE = bit_stride
 
 
 def _build_transform_table(rows, cols, n):
@@ -552,8 +560,8 @@ def find_hardest(rows, cols, n, max_depth_past_first, verbose=True, processes=No
     results = []
     with mp.get_context("spawn").Pool(
         processes=nproc,
-        initializer=_init_transform_tables,
-        initargs=(rows, cols, n),
+        initializer=_set_transform_tables,
+        initargs=(_N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE),
     ) as pool:
         for out in pool.imap_unordered(_worker, jobs):
             results.append(out)
