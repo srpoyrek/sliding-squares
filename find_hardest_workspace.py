@@ -281,6 +281,37 @@ def _dig_options_single_cell(free_cells, frontier, valid, rows, cols, n):
         yield frozenset({cell})
 
 
+def _dig_options_n_strip(free_cells, frontier, valid, rows, cols, n):
+    """Yield 1×n or n×1 strips that extend the valid region by one robot step.
+
+    For each valid position, look in 4 directions. If the adjacent position
+    isn't yet valid, the n cells the robot would newly occupy form a strip.
+    Dig the wall cells in that strip.
+
+    For n=1 this produces the same candidates as _dig_options_single_cell.
+    """
+    seen = set()
+    for r, c in valid:
+        for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            nr, nc = r + dr, c + dc
+            if not (0 <= nr <= rows - n and 0 <= nc <= cols - n):
+                continue
+            if (nr, nc) in valid:
+                continue
+            # The n cells the robot newly occupies when stepping this direction
+            if dr != 0:  # vertical move → horizontal strip
+                strip_r = r + n if dr == 1 else r - 1
+                cells = frozenset((strip_r, c + i) for i in range(n))
+            else:  # horizontal move → vertical strip
+                strip_c = c + n if dc == 1 else c - 1
+                cells = frozenset((r + i, strip_c) for i in range(n))
+            to_dig = cells - free_cells
+            if not to_dig or to_dig in seen:
+                continue
+            seen.add(to_dig)
+            yield to_dig
+
+
 # ---------------------------------------------------------------------------
 # Dig search
 # ---------------------------------------------------------------------------
@@ -437,10 +468,18 @@ def dig_search(
 # ---------------------------------------------------------------------------
 
 
+DIG_STRATEGIES = {
+    "single": _dig_options_single_cell,
+    "strip": _dig_options_n_strip,
+}
+
+
 def _worker(args):
-    rows, cols, n, pos_a, pos_b, max_depth_past_first, placement_dir = args
+    rows, cols, n, pos_a, pos_b, max_depth_past_first, placement_dir, dig_options = args
     logs = []
-    res = dig_search(rows, cols, n, pos_a, pos_b, max_depth_past_first, logs)
+    res = dig_search(
+        rows, cols, n, pos_a, pos_b, max_depth_past_first, logs, dig_options=dig_options
+    )
 
     out = {
         "pos_a": pos_a,
@@ -523,13 +562,20 @@ def _dedup_placements(rows, cols, n, placements):
     return keepers, merged
 
 
-def find_hardest(rows, cols, n, max_depth_past_first, verbose=True, processes=None):
+def find_hardest(
+    rows, cols, n, max_depth_past_first, verbose=True, processes=None, strategy="strip"
+):
     run_dir = os.path.join(get_plots_dir(), "hardest", f"run_{rows}x{cols}_n{n}")
     if os.path.exists(run_dir):
         shutil.rmtree(run_dir)
     os.makedirs(run_dir, exist_ok=True)
 
-    summary = [f"Run: {rows}x{cols}, n={n}, depth_past_first={max_depth_past_first}", ""]
+    dig_options = DIG_STRATEGIES[strategy]
+
+    summary = [
+        f"Run: {rows}x{cols}, n={n}, depth_past_first={max_depth_past_first}, strategy={strategy}",
+        "",
+    ]
 
     _init_transform_tables(rows, cols, n)
     all_placements = list(all_adjacent_placements(rows, cols, n))
@@ -551,7 +597,7 @@ def find_hardest(rows, cols, n, max_depth_past_first, verbose=True, processes=No
         tag = f"placement_A{pos_a[0]}{pos_a[1]}_B{pos_b[0]}{pos_b[1]}"
         placement_dir = os.path.join(run_dir, tag)
         os.makedirs(placement_dir, exist_ok=True)
-        jobs.append((rows, cols, n, pos_a, pos_b, max_depth_past_first, placement_dir))
+        jobs.append((rows, cols, n, pos_a, pos_b, max_depth_past_first, placement_dir, dig_options))
 
     if verbose:
         print(f"Dispatching {len(jobs)} placements across worker pool...")
@@ -654,6 +700,7 @@ if __name__ == "__main__":
     p.add_argument("--depth", type=int, default=4)
     p.add_argument("--processes", type=int, default=None)
     p.add_argument("--quiet", action="store_true")
+    p.add_argument("--strategy", choices=list(DIG_STRATEGIES.keys()), default="strip")
     args = p.parse_args()
 
     result, run_dir = find_hardest(
@@ -663,6 +710,7 @@ if __name__ == "__main__":
         args.depth,
         verbose=not args.quiet,
         processes=args.processes,
+        strategy=args.strategy,
     )
     sw, gmax, gmin = result
     print("\n" + "=" * 50)
