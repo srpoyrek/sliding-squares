@@ -319,6 +319,8 @@ def dig_search(
     solver_calls = 0
     expansions_total = 0
     canon_dupes_skipped = 0
+    solvable_prunes = 0  # how many solvable nodes we skipped expanding
+    solvable_prune_children_skipped = 0  # immediate children that would have been enqueued
     t_start = time.perf_counter()
 
     while queue:
@@ -376,6 +378,20 @@ def dig_search(
                     best_free_min = free_key
                     logs.append(f"    MIN-FREE witness: {len(free_cells)} (S:{result.switches})")
 
+                # Prune: once a workspace is solvable with K switches, any descendant
+                # (more free cells) is also solvable with <= K switches (same path stays
+                # valid) and has strictly more cells — can't improve MAX or MIN-FREE.
+                n_children = len(frontier)
+                if n_children > 0:
+                    solvable_prunes += 1
+                    solvable_prune_children_skipped += n_children
+                    # msg = (
+                    #     f"    [{pos_a}-{pos_b}] PRUNE (solvable, S:{result.switches}) "
+                    #     f"D:{depth} F:{len(free_cells)} children_skipped>={n_children}"
+                    # )
+                    # logs.append(msg)
+                continue
+
         if (
             first_solvable_depth is not None
             and (depth + 1) > first_solvable_depth + max_depth_past_first
@@ -427,6 +443,10 @@ def dig_search(
     logs.append(
         f"    dedup:   expansions={expansions_total}  unique={unique_enqueued}  "
         f"symmetric_dropped={canon_dupes_skipped}  ({dedup_pct:.1f}% pruned)"
+    )
+    logs.append(
+        f"    prune:   solvable_nodes_pruned={solvable_prunes}  "
+        f"immediate_children_skipped>={solvable_prune_children_skipped}"
     )
 
     if best_free_max is None or best_free_min is None:
