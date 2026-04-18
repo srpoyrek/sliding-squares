@@ -367,6 +367,17 @@ def dig_search(
             continue
 
         nodes_visited += 1
+        if nodes_visited % 20000 == 0:
+            elapsed = time.perf_counter() - t_start
+            qsize = len(queue)
+            rate = nodes_visited / elapsed if elapsed > 0 else 0
+            eta = qsize / rate if rate > 0 else 0
+            print(
+                f"    [{pos_a}-{pos_b}] nodes={nodes_visited} depth={depth} "
+                f"best={best_switches} queue={qsize} elapsed={elapsed:.1f}s "
+                f"eta={eta:.0f}s ({rate:.0f} nodes/s)",
+                flush=True,
+            )
         free_cells = set(free_key)
 
         t0 = time.perf_counter()

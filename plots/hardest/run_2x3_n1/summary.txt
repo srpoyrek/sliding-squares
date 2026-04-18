@@ -5,8 +5,8 @@ Placements: 7 total, 3 unique after dedup
   ((0, 0), (1, 0)) represents: [((0, 2), (1, 2))]
 
 placement_A00_B10: switches=2  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A00_B10\max_switches_S02_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A00_B10\min_free_S02_F04
-placement_A00_B01: switches=4  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A00_B01\max_switches_S04_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A00_B01\min_free_S04_F04
 placement_A01_B11: switches=3  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A01_B11\max_switches_S03_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A01_B11\min_free_S03_F04
+placement_A00_B01: switches=4  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A00_B01\max_switches_S04_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A00_B01\min_free_S04_F04
 
 GLOBAL MAX SWITCHES: 4 switches, 4 free cells
   placement: A=(0, 0) B=(0, 1)

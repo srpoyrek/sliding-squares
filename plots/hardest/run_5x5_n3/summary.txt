@@ -1,4 +1,0 @@
-Run: 5x5, n=3, depth_past_first=2
-
-Placements: 0 total, 0 unique after dedup
-

@@ -1,0 +1,24 @@
+Run: 8x8, n=3, depth_past_first=7, strategy=strip
+
+Placements: 36 total, 6 unique after dedup
+  ((0, 0), (0, 3)) represents: [((0, 2), (0, 5)), ((5, 0), (5, 3)), ((5, 2), (5, 5)), ((0, 0), (3, 0)), ((0, 5), (3, 5)), ((2, 0), (5, 0)), ((2, 5), (5, 5))]
+  ((0, 1), (0, 4)) represents: [((5, 1), (5, 4)), ((1, 0), (4, 0)), ((1, 5), (4, 5))]
+  ((1, 0), (1, 3)) represents: [((1, 2), (1, 5)), ((4, 0), (4, 3)), ((4, 2), (4, 5)), ((0, 1), (3, 1)), ((0, 4), (3, 4)), ((2, 1), (5, 1)), ((2, 4), (5, 4))]
+  ((1, 1), (1, 4)) represents: [((4, 1), (4, 4)), ((1, 1), (4, 1)), ((1, 4), (4, 4))]
+  ((2, 0), (2, 3)) represents: [((2, 2), (2, 5)), ((3, 0), (3, 3)), ((3, 2), (3, 5)), ((0, 2), (3, 2)), ((0, 3), (3, 3)), ((2, 2), (5, 2)), ((2, 3), (5, 3))]
+  ((2, 1), (2, 4)) represents: [((3, 1), (3, 4)), ((1, 2), (4, 2)), ((1, 3), (4, 3))]
+
+placement_A01_B04: switches=6  max-free=53 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\placement_A01_B04\max_switches_S06_F53  |  min-free=53 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\placement_A01_B04\min_free_S06_F53
+placement_A00_B03: switches=4  max-free=36 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\placement_A00_B03\max_switches_S04_F36  |  min-free=36 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\placement_A00_B03\min_free_S04_F36
+placement_A11_B14: switches=6  max-free=40 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\placement_A11_B14\max_switches_S06_F40  |  min-free=40 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\placement_A11_B14\min_free_S06_F40
+placement_A10_B13: switches=6  max-free=39 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\placement_A10_B13\max_switches_S06_F39  |  min-free=39 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\placement_A10_B13\min_free_S06_F39
+placement_A21_B24: switches=6  max-free=41 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\placement_A21_B24\max_switches_S06_F41  |  min-free=41 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\placement_A21_B24\min_free_S06_F41
+placement_A20_B23: switches=6  max-free=39 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\placement_A20_B23\max_switches_S06_F39  |  min-free=39 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\placement_A20_B23\min_free_S06_F39
+
+GLOBAL MAX SWITCHES: 6 switches, 53 free cells
+  placement: A=(0, 1) B=(0, 4)
+  proof:     C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\GLOBAL_MAX_SWITCHES_S06_F53
+
+GLOBAL MIN-FREE WITNESS @ 6 switches: 39 free cells
+  placement: A=(1, 0) B=(1, 3)
+  proof:     C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_8x8_n3\GLOBAL_MIN_FREE_S06_F39
