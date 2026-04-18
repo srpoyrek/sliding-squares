@@ -3,10 +3,20 @@ bfs.py
 ------
 Core BFS logic for the sliding squares problem.
 
-Two functions:
-    flood_fill  — all positions current robot can reach without switching
-    bfs         — layered BFS that finds minimum control switches
-                  tracks parent pointers to reconstruct path
+Public API:
+    flood_fill            — all positions the current robot can reach without switching
+    bfs                   — unidirectional layered BFS (forward only)
+    bfs_bidirectional     — bidirectional layered BFS (forward + backward in lockstep)
+
+Both BFS entry points share the same per-layer expansion helper `_expand_layer`
+and the same flood-fill cache, so memoization carries across halves inside a
+single bidirectional run.
+
+State = (pos_a, pos_b, ctrl) — ctrl is the robot that just moved.
+Parent tuple convention (unified across fwd and bwd): (prev_state, target_pos, mover)
+    - prev_state None ⇒ this state is at layer 0 (no preceding switch).
+    - target_pos      is the mover's end-of-segment position.
+    - mover           is the Robot that moved in this segment.
 """
 
 from __future__ import annotations
@@ -19,49 +29,47 @@ from src.visualizer import draw_bfs_frontier
 from src.workspace import COMMANDS, DIRECTIONS
 
 # ---------------------------------------------------------------------------
-# Memoization cache
-# _FLOOD_CACHE key: (pos_static, n) -> {"usable": set, "flood": {pos_moving: result}}
-#   "usable" is the set of positions valid for a robot of size n that also
-#   don't overlap the static robot — precomputed once per (pos_static, n).
+# Memoization caches — shared between unidirectional and bidirectional BFS.
+# _FLOOD_CACHE key: (pos_static, n) -> {"usable": set, "flood": {pos_moving: parent_map}}
 # _VALID_POS_CACHE key: n -> set of (row, col) where robot of size n fits
 # ---------------------------------------------------------------------------
 _FLOOD_CACHE: Dict[Tuple, Dict] = {}
 _VALID_POS_CACHE: Dict[int, set] = {}
 
+_INVERSE_CMD = {"U": "D", "D": "U", "L": "R", "R": "L"}
+
+
+def _clear_caches():
+    _FLOOD_CACHE.clear()
+    _VALID_POS_CACHE.clear()
+
+
+# ---------------------------------------------------------------------------
+# Flood fill (unchanged, set-based)
+# ---------------------------------------------------------------------------
+
 
 def _original_flood_fill(usable, pos_moving) -> dict:
-    """
-    Find all positions the moving robot can reach without switching.
-
-    Returns a parent_map: pos -> (previous_pos, command_taken_to_get_here).
-    Command paths are NOT reconstructed here — callers rebuild lazily via
-    `_cmds_from_parent_map` only for positions they actually keep. This
-    avoids O(path_length) work for every reachable cell that BFS drops as
-    a duplicate.
-    """
+    """BFS inside one robot's reach (other robot static). Returns parent_map:
+    {pos: (prev_pos, cmd_to_reach_pos)}. Cmd paths are rebuilt lazily by callers."""
     parent_map = {pos_moving: (None, None)}
     queue = deque([pos_moving])
-
     while queue:
         pos = queue.popleft()
         row, col = pos
-
         for name, (dr, dc) in DIRECTIONS.items():
             nr, nc = row + dr, col + dc
             npos = (nr, nc)
-
             if npos in parent_map:
                 continue
             if npos not in usable:
                 continue
-
             parent_map[npos] = (pos, name)  # type: ignore
             queue.append(npos)
-
     return parent_map
 
 
-def _cmds_from_parent_map(parent_map: dict, pos_moving, target) -> list[str]:
+def _cmds_from_parent_map(parent_map: dict, pos_moving, target) -> list:
     """Walk parent_map from target back to pos_moving to rebuild the cmd list."""
     cmds = []
     curr = target
@@ -73,14 +81,8 @@ def _cmds_from_parent_map(parent_map: dict, pos_moving, target) -> list[str]:
 
 
 def flood_fill(workspace, pos_moving, pos_static, n) -> dict:
-    """Lazy evaluation wrapper for the flood fill.
-    Returns parent_map — a dict {pos: (prev_pos, cmd)}.
-    Iterate .keys() for reachable positions; call _cmds_from_parent_map
-    to rebuild a specific path.
-    """
     cache_key = (pos_static, n)
     if cache_key not in _FLOOD_CACHE:
-        # Precompute valid positions for this robot size (ignores the other robot)
         if n not in _VALID_POS_CACHE:
             valid_set = set()
             for r in range(workspace.grid.rows - n + 1):
@@ -91,160 +93,294 @@ def flood_fill(workspace, pos_moving, pos_static, n) -> dict:
                         valid_set.add((r, c))
             _VALID_POS_CACHE[n] = valid_set
         valid_positions = _VALID_POS_CACHE[n]
-
-        # Subtract positions overlapping the static robot — one pass, reused by every flood
         sr, sc = pos_static
         usable = {
             (r, c) for (r, c) in valid_positions if not workspace.robots_overlap(r, c, n, sr, sc, n)
         }
         _FLOOD_CACHE[cache_key] = {"usable": usable, "flood": {}}
-
     bucket = _FLOOD_CACHE[cache_key]
     if pos_moving not in bucket["flood"]:
         bucket["flood"][pos_moving] = _original_flood_fill(bucket["usable"], pos_moving)
     return bucket["flood"][pos_moving]
 
 
-def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
-    """
-    Layered BFS — finds minimum control switches and reconstructs path.
+# ---------------------------------------------------------------------------
+# Shared expansion + reconstruction primitives
+# ---------------------------------------------------------------------------
+#
+# direction='fwd': successors.  The OTHER robot (not ctrl) floods from its
+#                  position; the new state's ctrl becomes that mover.
+# direction='bwd': predecessors. The CURRENT ctrl floods from its position
+#                  (to find where it came from); the predecessor's ctrl is
+#                  the OTHER robot.
 
-    State = (pos_a, pos_b, who_moves)
-        who_moves: 0 = A moves, 1 = B moves
 
-    parent[state] = (parent_state, [commands to go from parent to this state])
-        commands include the leading CONTROL_SWITCH if a switch happened
+def _expand_one(workspace, state, n: int, direction: str):
+    robot_a = workspace.robot_a
+    robot_b = workspace.robot_b
+    ctrl = state.control
+    other_ctrl = robot_b if ctrl == robot_a else robot_a
 
-    Returns
-    -------
-    dict with:
-        switches : int
-        path     : list of commands
-        visited  : dict state -> switches count
-    or None if no solution.
-    """
-    _FLOOD_CACHE.clear()  # clear cache to avoid stale entries from previous workspaces
-    _VALID_POS_CACHE.clear()
-    n = workspace.robot_a.n
-    robot_a, robot_b = workspace.robot_a, workspace.robot_b
-    start_state = workspace.get_state()
-    start_a, start_b = start_state.pos_a, start_state.pos_b
-
-    # Initial controller is whoever workspace._control points to — either robot
-    # can be the first mover; its pre-switch moves are "free" (layer 0).
-    initial_control = start_state.control
-    if initial_control == robot_a:
-        mover_start, other_start = start_a, start_b
+    if direction == "fwd":
+        mover = other_ctrl
+        new_ctrl = mover
     else:
-        mover_start, other_start = start_b, start_a
+        mover = ctrl
+        new_ctrl = other_ctrl
 
-    # parent[state] = (prev_state, target_pos_of_mover, needs_switch)
-    # target_pos_of_mover is the end position of whoever moved in this edge;
-    # combined with prev_state it lets us rebuild move cmds from the cache.
-    parent = {start_state: (None, None, False)}
-    visited = {}
-    frontier = set()
+    if mover == robot_a:
+        mover_pos, static_pos = state.pos_a, state.pos_b
+    else:
+        mover_pos, static_pos = state.pos_b, state.pos_a
 
-    # ── Layer 0: flood fill initial controller from its start ────────────────
-    pm0 = flood_fill(workspace, mover_start, other_start, n)
-    for new_mover_pos in pm0:
-        if initial_control == robot_a:
-            state = State(new_mover_pos, start_b, robot_a)
+    pm = flood_fill(workspace, mover_pos, static_pos, n)
+    for new_pos in pm:
+        if mover == robot_a:
+            new_state = State(new_pos, state.pos_b, new_ctrl)
         else:
-            state = State(start_a, new_mover_pos, robot_b)
-        visited[state] = 0
-        if state not in parent:
-            parent[state] = (start_state, new_mover_pos, False)
-        frontier.add(state)
+            new_state = State(state.pos_a, new_pos, new_ctrl)
+        yield new_state, new_pos, mover
 
-    switches = 0
 
-    # ── Check goal at layer 0 ────────────────────────────
+def _expand_layer(
+    workspace, frontier, visited: dict, parent: dict, layer: int, n: int, direction: str
+):
+    """Expand one BFS layer. Mutates visited and parent; returns new frontier set."""
+    new_frontier = set()
+    for state in frontier:
+        for new_state, target_pos, mover in _expand_one(workspace, state, n, direction):
+            if new_state in visited:
+                continue
+            visited[new_state] = layer
+            parent[new_state] = (state, target_pos, mover)
+            new_frontier.add(new_state)
+    return new_frontier
+
+
+def _seed_fwd(workspace, initial_ctrls) -> dict:
+    """Build forward layer-0 frontier by flooding each initial controller from start.
+
+    Returns {"visited", "parent", "frontier"} dicts; parent tuples use convention
+    (None, target_pos, mover) for layer-0 states (prev_state is None).
+    """
+    n = workspace.robot_a.n
+    robot_a = workspace.robot_a
+    robot_b = workspace.robot_b
+    start_a = robot_a.position()
+    start_b = robot_b.position()
+    visited = {}
+    parent = {}
+    frontier = set()
+    for ic in initial_ctrls:
+        if ic == robot_a:
+            pm = flood_fill(workspace, start_a, start_b, n)
+            for new_pa in pm:
+                state = State(new_pa, start_b, robot_a)
+                if state not in visited:
+                    visited[state] = 0
+                    parent[state] = (None, new_pa, robot_a)
+                    frontier.add(state)
+        else:
+            pm = flood_fill(workspace, start_b, start_a, n)
+            for new_pb in pm:
+                state = State(start_a, new_pb, robot_b)
+                if state not in visited:
+                    visited[state] = 0
+                    parent[state] = (None, new_pb, robot_b)
+                    frontier.add(state)
+    return {"visited": visited, "parent": parent, "frontier": frontier}
+
+
+def _seed_bwd(workspace, goal_a, goal_b, final_ctrls) -> dict:
+    """Build backward layer-0: the two goal states (one per possible final ctrl)."""
+    visited = {}
+    parent = {}
+    frontier = set()
+    for fc in final_ctrls:
+        state = State(goal_a, goal_b, fc)
+        if state not in visited:
+            visited[state] = 0
+            parent[state] = None  # goal-side marker (no forward successor beyond)
+            frontier.add(state)
+    return {"visited": visited, "parent": parent, "frontier": frontier}
+
+
+def _reconstruct_fwd(parent: dict, end_state, workspace) -> list:
+    """Walk fwd parent-chain from end_state back through layer 0. Returns cmd list
+    in forward order (start -> end_state)."""
+    n = workspace.robot_a.n
+    robot_a = workspace.robot_a
+    start_a = robot_a.position()
+    start_b = workspace.robot_b.position()
+
+    path = []
+    state = end_state
+    while state in parent:
+        prev_state, target_pos, mover = parent[state]
+        if mover is None:
+            break  # sentinel (shouldn't happen under new convention)
+        if prev_state is None:
+            source_pos = start_a if mover == robot_a else start_b
+            static_pos = start_b if mover == robot_a else start_a
+        else:
+            if mover == robot_a:
+                source_pos, static_pos = prev_state.pos_a, prev_state.pos_b
+            else:
+                source_pos, static_pos = prev_state.pos_b, prev_state.pos_a
+        pm = _FLOOD_CACHE[(static_pos, n)]["flood"][source_pos]
+        cmds = _cmds_from_parent_map(pm, source_pos, target_pos)
+        for cmd in reversed(cmds):
+            path.append(cmd)
+        if prev_state is not None:
+            path.append(COMMANDS["CONTROL_SWITCH"])
+        if prev_state is None:
+            break
+        state = prev_state
+    path.reverse()
+    return path
+
+
+def _reconstruct_bwd(bwd_parent: dict, meeting, workspace) -> list:
+    """Walk bwd parent from meeting forward-in-time to goal. Returns cmd list."""
+    n = workspace.robot_a.n
+    robot_a = workspace.robot_a
+    path = []
+    state = meeting
+    while True:
+        bp = bwd_parent.get(state)
+        if bp is None:
+            break
+        next_state, new_pos, mover = bp
+        if mover == robot_a:
+            flood_root = next_state.pos_a
+            static_pos = next_state.pos_b
+        else:
+            flood_root = next_state.pos_b
+            static_pos = next_state.pos_a
+        pm = _FLOOD_CACHE[(static_pos, n)]["flood"][flood_root]
+        # new_pos is the mover's position in `state` (earlier in forward time);
+        # walk up the flood tree rooted at flood_root, inverting cmds.
+        cmds = []
+        curr = new_pos
+        while curr != flood_root:
+            prev_pos, cmd = pm[curr]
+            cmds.append(_INVERSE_CMD[cmd])
+            curr = prev_pos
+        path.append(COMMANDS["CONTROL_SWITCH"])
+        path.extend(cmds)
+        state = next_state
+    return path
+
+
+# ---------------------------------------------------------------------------
+# bfs — unidirectional, forward only, respects workspace._control
+# ---------------------------------------------------------------------------
+
+
+def bfs(workspace, goal_a, goal_b, draw=False):
+    _clear_caches()
+    n = workspace.robot_a.n
+    initial_ctrl = workspace.get_state().control
+    seeds = _seed_fwd(workspace, [initial_ctrl])
+    visited, parent, frontier = seeds["visited"], seeds["parent"], seeds["frontier"]
+
+    # Layer-0 goal check
     for state in frontier:
         if state.pos_a == goal_a and state.pos_b == goal_b:
             return {
-                "switches": switches,
-                "path": _reconstruct(parent, state, workspace),
+                "switches": 0,
+                "path": _reconstruct_fwd(parent, state, workspace),
                 "visited": visited,
             }
 
-    # ── Layered BFS ──────────────────────────────────────
+    switches = 0
     while frontier:
         switches += 1
-        next_frontier = set()
-
+        frontier = _expand_layer(workspace, frontier, visited, parent, switches, n, "fwd")
         for state in frontier:
-            next_robot = (
-                workspace.robot_b if state.control == workspace.robot_a else workspace.robot_a
-            )
-            pos_moving = state.pos_b if next_robot == workspace.robot_b else state.pos_a
-            pos_static = state.pos_a if next_robot == workspace.robot_b else state.pos_b
-
-            pm = flood_fill(workspace, pos_moving, pos_static, n)
-            for new_pos in pm:
-                if next_robot == workspace.robot_b:
-                    new_state = State(state.pos_a, new_pos, workspace.robot_b)
-                else:
-                    new_state = State(new_pos, state.pos_b, workspace.robot_a)
-                if new_state in visited:
-                    continue
-                visited[new_state] = switches
-                parent[new_state] = (state, new_pos, True)
-                next_frontier.add(new_state)
-
-        # check goal
-        for state in next_frontier:
             if state.pos_a == goal_a and state.pos_b == goal_b:
                 return {
                     "switches": switches,
-                    "path": _reconstruct(parent, state, workspace),
+                    "path": _reconstruct_fwd(parent, state, workspace),
                     "visited": visited,
                 }
-
         if draw:
             draw_bfs_frontier(
                 workspace.grid,
-                next_frontier,
+                frontier,
                 switches,
                 n,
                 save_path=f"plots/bfs/switch_{switches:02d}.png",  # type: ignore
             )
-
-        if not next_frontier:
+        if not frontier:
             return None
-
-        frontier = next_frontier
-
     return None
 
 
-def _reconstruct(parent: dict, goal_state: State, workspace) -> list[str]:
-    """Backtrack through parent dict, rebuilding cmds per-edge from the flood cache."""
+# ---------------------------------------------------------------------------
+# bfs_bidirectional — runs forward and backward in lockstep, shares the cache
+# ---------------------------------------------------------------------------
+
+
+def bfs_bidirectional(workspace, goal_a, goal_b, draw=False):
+    _clear_caches()
     n = workspace.robot_a.n
+    robot_a = workspace.robot_a
     robot_b = workspace.robot_b
 
-    path = []
-    state = goal_state
-    while parent.get(state) is not None:
-        prev_state, target_pos, needs_switch = parent[state]
-        if prev_state is None:
+    # Seed both initial and final controllers to cover "either robot may be
+    # first/last mover for free".
+    fwd = _seed_fwd(workspace, [robot_a, robot_b])
+    bwd = _seed_bwd(workspace, goal_a, goal_b, [robot_a, robot_b])
+
+    fwd_visited, fwd_parent, fwd_frontier = fwd["visited"], fwd["parent"], fwd["frontier"]
+    bwd_visited, bwd_parent, bwd_frontier = bwd["visited"], bwd["parent"], bwd["frontier"]
+
+    best = None  # (meeting_state, total_switches)
+    for s in fwd_frontier:
+        if s in bwd_visited:
+            total = fwd_visited[s] + bwd_visited[s]
+            if best is None or total < best[1]:
+                best = (s, total)
+
+    fwd_layer = 0
+    bwd_layer = 0
+    while True:
+        if best is not None and fwd_layer + bwd_layer >= best[1]:
             break
-        # Identify who moved on this edge and derive their start/static positions
-        if state.control == robot_b:
-            pos_moving_start = prev_state.pos_b
-            pos_static = prev_state.pos_a
+        if not fwd_frontier and not bwd_frontier:
+            break
+        expand_fwd = bool(fwd_frontier) and (
+            not bwd_frontier or len(fwd_frontier) <= len(bwd_frontier)
+        )
+        if expand_fwd:
+            fwd_layer += 1
+            fwd_frontier = _expand_layer(
+                workspace, fwd_frontier, fwd_visited, fwd_parent, fwd_layer, n, "fwd"
+            )
+            for s in fwd_frontier:
+                if s in bwd_visited:
+                    total = fwd_visited[s] + bwd_visited[s]
+                    if best is None or total < best[1]:
+                        best = (s, total)
         else:
-            pos_moving_start = prev_state.pos_a
-            pos_static = prev_state.pos_b
+            bwd_layer += 1
+            bwd_frontier = _expand_layer(
+                workspace, bwd_frontier, bwd_visited, bwd_parent, bwd_layer, n, "bwd"
+            )
+            for s in bwd_frontier:
+                if s in fwd_visited:
+                    total = fwd_visited[s] + bwd_visited[s]
+                    if best is None or total < best[1]:
+                        best = (s, total)
 
-        parent_map = _FLOOD_CACHE[(pos_static, n)]["flood"][pos_moving_start]
-        cmds = _cmds_from_parent_map(parent_map, pos_moving_start, target_pos)
-
-        for cmd in reversed(cmds):
-            path.append(cmd)
-        if needs_switch:
-            path.append(COMMANDS["CONTROL_SWITCH"])
-        state = prev_state
-
-    path.reverse()
-    return path
+    if best is None:
+        return None
+    meeting, total = best
+    path = _reconstruct_fwd(fwd_parent, meeting, workspace) + _reconstruct_bwd(
+        bwd_parent, meeting, workspace
+    )
+    visited = dict(fwd_visited)
+    for s in bwd_visited:
+        visited.setdefault(s, total)
+    return {"switches": total, "path": path, "visited": visited}

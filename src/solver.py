@@ -8,20 +8,8 @@ Returns minimum switches and the actual command path.
 
 from __future__ import annotations
 
-from src.bfs import bfs
-from src.symmetry import build_transform_tables, is_label_swap_symmetric
+from src.bfs import bfs_bidirectional
 from src.workspace import Workspace
-
-# Cache transform tables per (rows, cols, n) so repeated Solver calls on
-# different workspaces of the same shape share the same tables.
-_TRANSFORM_CACHE: dict = {}
-
-
-def _get_transforms(rows: int, cols: int, n: int):
-    key = (rows, cols, n)
-    if key not in _TRANSFORM_CACHE:
-        _TRANSFORM_CACHE[key] = build_transform_tables(rows, cols, n)
-    return _TRANSFORM_CACHE[key]
 
 
 class SolverResult:
@@ -49,43 +37,44 @@ class Solver:
     def solve(self) -> SolverResult:
         result = SolverResult()
 
-        # If the workspace is label-swap symmetric (there's a spatial transform
-        # that swaps A and B's starts/goals and preserves walls), then BFS with
-        # A first and BFS with B first must give the same switch count — skip
-        # the second call.
-        rows, cols = self.ws.grid.rows, self.ws.grid.cols
-        n = self.ws.robot_a.n
-        n_kinds, cell_table, pos_table = _get_transforms(rows, cols, n)
-        symmetric = is_label_swap_symmetric(
-            self.ws.grid.tiles,
-            rows,
-            cols,
-            self.ws.robot_a.position(),
-            self.ws.robot_b.position(),
-            self.goal_a,
-            self.goal_b,
-            n_kinds,
-            cell_table,
-            pos_table,
-        )
-        initials = (self.ws.robot_a,) if symmetric else (self.ws.robot_a, self.ws.robot_b)
-
-        outs = []
-        for initial in initials:
-            self.ws._control = initial
-            out = bfs(self.ws, self.goal_a, self.goal_b)
-            if out is not None:
-                outs.append((initial, out))
-
-        if not outs:
+        # Bidirectional BFS: seeds BOTH initial controllers in forward layer 0
+        # and BOTH final controllers in backward layer 0, so we get min-switches
+        # over any choice of first/last mover in a single run.
+        out = bfs_bidirectional(self.ws, self.goal_a, self.goal_b)
+        if out is None:
             return result
 
-        best_initial, best = min(outs, key=lambda x: x[1]["switches"])
-        # Leave workspace's initial controller set to the winning choice so
-        # downstream validation replays the path from the correct starting control.
-        self.ws._control = best_initial
+        # Derive which robot moved first from the returned path so the
+        # validator/downstream replay starts with the correct ctrl.
+        path = out["path"]
+        first_cmd = next((c for c in path if c in ("U", "D", "L", "R")), None)
+        first_switch_index = next((i for i, c in enumerate(path) if c == "S"), len(path))
+        # If path starts with 'S', the initial controller was the non-A robot;
+        # otherwise A (since the BFS treats A as default when no switch yet).
+        # Simpler: read the direction of the very first move relative to both
+        # robots' starting positions to infer the mover; fallback to A.
+        initial_mover = self.ws.robot_a
+        if first_cmd is not None and first_switch_index > 0:
+            # The first move is made by whichever initial-controller was chosen.
+            # We determine it by simulating: is the first cmd legal for A or B?
+            cand_a, cand_b = self.ws.robot_a, self.ws.robot_b
+            # Heuristic — choose based on which robot can legally execute first_cmd.
+            # If ambiguous, default to A.
+            try:
+                if self.ws.can_move(cand_a, first_cmd):
+                    initial_mover = cand_a
+                elif self.ws.can_move(cand_b, first_cmd):
+                    initial_mover = cand_b
+            except Exception:
+                pass
+        elif first_switch_index == 0:
+            # Path starts with 'S', so the first-controller didn't move (but the
+            # seed was A by convention). After the switch the other robot moves.
+            initial_mover = self.ws.robot_a
+        self.ws._control = initial_mover
+
         result.solvable = True
-        result.switches = best["switches"]
-        result.path = best["path"]
-        result.visited = best["visited"]
+        result.switches = out["switches"]
+        result.path = out["path"]
+        result.visited = out["visited"]
         return result
