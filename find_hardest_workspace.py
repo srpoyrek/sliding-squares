@@ -644,8 +644,14 @@ def find_hardest(
             continue
         if out["switches"] > global_max_sw:
             global_max_sw = out["switches"]
-            global_max = (out["ws_max_template"], out["goals"], (out["pos_a"], out["pos_b"]))
+            global_max = (
+                out["ws_max_template"],
+                out["goals"],
+                (out["pos_a"], out["pos_b"]),
+                out["free_max"],
+            )
 
+    # Tightest witness among placements tied at global max switches
     global_min = None
     for out in results:
         if out["error"] or out["switches"] != global_max_sw:
@@ -669,28 +675,35 @@ def find_hardest(
                 f"min-free={out['free_min']} -> {out['min_proof_dir']}"
             )
 
-    if global_max is not None:
-        ws_t, goals_t, placement_t = global_max
-        rows_, cols_, free_, pa_, pb_, n_ = ws_t
-        ws_g = _build_workspace(rows_, cols_, free_, pa_, pb_, n_)
-        gdir = os.path.join(run_dir, f"GLOBAL_MAX_SWITCHES_S{global_max_sw:02d}_F{len(free_):02d}")
-        _plot_proof(ws_g, goals_t, gdir)
-        summary += [
-            "",
-            f"GLOBAL MAX SWITCHES: {global_max_sw} switches, {len(free_)} free cells",
-            f"  placement: A={placement_t[0]} B={placement_t[1]}",
-            f"  proof:     {gdir}",
-        ]
+    total_cells = rows * cols
 
+    # --- Tightest workspace (min-free at global max switches) --- reported FIRST
     if global_min is not None:
         ws_t, goals_t, placement_t, fcount = global_min
         rows_, cols_, free_, pa_, pb_, n_ = ws_t
         ws_g = _build_workspace(rows_, cols_, free_, pa_, pb_, n_)
-        gdir = os.path.join(run_dir, f"GLOBAL_MIN_FREE_S{global_max_sw:02d}_F{fcount:02d}")
+        tight_pct = 100.0 * fcount / total_cells
+        gdir = os.path.join(run_dir, f"GLOBAL_TIGHTEST_S{global_max_sw:02d}_F{fcount:02d}")
+        _plot_proof(ws_g, goals_t, gdir)
+        summary = [
+            f"TIGHTEST WORKSPACE: {global_max_sw} switches in {fcount} free cells "
+            f"({tight_pct:.1f}% of {total_cells}-cell grid)",
+            f"  placement: A={placement_t[0]} B={placement_t[1]}",
+            f"  proof:     {gdir}",
+            "",
+        ] + summary
+
+    if global_max is not None:
+        ws_t, goals_t, placement_t, fcount = global_max
+        rows_, cols_, free_, pa_, pb_, n_ = ws_t
+        ws_g = _build_workspace(rows_, cols_, free_, pa_, pb_, n_)
+        max_pct = 100.0 * fcount / total_cells
+        gdir = os.path.join(run_dir, f"GLOBAL_MAX_SWITCHES_S{global_max_sw:02d}_F{fcount:02d}")
         _plot_proof(ws_g, goals_t, gdir)
         summary += [
             "",
-            f"GLOBAL MIN-FREE WITNESS @ {global_max_sw} switches: {fcount} free cells",
+            f"GLOBAL MAX SWITCHES: {global_max_sw} switches, {fcount} free cells "
+            f"({max_pct:.1f}% of {total_cells}-cell grid)",
             f"  placement: A={placement_t[0]} B={placement_t[1]}",
             f"  proof:     {gdir}",
         ]
@@ -711,7 +724,7 @@ if __name__ == "__main__":
     p.add_argument("--depth", type=int, default=4)
     p.add_argument("--processes", type=int, default=None)
     p.add_argument("--quiet", action="store_true")
-    p.add_argument("--strategy", choices=list(DIG_STRATEGIES.keys()), default="strip")
+    p.add_argument("--strategy", choices=list(DIG_STRATEGIES.keys()), default="single")
     args = p.parse_args()
 
     result, run_dir = find_hardest(
@@ -724,14 +737,23 @@ if __name__ == "__main__":
         strategy=args.strategy,
     )
     sw, gmax, gmin = result
+    total_cells = args.rows * args.cols
     print("\n" + "=" * 50)
     if gmax is None:
         print("No solvable workspace found.")
     else:
-        print(f"Max switches: {sw}")
-        print(f"  max-switches placement: A={gmax[2][0]} B={gmax[2][1]}")
         if gmin is not None:
+            tight_pct = 100.0 * gmin[3] / total_cells
             print(
-                f"  min-free witness:       A={gmin[2][0]} B={gmin[2][1]}  ({gmin[3]} free cells)"
+                f"TIGHTEST WORKSPACE: {sw} switches in {gmin[3]} free cells "
+                f"({tight_pct:.1f}% of {total_cells}-cell grid)"
             )
+            print(f"  placement: A={gmin[2][0]} B={gmin[2][1]}")
+        if gmax is not None:
+            max_pct = 100.0 * gmax[3] / total_cells
+            print(
+                f"GLOBAL MAX SWITCHES: {sw} switches, {gmax[3]} free cells "
+                f"({max_pct:.1f}% of {total_cells}-cell grid)"
+            )
+            print(f"  placement: A={gmax[2][0]} B={gmax[2][1]}")
         print(f"Run dir: {run_dir}")

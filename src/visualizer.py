@@ -23,9 +23,14 @@ COLOR_ROBOT_B = "#122fd3"
 COLOR_LABEL = "white"
 COLOR_ARROW_A = "#ff4639"  # arrow color when A moves
 COLOR_ARROW_B = "#11c0df"  # arrow color when B moves
+COLOR_BLOCKER_WALL = "#ff8800"  # wall cell currently constraining a robot
+COLOR_BLOCKER_FACE = "#ff8800"  # robot face in contact with a wall
+COLOR_BLOCKER_ROBOT = "#aa00aa"  # robot face in contact with the other robot
+COLOR_BLOCKER_EDGE = "#888888"  # robot face in contact with grid boundary
 ARROW_LW = 3  # arrow line width
 ARROW_SCALE = 25  # arrowhead size
 ROBOT_FONTSIZE = 20  # robot label font size
+FACE_LW = 4  # blocker-face highlight line width (robot edge in contact)
 
 
 def draw(grid, robots=None, title="Workspace", ax=None, show=True):
@@ -172,6 +177,121 @@ def _extract_turns(snapshots, titles):
     return turns
 
 
+def _compute_contact_at(grid, r, c, n, stationary):
+    """
+    For an n*n robot whose top-left is (r, c), determine what's touching
+    each of its 4 sides (N/S/E/W).
+
+    Returns (face_status, face_walls) — same semantics as _compute_contact.
+    """
+    sr, sc, sn = stationary.row, stationary.col, stationary.n
+    R, C = grid.rows, grid.cols
+
+    sides = {
+        "N": [(r - 1, c + i) for i in range(n)],
+        "S": [(r + n, c + i) for i in range(n)],
+        "W": [(r + i, c - 1) for i in range(n)],
+        "E": [(r + i, c + n) for i in range(n)],
+    }
+
+    face_walls = {"N": [], "S": [], "E": [], "W": []}
+    face_status = {}
+
+    for side, cells in sides.items():
+        hit_wall = False
+        hit_robot = False
+        hit_boundary = False
+        for cr, cc in cells:
+            if cr < 0 or cr >= R or cc < 0 or cc >= C:
+                hit_boundary = True
+                continue
+            if sr <= cr < sr + sn and sc <= cc < sc + sn:
+                hit_robot = True
+                continue
+            if grid.tiles[cr][cc] != 0:  # any obstacle (boundary wall OR interior hole)
+                hit_wall = True
+                face_walls[side].append((cr, cc))
+
+        if hit_wall:
+            face_status[side] = "wall"
+        elif hit_robot:
+            face_status[side] = "robot"
+        elif hit_boundary:
+            face_status[side] = "boundary"
+        else:
+            face_status[side] = "free"
+
+    return face_status, face_walls
+
+
+def _compute_contact(grid, moving, stationary):
+    """Back-compat shim: compute contact at the moving robot's current position."""
+    return _compute_contact_at(grid, moving.row, moving.col, moving.n, stationary)
+
+
+def _positions_along_turn(turn):
+    """
+    Reconstruct (row, col) robot top-left positions at each intermediate step
+    during a turn, from the waypoints (which store centers).
+    """
+    n = turn["moving_end"].n
+    return [(int(round(y - n / 2)), int(round(x - n / 2))) for (x, y) in turn["waypoints"]]
+
+
+def _contact_along_turn(grid, turn):
+    """
+    Aggregate contact across every step in the turn (not just the endpoint).
+    Returns (wall_counts, face_counts):
+      wall_counts : dict (row, col) -> how many times a wall was touched
+      face_counts : dict (row, col, wall_side) -> how many times that face of
+                    the wall cell touched a robot face.
+    """
+    wall_counts = {}
+    face_counts = {}
+    stationary = turn["stationary"]
+    n = turn["moving_end"].n
+    opposite = {"N": "S", "S": "N", "E": "W", "W": "E"}
+    for r, c in _positions_along_turn(turn):
+        _, face_walls = _compute_contact_at(grid, r, c, n, stationary)
+        for robot_side, walls in face_walls.items():
+            wall_side = opposite[robot_side]
+            for wc in walls:
+                wall_counts[wc] = wall_counts.get(wc, 0) + 1
+                key = (wc[0], wc[1], wall_side)
+                face_counts[key] = face_counts.get(key, 0) + 1
+    return wall_counts, face_counts
+
+
+def _draw_face_highlight(ax, row, col, n, side, color):
+    """Draw a thick colored line on one side (N/S/E/W) of an n*n robot block."""
+    if side == "N":
+        ax.plot(
+            [col, col + n], [row, row], color=color, lw=FACE_LW, zorder=6, solid_capstyle="butt"
+        )
+    elif side == "S":
+        ax.plot(
+            [col, col + n],
+            [row + n, row + n],
+            color=color,
+            lw=FACE_LW,
+            zorder=6,
+            solid_capstyle="butt",
+        )
+    elif side == "W":
+        ax.plot(
+            [col, col], [row, row + n], color=color, lw=FACE_LW, zorder=6, solid_capstyle="butt"
+        )
+    elif side == "E":
+        ax.plot(
+            [col + n, col + n],
+            [row, row + n],
+            color=color,
+            lw=FACE_LW,
+            zorder=6,
+            solid_capstyle="butt",
+        )
+
+
 def _draw_turn(ax, grid, turn, color_map, arrow_map, robot_size):
     draw(grid, robots=None, title=turn["title"], ax=ax, show=False)
 
@@ -238,6 +358,35 @@ def _draw_turn(ax, grid, turn, color_map, arrow_map, robot_size):
         color=COLOR_LABEL,
         zorder=5,
     )
+
+    # Highlight walls contacted at ANY step during the slide (not just endpoint).
+    # Stronger alpha = more contact during this turn.
+    wall_counts, _face_counts = _contact_along_turn(grid, turn)
+    max_hits = max(wall_counts.values()) if wall_counts else 1
+    for (wr, wc), hits in wall_counts.items():
+        alpha = 0.25 + 0.50 * (hits / max_hits)
+        ax.add_patch(
+            patches.Rectangle(
+                (wc, wr),
+                1,
+                1,
+                linewidth=0,
+                facecolor=COLOR_BLOCKER_WALL,
+                alpha=alpha,
+                zorder=2,
+            )
+        )
+
+    # On the final position of the robot, color each face by what it's touching
+    face_status, _ = _compute_contact(grid, me, st)
+    status_color = {
+        "wall": COLOR_BLOCKER_FACE,
+        "robot": COLOR_BLOCKER_ROBOT,
+        "boundary": COLOR_BLOCKER_EDGE,
+    }
+    for side, status in face_status.items():
+        if status in status_color:
+            _draw_face_highlight(ax, me.row, me.col, me.n, side, status_color[status])
 
     wpts = turn["waypoints"]
     arrow_color = arrow_map.get(ms.label, COLOR_ARROW_A)
@@ -314,6 +463,13 @@ def draw_sequence(
             plt.tight_layout()
             plt.savefig(os.path.join(save_dir, f"turn_{i:02d}.png"), dpi=150, bbox_inches="tight")
             plt.close()
+        # Aggregate heatmap: how many times each wall blocked a robot face
+        draw_blocker_heatmap(
+            grid,
+            turns,
+            save_path=os.path.join(save_dir, "blocker_heatmap.png"),
+            robot_size=robot_size,
+        )
         return
 
     for i, turn in enumerate(turns):
@@ -333,6 +489,62 @@ def draw_sequence(
         plt.show()
 
     plt.close()
+
+
+def draw_blocker_heatmap(grid, turns, save_path=None, robot_size=1):
+    """
+    Aggregate view across all turns: color each wall cell by how many times
+    it was in contact with a robot face. Shows which walls are "load-bearing"
+    in the puzzle vs. scenery.
+    """
+    counts = {}
+    face_counts = {}  # (row, col, side) -> count, for the side of the wall touching the robot
+    for turn in turns:
+        turn_walls, turn_faces = _contact_along_turn(grid, turn)
+        for cell, hits in turn_walls.items():
+            counts[cell] = counts.get(cell, 0) + hits
+        for key, hits in turn_faces.items():
+            face_counts[key] = face_counts.get(key, 0) + hits
+
+    fig, ax = plt.subplots(figsize=(grid.cols * 0.7 + 0.5, grid.rows * 0.7 + 0.5))
+    draw(grid, robots=None, title="Blocker heatmap (walls by contact count)", ax=ax, show=False)
+
+    max_count = max(counts.values()) if counts else 1
+    for (r, c), n_hits in counts.items():
+        intensity = 0.3 + 0.6 * (n_hits / max_count)
+        ax.add_patch(
+            patches.Rectangle(
+                (c, r),
+                1,
+                1,
+                linewidth=0,
+                facecolor=COLOR_BLOCKER_WALL,
+                alpha=intensity,
+                zorder=2,
+            )
+        )
+        ax.text(
+            c + 0.5,
+            r + 0.5,
+            str(n_hits),
+            ha="center",
+            va="center",
+            fontsize=8,
+            fontweight="bold",
+            color="white",
+            zorder=5,
+        )
+
+    # Draw per-face tick marks on each wall: which side(s) of the wall got hit
+    for (wr, wc, wall_side), n_hits in face_counts.items():
+        _draw_face_highlight(ax, wr, wc, 1, wall_side, COLOR_BLOCKER_FACE)
+
+    if save_path:
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close()
+    else:
+        plt.show()
 
 
 def draw_bfs_frontier(grid, frontier, switch_num, robot_size, save_dir=None):
