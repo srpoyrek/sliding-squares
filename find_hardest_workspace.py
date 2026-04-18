@@ -326,6 +326,10 @@ def dig_search(
     # can physically sit).  Keyed by frozenset(valid).
     solver_cache = {}
     solver_cache_hits = 0
+    # Precheck cache: single-robot reachability only depends on `valid` + the
+    # (pos, goal) pairs; (pos, goal) are placement-constants here.
+    precheck_cache = {}
+    precheck_cache_hits = 0
     t_start = time.perf_counter()
 
     while queue:
@@ -347,16 +351,23 @@ def dig_search(
             )
         free_cells = set(free_key)
 
-        t0 = time.perf_counter()
-        precheck_ok = robot_can_reach_goal_ignoring_other(
-            valid, pos_a, goal_a
-        ) and robot_can_reach_goal_ignoring_other(valid, pos_b, goal_b)
-        t_precheck += time.perf_counter() - t0
+        # Precheck: same `valid` always gives the same (pos_a->goal_a AND
+        # pos_b->goal_b) reachability result within a placement.
+        valid_key = frozenset(valid)
+        pc_cached = precheck_cache.get(valid_key)
+        if pc_cached is not None:
+            precheck_cache_hits += 1
+            precheck_ok = pc_cached
+        else:
+            t0 = time.perf_counter()
+            precheck_ok = robot_can_reach_goal_ignoring_other(
+                valid, pos_a, goal_a
+            ) and robot_can_reach_goal_ignoring_other(valid, pos_b, goal_b)
+            t_precheck += time.perf_counter() - t0
+            precheck_cache[valid_key] = precheck_ok
 
         if precheck_ok:
-            # Check solver cache first — same `valid` + same (pos_a, pos_b) always
-            # yields the same (solvable, switches), even if other free cells differ.
-            valid_key = frozenset(valid)
+            # Same key reused for the solver cache.
             cached = solver_cache.get(valid_key)
             if cached is not None:
                 solver_cache_hits += 1
@@ -466,10 +477,14 @@ def dig_search(
         f"immediate_children_skipped>={solvable_prune_children_skipped}"
     )
     total_solver_asks = solver_calls + solver_cache_hits
-    hit_pct = (100.0 * solver_cache_hits / total_solver_asks) if total_solver_asks else 0.0
+    solver_hit_pct = (100.0 * solver_cache_hits / total_solver_asks) if total_solver_asks else 0.0
+    total_pc_asks = nodes_visited  # one precheck ask per popped node
+    pc_hit_pct = (100.0 * precheck_cache_hits / total_pc_asks) if total_pc_asks else 0.0
     logs.append(
-        f"    cache:   solver_hits={solver_cache_hits}  "
-        f"solver_runs={solver_calls}  ({hit_pct:.1f}% hit rate)"
+        f"    cache:   solver_hits={solver_cache_hits}"
+        f" runs={solver_calls} ({solver_hit_pct:.1f}%)"
+        f" precheck_hits={precheck_cache_hits}"
+        f" runs={total_pc_asks - precheck_cache_hits} ({pc_hit_pct:.1f}%)"
     )
 
     if best_free_max is None or best_free_min is None:
