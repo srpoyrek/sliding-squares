@@ -126,8 +126,17 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
     _FLOOD_CACHE.clear()  # clear cache to avoid stale entries from previous workspaces
     _VALID_POS_CACHE.clear()
     n = workspace.robot_a.n
+    robot_a, robot_b = workspace.robot_a, workspace.robot_b
     start_state = workspace.get_state()
     start_a, start_b = start_state.pos_a, start_state.pos_b
+
+    # Initial controller is whoever workspace._control points to — either robot
+    # can be the first mover; its pre-switch moves are "free" (layer 0).
+    initial_control = start_state.control
+    if initial_control == robot_a:
+        mover_start, other_start = start_a, start_b
+    else:
+        mover_start, other_start = start_b, start_a
 
     # parent[state] = (prev_state, target_pos_of_mover, needs_switch)
     # target_pos_of_mover is the end position of whoever moved in this edge;
@@ -136,13 +145,16 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
     visited = {}
     frontier = set()
 
-    # ── Layer 0: flood fill A from start ────────────────
-    pm0 = flood_fill(workspace, start_a, start_b, n)
-    for pos_a in pm0:
-        state = State(pos_a, start_b, workspace.robot_a)
+    # ── Layer 0: flood fill initial controller from its start ────────────────
+    pm0 = flood_fill(workspace, mover_start, other_start, n)
+    for new_mover_pos in pm0:
+        if initial_control == robot_a:
+            state = State(new_mover_pos, start_b, robot_a)
+        else:
+            state = State(start_a, new_mover_pos, robot_b)
         visited[state] = 0
         if state not in parent:
-            parent[state] = (start_state, pos_a, False)
+            parent[state] = (start_state, new_mover_pos, False)
         frontier.add(state)
 
     switches = 0

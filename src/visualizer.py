@@ -114,12 +114,15 @@ def draw(grid, robots=None, title="Workspace", ax=None, show=True):
 
 def _extract_turns(snapshots, titles):
     """
-    Collapse snapshots into one entry per turn (between switches).
-    The FIRST turn is the first actual move — no separate initial-state panel.
-    Turns are numbered from 1.
+    Collapse snapshots into one entry per movement segment (between switches).
+    Each turn is tagged with "layer" = number of switches completed BEFORE it
+    (0 = pre-switch move by initial controller, 1 = after 1st switch, ...).
+    So a segment's layer equals its post-switch count; for N switches total,
+    layers range 0..N. Segments with no movement are still skipped.
 
     Each turn dict:
-        title         : "{turn_num}: {robot_label}"   (e.g. "1: A")
+        title         : "{layer}: {robot_label}"   e.g. "0: A", "1: B"
+        layer         : int   switches completed before this segment
         waypoints     : list[(col,row)]  centers of moving robot at each step
         moving_end    : Robot            moving robot at end of turn
         stationary    : Robot            the other robot (did not move)
@@ -128,7 +131,7 @@ def _extract_turns(snapshots, titles):
     turns = []
     n = len(snapshots)
     start = 0
-    turn_num = 0
+    layer = 0
 
     for i in range(1, n):
         is_switch = "switch" in titles[i].lower()
@@ -143,30 +146,28 @@ def _extract_turns(snapshots, titles):
             a_moved = a_s.row != a_e.row or a_s.col != a_e.col
             b_moved = b_s.row != b_e.row or b_s.col != b_e.col
 
-            if not a_moved and not b_moved:
-                start = i
-                continue
+            if a_moved or b_moved:
+                waypoints = []
+                for k in range(start, end + 1):
+                    ra, rb = snapshots[k]
+                    robot = ra if a_moved else rb
+                    waypoints.append((robot.col + robot.n / 2, robot.row + robot.n / 2))
 
-            # collect waypoints (center of moving robot) at each step in this turn
-            waypoints = []
-            for k in range(start, end + 1):
-                ra, rb = snapshots[k]
-                robot = ra if a_moved else rb
-                waypoints.append((robot.col + robot.n / 2, robot.row + robot.n / 2))
+                moved_robot = a_e if a_moved else b_e
+                title = f"switch {layer:02d}: {moved_robot.label}"
+                turns.append(
+                    {
+                        "title": title,
+                        "layer": layer,
+                        "waypoints": waypoints,
+                        "moving_end": deepcopy(a_e if a_moved else b_e),
+                        "stationary": deepcopy(b_e if a_moved else a_e),
+                        "moving_start": deepcopy(a_s if a_moved else b_s),
+                    }
+                )
 
-            turn_num += 1
-            moved_robot = a_e if a_moved else b_e
-
-            turns.append(
-                {
-                    "title": f"{turn_num}: {moved_robot.label}",
-                    "waypoints": waypoints,
-                    "moving_end": deepcopy(a_e if a_moved else b_e),
-                    "stationary": deepcopy(b_e if a_moved else a_e),
-                    "moving_start": deepcopy(a_s if a_moved else b_s),
-                }
-            )
-
+            if is_switch:
+                layer += 1
             start = i
 
     return turns
@@ -287,7 +288,7 @@ def _draw_face_highlight(ax, row, col, n, side, color):
         )
 
 
-def _draw_turn(ax, grid, turn, color_map, arrow_map, robot_size):
+def _draw_turn(ax, grid, turn, color_map, arrow_map, robot_size, highlights=True):
     draw(grid, robots=None, title=turn["title"], ax=ax, show=False)
 
     st = turn["stationary"]
@@ -354,34 +355,35 @@ def _draw_turn(ax, grid, turn, color_map, arrow_map, robot_size):
         zorder=5,
     )
 
-    # Highlight walls contacted at ANY step during the slide (not just endpoint).
-    # Stronger alpha = more contact during this turn.
-    wall_counts, _face_counts = _contact_along_turn(grid, turn)
-    max_hits = max(wall_counts.values()) if wall_counts else 1
-    for (wr, wc), hits in wall_counts.items():
-        alpha = 0.25 + 0.50 * (hits / max_hits)
-        ax.add_patch(
-            patches.Rectangle(
-                (wc, wr),
-                1,
-                1,
-                linewidth=0,
-                facecolor=COLOR_BLOCKER_WALL,
-                alpha=alpha,
-                zorder=2,
+    if highlights:
+        # Highlight walls contacted at ANY step during the slide (not just endpoint).
+        # Stronger alpha = more contact during this turn.
+        wall_counts, _face_counts = _contact_along_turn(grid, turn)
+        max_hits = max(wall_counts.values()) if wall_counts else 1
+        for (wr, wc), hits in wall_counts.items():
+            alpha = 0.25 + 0.50 * (hits / max_hits)
+            ax.add_patch(
+                patches.Rectangle(
+                    (wc, wr),
+                    1,
+                    1,
+                    linewidth=0,
+                    facecolor=COLOR_BLOCKER_WALL,
+                    alpha=alpha,
+                    zorder=2,
+                )
             )
-        )
 
-    # On the final position of the robot, color each face by what it's touching
-    face_status, _ = _compute_contact(grid, me, st)
-    status_color = {
-        "wall": COLOR_BLOCKER_FACE,
-        "robot": COLOR_BLOCKER_ROBOT,
-        "boundary": COLOR_BLOCKER_EDGE,
-    }
-    for side, status in face_status.items():
-        if status in status_color:
-            _draw_face_highlight(ax, me.row, me.col, me.n, side, status_color[status])
+        # On the final position of the robot, color each face by what it's touching
+        face_status, _ = _compute_contact(grid, me, st)
+        status_color = {
+            "wall": COLOR_BLOCKER_FACE,
+            "robot": COLOR_BLOCKER_ROBOT,
+            "boundary": COLOR_BLOCKER_EDGE,
+        }
+        for side, status in face_status.items():
+            if status in status_color:
+                _draw_face_highlight(ax, me.row, me.col, me.n, side, status_color[status])
 
     wpts = turn["waypoints"]
     arrow_color = arrow_map.get(ms.label, COLOR_ARROW_A)
@@ -428,8 +430,10 @@ def draw_sequence(
     titles = titles or [f"step {i}" for i in range(len(snapshots))]
     turns = _extract_turns(snapshots, titles)
 
-    # +1 for the start panel (initial state, no highlights)
-    n_steps = len(turns) + 1
+    # start + optional turn_initial (layer 0 moves) + one panel per layer >= 1
+    layer0_turn = next((t for t in turns if t["layer"] == 0), None)
+    non_start_turns = [t for t in turns if t["layer"] >= 1]
+    n_steps = 1 + (1 if layer0_turn is not None else 0) + len(non_start_turns)
     n_cols = min(n_steps, cols_per_row)
     n_rows = (n_steps + n_cols - 1) // n_cols
 
@@ -453,7 +457,10 @@ def draw_sequence(
 
     if save_dir:
         os.makedirs(save_dir, exist_ok=True)
-        # Initial-state panel: both robots at start, no wall/face highlights.
+        # start.png         = truly static initial state. No arrows, no highlights.
+        # switch_init.png   = layer-0 moves (first mover's pre-switch moves),
+        #                     only if any such movement actually exists.
+        # switch_NN.png     = state after switch NN (layer NN).
         a_0, b_0 = snapshots[0]
         fig, ax = plt.subplots(figsize=(grid.cols * 0.7 + 0.5, grid.rows * 0.7 + 0.5))
         draw(grid, robots=[a_0, b_0], title="start", ax=ax, show=False)
@@ -461,13 +468,14 @@ def draw_sequence(
         plt.savefig(os.path.join(save_dir, "start.png"), dpi=150, bbox_inches="tight")
         plt.close()
 
-        # One file per turn of actual movement, numbered from 1
-        for i, turn in enumerate(turns):
+        for turn in turns:
             fig, ax = plt.subplots(figsize=(grid.cols * 0.7 + 0.5, grid.rows * 0.7 + 0.5))
             _draw_turn(ax, grid, turn, color_map, arrow_map, robot_size)
             plt.tight_layout()
             plt.savefig(
-                os.path.join(save_dir, f"turn_{i + 1:02d}.png"), dpi=150, bbox_inches="tight"
+                os.path.join(save_dir, f"switch_{turn['layer']:02d}.png"),
+                dpi=150,
+                bbox_inches="tight",
             )
             plt.close()
         # Aggregate heatmap: how many times each wall blocked a robot face
@@ -479,16 +487,24 @@ def draw_sequence(
         )
         return
 
-    # Panel 0: initial state, no highlights
+    # Panel 0: static start state
     a_0, b_0 = snapshots[0]
     draw(grid, robots=[a_0, b_0], title="start", ax=axes[0][0], show=False)
+    panel_idx = 1
 
-    for i, turn in enumerate(turns):
-        idx = i + 1  # panel 0 is the start
-        r = idx // n_cols
-        c = idx % n_cols
-        ax = axes[r][c]
-        _draw_turn(ax, grid, turn, color_map, arrow_map, robot_size)
+    # Optional panel: switch_init — layer-0 moves (pre-switch)
+    if layer0_turn is not None:
+        r = panel_idx // n_cols
+        c = panel_idx % n_cols
+        _draw_turn(axes[r][c], grid, layer0_turn, color_map, arrow_map, robot_size)
+        panel_idx += 1
+
+    # Panels for each post-switch layer
+    for turn in non_start_turns:
+        r = panel_idx // n_cols
+        c = panel_idx % n_cols
+        _draw_turn(axes[r][c], grid, turn, color_map, arrow_map, robot_size)
+        panel_idx += 1
 
     for i in range(n_steps, n_rows * n_cols):
         axes[i // n_cols][i % n_cols].set_visible(False)

@@ -37,13 +37,24 @@ class Solver:
     def solve(self) -> SolverResult:
         result = SolverResult()
 
-        out = bfs(self.ws, self.goal_a, self.goal_b)
+        # Try both possible initial controllers — either robot can be the first
+        # mover. The true minimum-switch count is min over both starts.
+        outs = []
+        for initial in (self.ws.robot_a, self.ws.robot_b):
+            self.ws._control = initial
+            out = bfs(self.ws, self.goal_a, self.goal_b)
+            if out is not None:
+                outs.append((initial, out))
 
-        if out is None:
+        if not outs:
             return result
 
+        best_initial, best = min(outs, key=lambda x: x[1]["switches"])
+        # Leave workspace's initial controller set to the winning choice so
+        # downstream validation replays the path from the correct starting control.
+        self.ws._control = best_initial
         result.solvable = True
-        result.switches = out["switches"]
-        result.path = out["path"]
-        result.visited = out["visited"]
+        result.switches = best["switches"]
+        result.path = best["path"]
+        result.visited = best["visited"]
         return result
