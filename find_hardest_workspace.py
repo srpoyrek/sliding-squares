@@ -274,11 +274,11 @@ def dig_search(
     # dig_search call, so the (a_t, b_t) / (b_t, a_t) tiebreaker pairs are
     # constant per transform. Precompute once.
     seconds = tuple(
-        min(_POS_TABLE[pos_a][k], _POS_TABLE[pos_b][k])
+        min(_POS_TABLE[pos_a][k], _POS_TABLE[pos_b][k])  # type: ignore
         for k in range(_N_KINDS)  # type: ignore
     )
     thirds = tuple(
-        max(_POS_TABLE[pos_a][k], _POS_TABLE[pos_b][k])
+        max(_POS_TABLE[pos_a][k], _POS_TABLE[pos_b][k])  # type: ignore
         for k in range(_N_KINDS)  # type: ignore
     )
 
