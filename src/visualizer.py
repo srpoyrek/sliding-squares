@@ -114,29 +114,21 @@ def draw(grid, robots=None, title="Workspace", ax=None, show=True):
 
 def _extract_turns(snapshots, titles):
     """
-    From snapshots collapse into one entry per turn (between switches).
+    Collapse snapshots into one entry per turn (between switches).
+    The FIRST turn is the first actual move — no separate initial-state panel.
+    Turns are numbered from 1.
 
-    Each turn:
-        title         : str        label for the panel
+    Each turn dict:
+        title         : "{turn_num}: {robot_label}"   (e.g. "1: A")
         waypoints     : list[(col,row)]  centers of moving robot at each step
-        moving_end    : Robot      moving robot at end of turn
-        stationary    : Robot      the other robot (does not move)
+        moving_end    : Robot            moving robot at end of turn
+        stationary    : Robot            the other robot (did not move)
+        moving_start  : Robot            moving robot at start of turn
     """
     turns = []
     n = len(snapshots)
     start = 0
-
-    # always show initial state as first panel
-    a_0, b_0 = snapshots[0]
-    turns.append(
-        {
-            "title": titles[0],
-            "waypoints": [(a_0.col + a_0.n / 2, a_0.row + a_0.n / 2)],
-            "moving_end": deepcopy(a_0),
-            "stationary": deepcopy(b_0),
-            "moving_start": deepcopy(a_0),
-        }
-    )
+    turn_num = 0
 
     for i in range(1, n):
         is_switch = "switch" in titles[i].lower()
@@ -162,9 +154,12 @@ def _extract_turns(snapshots, titles):
                 robot = ra if a_moved else rb
                 waypoints.append((robot.col + robot.n / 2, robot.row + robot.n / 2))
 
+            turn_num += 1
+            moved_robot = a_e if a_moved else b_e
+
             turns.append(
                 {
-                    "title": titles[start],
+                    "title": f"{turn_num}: {moved_robot.label}",
                     "waypoints": waypoints,
                     "moving_end": deepcopy(a_e if a_moved else b_e),
                     "stationary": deepcopy(b_e if a_moved else a_e),
@@ -433,7 +428,8 @@ def draw_sequence(
     titles = titles or [f"step {i}" for i in range(len(snapshots))]
     turns = _extract_turns(snapshots, titles)
 
-    n_steps = len(turns)
+    # +1 for the start panel (initial state, no highlights)
+    n_steps = len(turns) + 1
     n_cols = min(n_steps, cols_per_row)
     n_rows = (n_steps + n_cols - 1) // n_cols
 
@@ -457,11 +453,22 @@ def draw_sequence(
 
     if save_dir:
         os.makedirs(save_dir, exist_ok=True)
+        # Initial-state panel: both robots at start, no wall/face highlights.
+        a_0, b_0 = snapshots[0]
+        fig, ax = plt.subplots(figsize=(grid.cols * 0.7 + 0.5, grid.rows * 0.7 + 0.5))
+        draw(grid, robots=[a_0, b_0], title="start", ax=ax, show=False)
+        plt.tight_layout()
+        plt.savefig(os.path.join(save_dir, "start.png"), dpi=150, bbox_inches="tight")
+        plt.close()
+
+        # One file per turn of actual movement, numbered from 1
         for i, turn in enumerate(turns):
             fig, ax = plt.subplots(figsize=(grid.cols * 0.7 + 0.5, grid.rows * 0.7 + 0.5))
             _draw_turn(ax, grid, turn, color_map, arrow_map, robot_size)
             plt.tight_layout()
-            plt.savefig(os.path.join(save_dir, f"turn_{i:02d}.png"), dpi=150, bbox_inches="tight")
+            plt.savefig(
+                os.path.join(save_dir, f"turn_{i + 1:02d}.png"), dpi=150, bbox_inches="tight"
+            )
             plt.close()
         # Aggregate heatmap: how many times each wall blocked a robot face
         draw_blocker_heatmap(
@@ -472,9 +479,14 @@ def draw_sequence(
         )
         return
 
+    # Panel 0: initial state, no highlights
+    a_0, b_0 = snapshots[0]
+    draw(grid, robots=[a_0, b_0], title="start", ax=axes[0][0], show=False)
+
     for i, turn in enumerate(turns):
-        r = i // n_cols
-        c = i % n_cols
+        idx = i + 1  # panel 0 is the start
+        r = idx // n_cols
+        c = idx % n_cols
         ax = axes[r][c]
         _draw_turn(ax, grid, turn, color_map, arrow_map, robot_size)
 
