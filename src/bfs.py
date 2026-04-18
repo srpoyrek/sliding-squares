@@ -29,22 +29,16 @@ _FLOOD_CACHE: Dict[Tuple, Dict] = {}
 _VALID_POS_CACHE: Dict[int, set] = {}
 
 
-def _original_flood_fill(usable, pos_moving) -> list[tuple]:
+def _original_flood_fill(usable, pos_moving) -> dict:
     """
     Find all positions the moving robot can reach without switching.
-    Returns list of (pos, commands_to_get_there) tuples.
 
-    Parameters
-    ----------
-    usable     : set of (row, col) positions the robot can occupy
-                 (already excludes walls and positions overlapping the static robot)
-    pos_moving : (row, col) current position of moving robot
-
-    Returns
-    -------
-    list of ( (row,col), [cmd, cmd, ...] ) — position + moves to reach it
+    Returns a parent_map: pos -> (previous_pos, command_taken_to_get_here).
+    Command paths are NOT reconstructed here — callers rebuild lazily via
+    `_cmds_from_parent_map` only for positions they actually keep. This
+    avoids O(path_length) work for every reachable cell that BFS drops as
+    a duplicate.
     """
-    # parent_map[pos] = (previous_pos, command_taken_to_get_here)
     parent_map = {pos_moving: (None, None)}
     queue = deque([pos_moving])
 
@@ -61,25 +55,29 @@ def _original_flood_fill(usable, pos_moving) -> list[tuple]:
             if npos not in usable:
                 continue
 
-            parent_map[npos] = (pos, name)
+            parent_map[npos] = (pos, name)  # type: ignore
             queue.append(npos)
 
-    # Reconstruct command paths only at the very end
-    results = []
-    for target in parent_map:
-        cmds = []
-        curr = target
-        while curr != pos_moving:
-            curr, cmd = parent_map[curr]
-            cmds.append(cmd)
-        cmds.reverse()
-        results.append((target, cmds))
-
-    return results
+    return parent_map
 
 
-def flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
-    """Lazy evaluation wrapper for the fast flood fill."""
+def _cmds_from_parent_map(parent_map: dict, pos_moving, target) -> list[str]:
+    """Walk parent_map from target back to pos_moving to rebuild the cmd list."""
+    cmds = []
+    curr = target
+    while curr != pos_moving:
+        curr, cmd = parent_map[curr]
+        cmds.append(cmd)
+    cmds.reverse()
+    return cmds
+
+
+def flood_fill(workspace, pos_moving, pos_static, n) -> dict:
+    """Lazy evaluation wrapper for the flood fill.
+    Returns parent_map — a dict {pos: (prev_pos, cmd)}.
+    Iterate .keys() for reachable positions; call _cmds_from_parent_map
+    to rebuild a specific path.
+    """
     cache_key = (pos_static, n)
     if cache_key not in _FLOOD_CACHE:
         # Precompute valid positions for this robot size (ignores the other robot)
@@ -102,7 +100,6 @@ def flood_fill(workspace, pos_moving, pos_static, n) -> list[tuple]:
         _FLOOD_CACHE[cache_key] = {"usable": usable, "flood": {}}
 
     bucket = _FLOOD_CACHE[cache_key]
-    # Only compute the flood fill if we haven't checked this specific moving position
     if pos_moving not in bucket["flood"]:
         bucket["flood"][pos_moving] = _original_flood_fill(bucket["usable"], pos_moving)
     return bucket["flood"][pos_moving]
@@ -131,16 +128,21 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
     n = workspace.robot_a.n
     start_state = workspace.get_state()
     start_a, start_b = start_state.pos_a, start_state.pos_b
-    # ── Layer 0: flood fill A from start ────────────────
-    parent = {start_state: (None, [], False)}
+
+    # parent[state] = (prev_state, target_pos_of_mover, needs_switch)
+    # target_pos_of_mover is the end position of whoever moved in this edge;
+    # combined with prev_state it lets us rebuild move cmds from the cache.
+    parent = {start_state: (None, None, False)}
     visited = {}
     frontier = set()
 
-    for pos_a, cmds in flood_fill(workspace, start_a, start_b, n):
+    # ── Layer 0: flood fill A from start ────────────────
+    pm0 = flood_fill(workspace, start_a, start_b, n)
+    for pos_a in pm0:
         state = State(pos_a, start_b, workspace.robot_a)
         visited[state] = 0
         if state not in parent:
-            parent[state] = (start_state, cmds, False)
+            parent[state] = (start_state, pos_a, False)
         frontier.add(state)
 
     switches = 0
@@ -150,7 +152,7 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
         if state.pos_a == goal_a and state.pos_b == goal_b:
             return {
                 "switches": switches,
-                "path": _reconstruct(parent, state),
+                "path": _reconstruct(parent, state, workspace),
                 "visited": visited,
             }
 
@@ -166,7 +168,8 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
             pos_moving = state.pos_b if next_robot == workspace.robot_b else state.pos_a
             pos_static = state.pos_a if next_robot == workspace.robot_b else state.pos_b
 
-            for new_pos, move_cmds in flood_fill(workspace, pos_moving, pos_static, n):
+            pm = flood_fill(workspace, pos_moving, pos_static, n)
+            for new_pos in pm:
                 if next_robot == workspace.robot_b:
                     new_state = State(state.pos_a, new_pos, workspace.robot_b)
                 else:
@@ -174,7 +177,7 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
                 if new_state in visited:
                     continue
                 visited[new_state] = switches
-                parent[new_state] = (state, move_cmds, True)
+                parent[new_state] = (state, new_pos, True)
                 next_frontier.add(new_state)
 
         # check goal
@@ -182,7 +185,7 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
             if state.pos_a == goal_a and state.pos_b == goal_b:
                 return {
                     "switches": switches,
-                    "path": _reconstruct(parent, state),
+                    "path": _reconstruct(parent, state, workspace),
                     "visited": visited,
                 }
 
@@ -203,15 +206,28 @@ def bfs(workspace, goal_a, goal_b, draw=False) -> dict | None:
     return None
 
 
-def _reconstruct(parent: dict, goal_state: State) -> list[str]:
-    """Backtrack through parent dict to build command list."""
+def _reconstruct(parent: dict, goal_state: State, workspace) -> list[str]:
+    """Backtrack through parent dict, rebuilding cmds per-edge from the flood cache."""
+    n = workspace.robot_a.n
+    robot_b = workspace.robot_b
+
     path = []
     state = goal_state
-
     while parent.get(state) is not None:
-        prev_state, cmds, needs_switch = parent[state]
+        prev_state, target_pos, needs_switch = parent[state]
         if prev_state is None:
             break
+        # Identify who moved on this edge and derive their start/static positions
+        if state.control == robot_b:
+            pos_moving_start = prev_state.pos_b
+            pos_static = prev_state.pos_a
+        else:
+            pos_moving_start = prev_state.pos_a
+            pos_static = prev_state.pos_b
+
+        parent_map = _FLOOD_CACHE[(pos_static, n)]["flood"][pos_moving_start]
+        cmds = _cmds_from_parent_map(parent_map, pos_moving_start, target_pos)
+
         for cmd in reversed(cmds):
             path.append(cmd)
         if needs_switch:

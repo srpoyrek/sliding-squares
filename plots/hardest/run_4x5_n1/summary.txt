@@ -1,0 +1,31 @@
+TIGHTEST WORKSPACE: 4 switches in 4 free cells (20.0% of 20-cell grid)
+  placement: A=(0, 2) B=(1, 2)
+  proof:     C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\GLOBAL_TIGHTEST_S04_F04
+
+Run: 4x5, n=1, depth_past_first=20, strategy=strip
+
+Placements: 31 total, 10 unique after dedup
+  ((0, 0), (0, 1)) represents: [((0, 3), (0, 4)), ((3, 0), (3, 1)), ((3, 3), (3, 4))]
+  ((0, 1), (0, 2)) represents: [((0, 2), (0, 3)), ((3, 1), (3, 2)), ((3, 2), (3, 3))]
+  ((1, 0), (1, 1)) represents: [((1, 3), (1, 4)), ((2, 0), (2, 1)), ((2, 3), (2, 4))]
+  ((1, 1), (1, 2)) represents: [((1, 2), (1, 3)), ((2, 1), (2, 2)), ((2, 2), (2, 3))]
+  ((0, 0), (1, 0)) represents: [((0, 4), (1, 4)), ((2, 0), (3, 0)), ((2, 4), (3, 4))]
+  ((0, 1), (1, 1)) represents: [((0, 3), (1, 3)), ((2, 1), (3, 1)), ((2, 3), (3, 3))]
+  ((0, 2), (1, 2)) represents: [((2, 2), (3, 2))]
+  ((1, 0), (2, 0)) represents: [((1, 4), (2, 4))]
+  ((1, 1), (2, 1)) represents: [((1, 3), (2, 3))]
+
+placement_A02_B12: switches=4  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A02_B12\max_switches_S04_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A02_B12\min_free_S04_F04
+placement_A10_B20: switches=4  max-free=6 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A10_B20\max_switches_S04_F06  |  min-free=6 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A10_B20\min_free_S04_F06
+placement_A12_B22: switches=4  max-free=5 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A12_B22\max_switches_S04_F05  |  min-free=5 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A12_B22\min_free_S04_F05
+placement_A00_B01: switches=4  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A00_B01\max_switches_S04_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A00_B01\min_free_S04_F04
+placement_A00_B10: switches=4  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A00_B10\max_switches_S04_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A00_B10\min_free_S04_F04
+placement_A01_B11: switches=4  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A01_B11\max_switches_S04_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A01_B11\min_free_S04_F04
+placement_A10_B11: switches=4  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A10_B11\max_switches_S04_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A10_B11\min_free_S04_F04
+placement_A11_B21: switches=4  max-free=5 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A11_B21\max_switches_S04_F05  |  min-free=5 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A11_B21\min_free_S04_F05
+placement_A01_B02: switches=4  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A01_B02\max_switches_S04_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A01_B02\min_free_S04_F04
+placement_A11_B12: switches=4  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A11_B12\max_switches_S04_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\placement_A11_B12\min_free_S04_F04
+
+GLOBAL MAX SWITCHES: 4 switches, 4 free cells (20.0% of 20-cell grid)
+  placement: A=(0, 2) B=(1, 2)
+  proof:     C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_4x5_n1\GLOBAL_MAX_SWITCHES_S04_F04
