@@ -161,29 +161,45 @@ _N_KINDS = None
 _CELL_TABLE = None
 _POS_TABLE = None
 _BIT_STRIDE = None  # grid width in cols; used to pack (r, c) into a single bit index
+_CELL_BITS = None  # {(r, c): (bit_under_k0, bit_under_k1, ...)} for incremental canon
+
+
+def _build_cell_bits(cell_table, bit_stride):
+    """Precompute, per cell, the bit-position values under each transform."""
+    cb = {}
+    for c, tforms in cell_table.items():
+        cb[c] = tuple(1 << (rt * bit_stride + ct) for (rt, ct) in tforms)
+    return cb
 
 
 def _init_transform_tables(rows, cols, n):
     """Build and set module-level transform tables. Called once in main process."""
-    global _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE
+    global _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE, _CELL_BITS
     _N_KINDS, _CELL_TABLE, _POS_TABLE = build_transform_tables(rows, cols, n)
     _BIT_STRIDE = cols
+    _CELL_BITS = _build_cell_bits(_CELL_TABLE, _BIT_STRIDE)
 
 
 def _set_transform_tables(n_kinds, cell_table, pos_table, bit_stride):
     """Assign pre-built transform tables in worker processes (no recomputation)."""
-    global _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE
+    global _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE, _CELL_BITS
     _N_KINDS = n_kinds
     _CELL_TABLE = cell_table
     _POS_TABLE = pos_table
     _BIT_STRIDE = bit_stride
+    _CELL_BITS = _build_cell_bits(cell_table, bit_stride)
 
 
-def _canonical_key(free_set, pos_a, pos_b):
-    """Canonical key using module-level transform tables."""
-    if _N_KINDS is None or _CELL_TABLE is None or _POS_TABLE is None or _BIT_STRIDE is None:
-        raise RuntimeError("Transform tables not initialized. Call _init_transform_tables first.")
-    return canonical_key(free_set, pos_a, pos_b, _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE)
+def _canonical_key(tf, seconds, thirds):
+    """Canonical key from a precomputed transforms_free tuple and per-transform
+    tiebreakers (seconds[k] = min(pos_a_t[k], pos_b_t[k]), thirds[k] = max).
+    O(n_kinds) per call — incremental-friendly."""
+    best = (tf[0], seconds[0], thirds[0])
+    for k in range(1, _N_KINDS):  # type: ignore
+        cand = (tf[k], seconds[k], thirds[k])
+        if cand < best:
+            best = cand
+    return best
 
 
 # ---------------------------------------------------------------------------
@@ -254,8 +270,28 @@ def dig_search(
     init_valid = _valid_block_positions(rows, cols, init_free, n)
     init_key = frozenset(init_free)
 
+    # Per-placement tiebreakers: pos_a and pos_b don't change within one
+    # dig_search call, so the (a_t, b_t) / (b_t, a_t) tiebreaker pairs are
+    # constant per transform. Precompute once.
+    seconds = tuple(
+        min(_POS_TABLE[pos_a][k], _POS_TABLE[pos_b][k])
+        for k in range(_N_KINDS)  # type: ignore
+    )
+    thirds = tuple(
+        max(_POS_TABLE[pos_a][k], _POS_TABLE[pos_b][k])
+        for k in range(_N_KINDS)  # type: ignore
+    )
+
+    # Initial transforms_free tuple (one bitmap per transform).
+    init_tf_list = [0] * _N_KINDS  # type: ignore
+    for c in init_free:
+        bits = _CELL_BITS[c]  # type: ignore
+        for k in range(_N_KINDS):  # type: ignore
+            init_tf_list[k] |= bits[k]
+    init_tf = tuple(init_tf_list)
+
     visited = set()
-    queue = deque([(init_key, init_frontier, init_valid, 0)])
+    queue = deque([(init_key, init_frontier, init_valid, init_tf, 0)])
 
     shared_ws = _build_workspace(rows, cols, set(init_free), pos_a, pos_b, n)
     shared_tiles = shared_ws.grid.tiles
@@ -286,7 +322,7 @@ def dig_search(
     t_start = time.perf_counter()
 
     while queue:
-        free_key, frontier, valid, depth = queue.popleft()
+        free_key, frontier, valid, tf, depth = queue.popleft()
         if first_solvable_depth is not None and depth > first_solvable_depth + max_depth_past_first:
             continue
 
@@ -351,8 +387,15 @@ def dig_search(
             new_free_set = free_cells | cells_to_dig
             new_key = frozenset(new_free_set)
 
+            # Incremental transforms_free update: OR in the bits for each cell dug.
             t0 = time.perf_counter()
-            new_canon = _canonical_key(new_key, pos_a, pos_b)
+            new_tf_list = list(tf)
+            for c in cells_to_dig:
+                bits = _CELL_BITS[c]  # type: ignore
+                for k in range(_N_KINDS):  # type: ignore
+                    new_tf_list[k] |= bits[k]
+            new_tf = tuple(new_tf_list)
+            new_canon = _canonical_key(new_tf, seconds, thirds)
             t_canon += time.perf_counter() - t0
 
             if new_canon in visited:
@@ -370,7 +413,7 @@ def dig_search(
             for cell in cells_to_dig:
                 new_valid = _extend_valid(new_valid, cell, new_free_set, rows, cols, n)
 
-            queue.append((new_key, new_frontier, new_valid, depth + 1))
+            queue.append((new_key, new_frontier, new_valid, new_tf, depth + 1))
 
     t_total = time.perf_counter() - t_start
     unique_enqueued = expansions_total - canon_dupes_skipped
@@ -477,7 +520,16 @@ def _placement_canonical_key(rows, cols, pos_a, pos_b, n):
     block_a = _robot_block(pos_a, n)
     block_b = _robot_block(pos_b, n)
     init_free = block_a | block_b
-    return _canonical_key(frozenset(init_free), pos_a, pos_b)
+    # Placement dedup is a cold path — do a one-shot full canonicalization.
+    return canonical_key(
+        frozenset(init_free),
+        pos_a,
+        pos_b,
+        _N_KINDS,
+        _CELL_TABLE,
+        _POS_TABLE,
+        _BIT_STRIDE,  # type: ignore
+    )
 
 
 def _dedup_placements(rows, cols, n, placements):
