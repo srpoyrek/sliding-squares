@@ -18,6 +18,7 @@ from src.directories import get_plots_dir
 from src.grid import Grid
 from src.robot import Robot
 from src.solver import Solver
+from src.symmetry import build_transform_tables, canonical_key
 from src.validator import Validator
 from src.visualizer import draw_sequence
 from src.workspace import Workspace
@@ -165,7 +166,7 @@ _BIT_STRIDE = None  # grid width in cols; used to pack (r, c) into a single bit 
 def _init_transform_tables(rows, cols, n):
     """Build and set module-level transform tables. Called once in main process."""
     global _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE
-    _N_KINDS, _CELL_TABLE, _POS_TABLE = _build_transform_table(rows, cols, n)
+    _N_KINDS, _CELL_TABLE, _POS_TABLE = build_transform_tables(rows, cols, n)
     _BIT_STRIDE = cols
 
 
@@ -178,88 +179,11 @@ def _set_transform_tables(n_kinds, cell_table, pos_table, bit_stride):
     _BIT_STRIDE = bit_stride
 
 
-def _build_transform_table(rows, cols, n):
-    """
-    Precompute TWO transform tables:
-      cell_table : for individual cells (free_set members)
-      pos_table  : for robot top-left positions (accounts for block size n)
-
-    For an n*n robot at top-left (r, c), a horizontal flip maps it to
-    (r, C-n-c) — NOT (r, C-1-c) — because the block occupies cols c..c+n-1
-    and the flipped block must occupy cols (C-1-(c+n-1))..(C-1-c) = (C-n-c)..(C-1-c).
-    """
-    R, C = rows, cols
-    is_square = R == C
-    n_kinds = 8 if is_square else 4
-
-    cell_table = {}
-    for r in range(R):
-        for c in range(C):
-            tforms = [
-                (r, c),
-                (r, C - 1 - c),
-                (R - 1 - r, c),
-                (R - 1 - r, C - 1 - c),
-            ]
-            if is_square:
-                tforms.extend(
-                    [
-                        (c, R - 1 - r),
-                        (C - 1 - c, r),
-                        (c, r),
-                        (C - 1 - c, R - 1 - r),
-                    ]
-                )
-            cell_table[(r, c)] = tuple(tforms)
-
-    pos_table = {}
-    for r in range(R - n + 1):
-        for c in range(C - n + 1):
-            tforms = [
-                (r, c),  # 0 identity
-                (r, C - n - c),  # 1 flip horizontal
-                (R - n - r, c),  # 2 flip vertical
-                (R - n - r, C - n - c),  # 3 rotate 180
-            ]
-            if is_square:
-                tforms.extend(
-                    [
-                        (c, R - n - r),  # 4 rotate 90 CW
-                        (C - n - c, r),  # 5 rotate 270 CW
-                        (c, r),  # 6 diagonal flip (main)
-                        (C - n - c, R - n - r),  # 7 diagonal flip (anti)
-                    ]
-                )
-            pos_table[(r, c)] = tuple(tforms)
-
-    return n_kinds, cell_table, pos_table
-
-
 def _canonical_key(free_set, pos_a, pos_b):
-    """
-    Canonical key: lex-min of (sorted_free, a, b) over all spatial transforms
-    and both A<->B label orderings.
-    Reads transform tables from module-level globals set by _init_transform_tables.
-    """
-    if _N_KINDS is None or _CELL_TABLE is None or _POS_TABLE is None:
+    """Canonical key using module-level transform tables."""
+    if _N_KINDS is None or _CELL_TABLE is None or _POS_TABLE is None or _BIT_STRIDE is None:
         raise RuntimeError("Transform tables not initialized. Call _init_transform_tables first.")
-    best = None
-    stride = _BIT_STRIDE
-    for k in range(_N_KINDS):
-        transformed_free = 0
-        for c in free_set:
-            r, col = _CELL_TABLE[c][k]
-            transformed_free |= 1 << (r * stride + col)
-
-        a_t = _POS_TABLE[pos_a][k]
-        b_t = _POS_TABLE[pos_b][k]
-        cand1 = (transformed_free, a_t, b_t)
-        cand2 = (transformed_free, b_t, a_t)
-        if best is None or cand1 < best:
-            best = cand1
-        if cand2 < best:
-            best = cand2
-    return best
+    return canonical_key(free_set, pos_a, pos_b, _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE)
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,17 @@
+TIGHTEST WORKSPACE: 3 switches in 4 free cells (66.7% of 6-cell grid)
+  placement: A=(0, 1) B=(1, 1)
+  proof:     C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\GLOBAL_TIGHTEST_S03_F04
+
+Run: 2x3, n=1, depth_past_first=20, strategy=single
+
+Placements: 7 total, 3 unique after dedup
+  ((0, 0), (0, 1)) represents: [((0, 1), (0, 2)), ((1, 0), (1, 1)), ((1, 1), (1, 2))]
+  ((0, 0), (1, 0)) represents: [((0, 2), (1, 2))]
+
+placement_A00_B10: switches=2  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A00_B10\max_switches_S02_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A00_B10\min_free_S02_F04
+placement_A01_B11: switches=3  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A01_B11\max_switches_S03_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A01_B11\min_free_S03_F04
+placement_A00_B01: switches=3  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A00_B01\max_switches_S03_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\placement_A00_B01\min_free_S03_F04
+
+GLOBAL MAX SWITCHES: 3 switches, 4 free cells (66.7% of 6-cell grid)
+  placement: A=(0, 1) B=(1, 1)
+  proof:     C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_2x3_n1\GLOBAL_MAX_SWITCHES_S03_F04
