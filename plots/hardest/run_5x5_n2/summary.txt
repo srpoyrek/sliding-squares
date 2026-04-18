@@ -2,7 +2,7 @@ TIGHTEST WORKSPACE: 5 switches in 18 free cells (72.0% of 25-cell grid)
   placement: A=(1, 0) B=(1, 2)
   proof:     C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x5_n2\GLOBAL_TIGHTEST_S05_F18
 
-Run: 5x5, n=2, depth_past_first=20, strategy=single
+Run: 5x5, n=2, depth_past_first=4, strategy=single
 
 Placements: 16 total, 2 unique after dedup
   ((0, 0), (0, 2)) represents: [((0, 1), (0, 3)), ((3, 0), (3, 2)), ((3, 1), (3, 3)), ((0, 0), (2, 0)), ((0, 3), (2, 3)), ((1, 0), (3, 0)), ((1, 3), (3, 3))]

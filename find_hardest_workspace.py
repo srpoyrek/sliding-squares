@@ -321,6 +321,11 @@ def dig_search(
     canon_dupes_skipped = 0
     solvable_prunes = 0  # how many solvable nodes we skipped expanding
     solvable_prune_children_skipped = 0  # immediate children that would have been enqueued
+    # Solver result cache: different free_cells patterns with the same `valid`
+    # set have identical solver results (solver only cares about where robots
+    # can physically sit).  Keyed by frozenset(valid).
+    solver_cache = {}
+    solver_cache_hits = 0
     t_start = time.perf_counter()
 
     while queue:
@@ -349,34 +354,46 @@ def dig_search(
         t_precheck += time.perf_counter() - t0
 
         if precheck_ok:
-            t0 = time.perf_counter()
-            sync_tiles_to(free_cells)
-            t_sync += time.perf_counter() - t0
+            # Check solver cache first — same `valid` + same (pos_a, pos_b) always
+            # yields the same (solvable, switches), even if other free cells differ.
+            valid_key = frozenset(valid)
+            cached = solver_cache.get(valid_key)
+            if cached is not None:
+                solver_cache_hits += 1
+                solvable, res_switches = cached
+            else:
+                t0 = time.perf_counter()
+                sync_tiles_to(free_cells)
+                t_sync += time.perf_counter() - t0
 
-            t0 = time.perf_counter()
-            result = Solver(shared_ws, goal_a, goal_b).solve()
-            t_solver += time.perf_counter() - t0
-            solver_calls += 1
+                t0 = time.perf_counter()
+                result = Solver(shared_ws, goal_a, goal_b).solve()
+                t_solver += time.perf_counter() - t0
+                solver_calls += 1
 
-            if result.solvable:
+                solvable = result.solvable
+                res_switches = result.switches
+                solver_cache[valid_key] = (solvable, res_switches)
+
+            if solvable:
                 if first_solvable_depth is None:
                     first_solvable_depth = depth
                     logs.append(f"    first solvable @ depth={depth}")
 
-                if result.switches is not None and result.switches > best_switches:
-                    best_switches = result.switches
+                if res_switches is not None and res_switches > best_switches:
+                    best_switches = res_switches
                     best_free_max = free_key
                     best_free_min = free_key
                     min_free_at_max = len(free_cells)
-                    logs.append(f"    NEW MAX: {result.switches} (D:{depth}, F:{len(free_cells)})")
+                    logs.append(f"    NEW MAX: {res_switches} (D:{depth}, F:{len(free_cells)})")
                 elif (
-                    result.switches is not None
-                    and result.switches == best_switches
+                    res_switches is not None
+                    and res_switches == best_switches
                     and len(free_cells) < min_free_at_max
                 ):
                     min_free_at_max = len(free_cells)
                     best_free_min = free_key
-                    logs.append(f"    MIN-FREE witness: {len(free_cells)} (S:{result.switches})")
+                    logs.append(f"    MIN-FREE witness: {len(free_cells)} (S:{res_switches})")
 
                 # Prune: once a workspace is solvable with K switches, any descendant
                 # (more free cells) is also solvable with <= K switches (same path stays
@@ -447,6 +464,12 @@ def dig_search(
     logs.append(
         f"    prune:   solvable_nodes_pruned={solvable_prunes}  "
         f"immediate_children_skipped>={solvable_prune_children_skipped}"
+    )
+    total_solver_asks = solver_calls + solver_cache_hits
+    hit_pct = (100.0 * solver_cache_hits / total_solver_asks) if total_solver_asks else 0.0
+    logs.append(
+        f"    cache:   solver_hits={solver_cache_hits}  "
+        f"solver_runs={solver_calls}  ({hit_pct:.1f}% hit rate)"
     )
 
     if best_free_max is None or best_free_min is None:
@@ -630,7 +653,7 @@ def find_hardest(
                 else:
                     print(
                         f"    DONE: {out['switches']} switches  "
-                        f"max-free={out['free_max']} min-free={out['free_min']}"
+                        f"max-free={out['free_max']} min-free={out['free_min']}\n"
                     )
 
     global_max_sw = -1
