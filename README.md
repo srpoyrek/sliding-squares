@@ -153,4 +153,4 @@ python scripts/graphify/list_communities.py
 
 The graph is **rebuilt automatically on every commit** that touches a `.py` file, via the `graphify-build` pre-commit hook. You don't need to run `build_graph.py` manually unless you want to refresh between commits.
 
-For richer extraction that also reads docs and images via AI subagents, use the `/graphify` skill inside [Claude Code](https://claude.com/claude-code). See [`scripts/graphify/README.md`](scripts/graphify/README.md) for full details.
+For richer extraction that also reads docs and images via AI subagents, see the [graphify project](https://github.com/safishamsi/graphify) for the list of supported environments. Local usage details are in [`scripts/graphify/README.md`](scripts/graphify/README.md).

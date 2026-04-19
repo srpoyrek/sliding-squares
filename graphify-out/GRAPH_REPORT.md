@@ -1,7 +1,7 @@
 # Graph Report - .  (2026-04-19)
 
 ## Corpus Check
-- 33 files · ~19,724 words
+- 33 files · ~19,730 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -76,28 +76,28 @@ Cohesion: 0.16
 Nodes (23): Validator, _compute_contact(), _compute_contact_at(), _contact_along_turn(), draw(), draw_bfs_frontier(), draw_blocker_heatmap(), _draw_face_highlight() (+15 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.11
-Nodes (11): 3x3_robot_no_holes.py ------------------- Test case for a 3x3 robot scenario w, ThreeByThreeNoHoles, Grid, grid.py ------- The physical environment — a 2D map of free tiles and obstacle, Print the raw grid. '.' = free, '#' = boundary, 'O' = hole., 2D grid of tiles.       0 = free       1 = boundary (perimeter wall)      -1, Return set of all hole cell positions (row, col)., Return set of all boundary cell positions (row, col). (+3 more)
+Cohesion: 0.15
+Nodes (13): 2x2_robot_holes.py ------------------- Test case for a 2x2 robot scenario with, TwoByTwoHoles, 2x2_robot_no_holes.py ------------------- Test case for a 2x2 robot scenario w, TwoByTwoNoHoles, 3x3_robot_holes.py ------------------- Test case for a 3x3 robot scenario with, ThreeByThreeHoles, 3x3_robot_no_holes.py ------------------- Test case for a 3x3 robot scenario w, ThreeByThreeNoHoles (+5 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.15
-Nodes (13): 2x2_robot_holes.py ------------------- Test case for a 2x2 robot scenario with, TwoByTwoHoles, 3x3_robot_holes.py ------------------- Test case for a 3x3 robot scenario with, ThreeByThreeHoles, FourByFourHoles, 4x4_robot_holes.py ------------------- Test case for a 4x4 robot scenario with, FourByFourNoHoles, 4x4_robot_no_holes.py ------------------- Test case for a 4x4 robot scenario w (+5 more)
+Cohesion: 0.11
+Nodes (10): Grid, grid.py ------- The physical environment — a 2D map of free tiles and obstacle, Print the raw grid. '.' = free, '#' = boundary, 'O' = hole., 2D grid of tiles.       0 = free       1 = boundary (perimeter wall)      -1, Return set of all hole cell positions (row, col)., Return set of all boundary cell positions (row, col)., Return set of all obstacle positions — both holes and boundaries., workspace.py ------------ The grid + both robots + all movement rules.  Owns (+2 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.1
-Nodes (11): robot.py -------- A single n×n square robot.  Knows only:   - its label, An n×n square robot on a grid.     Position is the (row, col) of its top-left c, label : name, e.g. 'A' or 'B'         n     : edge length in tiles         row, All (row, col) tiles this robot occupies., Return an independent copy of this robot., Robot, workspace.py ------------ The grid + both robots + all movement rules.  Owns, Restore robot positions from a State snapshot.         BFS uses this to backtra (+3 more)
+Cohesion: 0.11
+Nodes (10): robot.py -------- A single n×n square robot.  Knows only:   - its label, An n×n square robot on a grid.     Position is the (row, col) of its top-left c, label : name, e.g. 'A' or 'B'         n     : edge length in tiles         row, All (row, col) tiles this robot occupies., Return an independent copy of this robot., Robot, Restore robot positions from a State snapshot.         BFS uses this to backtra, Combines a Grid with two robots and enforces movement rules. (+2 more)
 
 ### Community 8 - "Community 8"
+Cohesion: 0.22
+Nodes (5): FourByFourHoles, 4x4_robot_holes.py ------------------- Test case for a 4x4 robot scenario with, Set a rectangle of cells as internal holes/islands., Set a rectangle of cells as boundary — same as add_hole but marks as BOUNDARY., Draw the full perimeter of the grid as boundary.
+
+### Community 9 - "Community 9"
 Cohesion: 0.2
 Nodes (5): Is (row, col) within the grid?, Is (row, col) in bounds and not an obstacle?, Is (row, col) a boundary wall?, Is (row, col) an internal hole / island?, Is (row, col) out of bounds or any kind of obstacle?
 
-### Community 9 - "Community 9"
+### Community 10 - "Community 10"
 Cohesion: 0.22
 Nodes (5): demo_validator.py ----------------- Manual demo for the validator., PathResolver, path_resolver.py ---------------- Converts compact path strings into flat comm, Convert compact path string(s) to flat command list.          Accepts:, Parse a single segment like '12R2US'.
-
-### Community 10 - "Community 10"
-Cohesion: 0.33
-Nodes (3): Set a rectangle of cells as internal holes/islands., Set a rectangle of cells as boundary — same as add_hole but marks as BOUNDARY., Draw the full perimeter of the grid as boundary.
 
 ### Community 11 - "Community 11"
 Cohesion: 0.67
@@ -109,7 +109,7 @@ Nodes (3): main(), Return paths of .py files staged for commit (any status)., st
 
 ### Community 13 - "Community 13"
 Cohesion: 0.5
-Nodes (2): 2x2_robot_no_holes.py ------------------- Test case for a 2x2 robot scenario w, TwoByTwoNoHoles
+Nodes (2): FourByFourNoHoles, 4x4_robot_no_holes.py ------------------- Test case for a 4x4 robot scenario w
 
 ### Community 14 - "Community 14"
 Cohesion: 0.5
@@ -140,11 +140,11 @@ Nodes (0):
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Grid` connect `Community 5` to `Community 0`, `Community 1`, `Community 2`, `Community 4`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 13`, `Community 14`?**
+- **Why does `Grid` connect `Community 6` to `Community 0`, `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 13`, `Community 14`?**
   _High betweenness centrality (0.254) - this node is a cross-community bridge._
-- **Why does `Workspace` connect `Community 0` to `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 9`, `Community 10`, `Community 13`, `Community 14`?**
+- **Why does `Workspace` connect `Community 0` to `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 10`, `Community 13`, `Community 14`?**
   _High betweenness centrality (0.226) - this node is a cross-community bridge._
-- **Why does `Robot` connect `Community 7` to `Community 0`, `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 6`, `Community 9`, `Community 10`, `Community 13`, `Community 14`?**
+- **Why does `Robot` connect `Community 7` to `Community 0`, `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 6`, `Community 8`, `Community 10`, `Community 13`, `Community 14`?**
   _High betweenness centrality (0.222) - this node is a cross-community bridge._
 - **Are the 57 inferred relationships involving `Grid` (e.g. with `demo_validator.py ----------------- Manual demo for the validator.` and `find_hardest_workspace.py ------------------------- Self-contained, optimized`) actually correct?**
   _`Grid` has 57 INFERRED edges - model-reasoned connections that need verification._

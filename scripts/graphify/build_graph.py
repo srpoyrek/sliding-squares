@@ -6,8 +6,9 @@ Cross-platform: Windows, macOS, Linux.
 Drop this folder into any project; it has no project-specific assumptions.
 
 For richer extraction that also reads docs, papers, and images, use the
-`/graphify` skill inside Claude Code instead -- that one dispatches AI
-subagents. This script is the free, fast, code-only fallback.
+`/graphify` skill in any AI coding assistant that supports it (see the
+upstream graphify project for the current list). This script is the free,
+fast, code-only fallback.
 
 Usage:
     python scripts/graphify/build_graph.py                     # scan current dir
@@ -122,7 +123,8 @@ def main() -> int:
     if not code_paths:
         print("      No code files found.")
         print(
-            "      This script is AST-only. For docs/papers/images, use /graphify in Claude Code."
+            "      This script is AST-only. "
+            "For docs/papers/images, use the /graphify skill upstream."
         )
         return 1
 

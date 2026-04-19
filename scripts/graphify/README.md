@@ -4,9 +4,11 @@ Cross-platform helpers (Windows / macOS / Linux) for building a knowledge graph
 of any codebase using [graphify](https://github.com/safishamsi/graphify).
 
 These are a fallback for when you want a fast, free, code-only build without
-running the full `/graphify` skill in Claude Code. **For the full pipeline that
-also reads docs, papers, and images via AI subagents, type `/graphify` inside
-Claude Code -- this folder does not replace that.**
+running the full `/graphify` skill in your AI coding assistant. **For the full
+pipeline that also reads docs, papers, and images via AI subagents, invoke
+`/graphify` in whichever AI assistant supports it -- this folder does not
+replace that.** See the [upstream graphify project](https://github.com/safishamsi/graphify)
+for the current list of supported environments.
 
 ## Install once
 
@@ -93,13 +95,13 @@ After a successful run, `graphify-out/` will contain:
 
 The `.gitignore` at the project root already excludes the transient bits.
 
-## When to use this script vs `/graphify` in Claude Code
+## When to use this script vs the `/graphify` skill
 
 | Want... | Use |
 |---|---|
 | Fast code-only rebuild, no LLM cost | this script |
 | CI / pre-commit / cron job | this script |
-| Predictable, scriptable, no Claude needed | this script |
+| Predictable, scriptable, no AI assistant needed | this script |
 | Read docs / papers / image content into the graph | `/graphify` (uses AI subagents) |
 | Auto-label communities with meaningful names | `/graphify` |
 | Ask questions against the graph | `/graphify query "..."` |
