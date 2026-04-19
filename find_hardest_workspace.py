@@ -8,6 +8,7 @@ Uses enqueue-time depth filtering and a sound symmetric connectivity pre-check.
 from __future__ import annotations
 
 import argparse
+import heapq
 import multiprocessing as mp
 import os
 import shutil
@@ -291,7 +292,18 @@ def dig_search(
     init_tf = tuple(init_tf_list)
 
     visited = set()
-    queue = deque([(init_key, init_frontier, init_valid, init_tf, 0)])
+    # Min-heap priority queue: (depth, |valid|, seq, state_payload).
+    # Primary key depth  -> preserves layered-BFS ordering.
+    # Secondary |valid| -> within a layer, explore tighter puzzles (fewer
+    #                       robot positions) first.
+    # seq counter       -> breaks ties so Python never compares payloads.
+    queue: list = []
+    seq = 0
+    heapq.heappush(
+        queue,
+        (0, len(init_valid), seq, (init_key, init_frontier, init_valid, init_tf, 0)),
+    )
+    seq += 1
 
     shared_ws = _build_workspace(rows, cols, set(init_free), pos_a, pos_b, n)
     shared_tiles = shared_ws.grid.tiles
@@ -333,7 +345,7 @@ def dig_search(
     t_start = time.perf_counter()
 
     while queue:
-        free_key, frontier, valid, tf, depth = queue.popleft()
+        _pd, _pv, _pseq, (free_key, frontier, valid, tf, depth) = heapq.heappop(queue)
         if first_solvable_depth is not None and depth > first_solvable_depth + max_depth_past_first:
             continue
 
@@ -457,7 +469,16 @@ def dig_search(
             for cell in cells_to_dig:
                 new_valid = _extend_valid(new_valid, cell, new_free_set, rows, cols, n)
 
-            queue.append((new_key, new_frontier, new_valid, new_tf, depth + 1))
+            heapq.heappush(
+                queue,
+                (
+                    depth + 1,
+                    len(new_valid),
+                    seq,
+                    (new_key, new_frontier, new_valid, new_tf, depth + 1),
+                ),
+            )
+            seq += 1
 
     t_total = time.perf_counter() - t_start
     unique_enqueued = expansions_total - canon_dupes_skipped
