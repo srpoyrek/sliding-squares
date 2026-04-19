@@ -138,6 +138,18 @@ def robot_can_reach_goal_ignoring_other(valid, start, goal):
     return False
 
 
+def _solve_payload(payload):
+    """Worker function: rebuild workspace and run solver.
+    Used by the batch-parallel solver pool in dig_search.
+    Payload: (rows, cols, n, free_cells_frozen, pos_a, pos_b, goal_a, goal_b)
+    Returns: (solvable, switches)
+    """
+    rows, cols, n, free_cells, pos_a, pos_b, goal_a, goal_b = payload
+    ws = _build_workspace(rows, cols, set(free_cells), pos_a, pos_b, n)
+    res = Solver(ws, goal_a, goal_b).solve()
+    return res.solvable, res.switches
+
+
 def _plot_proof(ws_template, goals, save_dir):
     rows, cols, n = ws_template.grid.rows, ws_template.grid.cols, ws_template.robot_a.n
     pos_a, pos_b = ws_template.robot_a.position(), ws_template.robot_b.position()
@@ -260,7 +272,15 @@ def _dig_options_n_strip(free_cells, frontier, valid, rows, cols, n):
 
 
 def dig_search(
-    rows, cols, n, pos_a, pos_b, max_depth_past_first, logs, dig_options=_dig_options_single_cell
+    rows,
+    cols,
+    n,
+    pos_a,
+    pos_b,
+    max_depth_past_first,
+    logs,
+    dig_options=_dig_options_single_cell,
+    solver_pool=None,
 ):
     goal_a, goal_b = pos_b, pos_a
 
@@ -345,141 +365,191 @@ def dig_search(
     precheck_cache_hits = 0
     t_start = time.perf_counter()
 
+    # Per-depth layer-batched processing. When `solver_pool` is provided,
+    # cache-miss solver calls for the whole layer get batched and run in
+    # parallel. When solver_pool is None we fall back to the shared_ws-backed
+    # serial path (cheaper per call, no IPC).
     while queue:
-        _pd, _pv, _pseq, (free_key, frontier, valid, tf, depth) = heapq.heappop(queue)
-        if first_solvable_depth is not None and depth > first_solvable_depth + max_depth_past_first:
-            continue
-
-        nodes_visited += 1
-        if nodes_visited % 20000 == 0:
-            elapsed = time.perf_counter() - t_start
-            qsize = len(queue)
-            rate = nodes_visited / elapsed if elapsed > 0 else 0
-            eta = qsize / rate if rate > 0 else 0
-            print(
-                f"    [{pos_a}-{pos_b}] nodes={nodes_visited} depth={depth} "
-                f"best={best_switches} queue={qsize} elapsed={elapsed:.1f}s "
-                f"eta={eta:.0f}s ({rate:.0f} nodes/s)",
-                flush=True,
-            )
-        free_cells = set(free_key)
-
-        # Precheck: same `valid` always gives the same (pos_a->goal_a AND
-        # pos_b->goal_b) reachability result within a placement.
-        valid_key = frozenset(valid)
-        pc_cached = precheck_cache.get(valid_key)
-        if pc_cached is not None:
-            precheck_cache_hits += 1
-            precheck_ok = pc_cached
-        else:
-            t0 = time.perf_counter()
-            precheck_ok = robot_can_reach_goal_ignoring_other(
-                valid, pos_a, goal_a
-            ) and robot_can_reach_goal_ignoring_other(valid, pos_b, goal_b)
-            t_precheck += time.perf_counter() - t0
-            precheck_cache[valid_key] = precheck_ok
-
-        if precheck_ok:
-            # Same key reused for the solver cache.
-            cached = solver_cache.get(valid_key)
-            if cached is not None:
-                solver_cache_hits += 1
-                solvable, res_switches = cached
-            else:
-                t0 = time.perf_counter()
-                sync_tiles_to(free_cells)
-                t_sync += time.perf_counter() - t0
-
-                t0 = time.perf_counter()
-                result = Solver(shared_ws, goal_a, goal_b).solve()
-                t_solver += time.perf_counter() - t0
-                solver_calls += 1
-
-                solvable = result.solvable
-                res_switches = result.switches
-                solver_cache[valid_key] = (solvable, res_switches)
-
-            if solvable:
-                if first_solvable_depth is None:
-                    first_solvable_depth = depth
-                    logs.append(f"    first solvable @ depth={depth}")
-
-                if res_switches is not None and res_switches > best_switches:
-                    best_switches = res_switches
-                    best_free_max = free_key
-                    best_free_min = free_key
-                    min_free_at_max = len(free_cells)
-                    logs.append(f"    NEW MAX: {res_switches} (D:{depth}, F:{len(free_cells)})")
-                elif (
-                    res_switches is not None
-                    and res_switches == best_switches
-                    and len(free_cells) < min_free_at_max
-                ):
-                    min_free_at_max = len(free_cells)
-                    best_free_min = free_key
-                    logs.append(f"    MIN-FREE witness: {len(free_cells)} (S:{res_switches})")
-
-                # Prune: once a workspace is solvable with K switches, any descendant
-                # (more free cells) is also solvable with <= K switches (same path stays
-                # valid) and has strictly more cells — can't improve MAX or MIN-FREE.
-                n_children = len(frontier)
-                if n_children > 0:
-                    solvable_prunes += 1
-                    solvable_prune_children_skipped += n_children
-                    # msg = (
-                    #     f"    [{pos_a}-{pos_b}] PRUNE (solvable, S:{result.switches}) "
-                    #     f"D:{depth} F:{len(free_cells)} children_skipped>={n_children}"
-                    # )
-                    # logs.append(msg)
-                continue
-
+        current_depth = queue[0][0]
         if (
             first_solvable_depth is not None
-            and (depth + 1) > first_solvable_depth + max_depth_past_first
+            and current_depth > first_solvable_depth + max_depth_past_first
         ):
+            # Drain remaining queue past the cap without doing any work.
+            while queue and queue[0][0] == current_depth:
+                heapq.heappop(queue)
             continue
 
-        for cells_to_dig in dig_options(free_cells, frontier, valid, rows, cols, n):
-            expansions_total += 1
-            new_free_set = free_cells | cells_to_dig
-            new_key = frozenset(new_free_set)
+        # Pop every item at this depth.
+        layer = []
+        while queue and queue[0][0] == current_depth:
+            layer.append(heapq.heappop(queue))
 
-            # Incremental transforms_free update: OR in the bits for each cell dug.
-            t0 = time.perf_counter()
-            new_tf_list = list(tf)
-            for c in cells_to_dig:
-                bits = _CELL_BITS[c]  # type: ignore
-                for k in range(_N_KINDS):  # type: ignore
-                    new_tf_list[k] |= bits[k]
-            new_tf = tuple(new_tf_list)
-            new_canon = _canonical_key(new_tf, seconds, thirds)
-            t_canon += time.perf_counter() - t0
+        # Phase 1: precheck every item; collect the ones needing solver.
+        # We keep a per-item record: (raw item, free_cells_set, valid_key,
+        # precheck_ok, solve_result_or_None)
+        layer_records = []
+        need_solve_payloads = []
+        need_solve_indices = []
+        for item in layer:
+            _pd, _pv, _pseq, (free_key, frontier, valid, tf, depth) = item
+            nodes_visited += 1
+            if nodes_visited % 20000 == 0:
+                elapsed = time.perf_counter() - t_start
+                qsize = len(queue) + len(layer_records)
+                rate = nodes_visited / elapsed if elapsed > 0 else 0
+                eta = qsize / rate if rate > 0 else 0
+                print(
+                    f"    [{pos_a}-{pos_b}] nodes={nodes_visited} depth={depth} "
+                    f"best={best_switches} queue={qsize} elapsed={elapsed:.1f}s "
+                    f"eta={eta:.0f}s ({rate:.0f} nodes/s)",
+                    flush=True,
+                )
+            free_cells = set(free_key)
+            valid_key = frozenset(valid)
 
-            if new_canon in visited:
-                canon_dupes_skipped += 1
-                continue
-            visited.add(new_canon)
+            pc_cached = precheck_cache.get(valid_key)
+            if pc_cached is not None:
+                precheck_cache_hits += 1
+                precheck_ok = pc_cached
+            else:
+                t0 = time.perf_counter()
+                precheck_ok = robot_can_reach_goal_ignoring_other(
+                    valid, pos_a, goal_a
+                ) and robot_can_reach_goal_ignoring_other(valid, pos_b, goal_b)
+                t_precheck += time.perf_counter() - t0
+                precheck_cache[valid_key] = precheck_ok
 
-            t0 = time.perf_counter()
-            new_frontier = frontier
-            for cell in cells_to_dig:
-                new_frontier = _extend_frontier(new_frontier, cell, new_free_set, rows, cols)
-            t_frontier += time.perf_counter() - t0
+            solve_result = None
+            if precheck_ok:
+                cached = solver_cache.get(valid_key)
+                if cached is not None:
+                    solver_cache_hits += 1
+                    solve_result = cached
+                else:
+                    # Defer solver computation to the batch phase.
+                    need_solve_payloads.append(
+                        (rows, cols, n, free_key, pos_a, pos_b, goal_a, goal_b)
+                    )
+                    need_solve_indices.append(len(layer_records))
 
-            new_valid = valid
-            for cell in cells_to_dig:
-                new_valid = _extend_valid(new_valid, cell, new_free_set, rows, cols, n)
-
-            heapq.heappush(
-                queue,
-                (
-                    depth + 1,
-                    len(new_valid),
-                    seq,
-                    (new_key, new_frontier, new_valid, new_tf, depth + 1),
-                ),
+            layer_records.append(
+                {
+                    "item": item,
+                    "free_cells": free_cells,
+                    "free_key": free_key,
+                    "frontier": frontier,
+                    "valid": valid,
+                    "valid_key": valid_key,
+                    "tf": tf,
+                    "depth": depth,
+                    "precheck_ok": precheck_ok,
+                    "solve": solve_result,
+                }
             )
-            seq += 1
+
+        # Phase 2: batch-solve the cache-miss items.
+        if need_solve_payloads:
+            t0 = time.perf_counter()
+            if solver_pool is not None and len(need_solve_payloads) > 1:
+                batch_results = list(solver_pool.map(_solve_payload, need_solve_payloads))
+            else:
+                # Serial path — reuse shared_ws to avoid per-call workspace rebuild.
+                batch_results = []
+                for p in need_solve_payloads:
+                    _rows, _cols, _n, fk, _pa, _pb, _ga, _gb = p
+                    sync_tiles_to(set(fk))
+                    result = Solver(shared_ws, goal_a, goal_b).solve()
+                    batch_results.append((result.solvable, result.switches))
+            t_solver += time.perf_counter() - t0
+            solver_calls += len(need_solve_payloads)
+            for idx, res in zip(need_solve_indices, batch_results):
+                rec = layer_records[idx]
+                solver_cache[rec["valid_key"]] = res
+                rec["solve"] = res
+
+        # Phase 3: consume results per-item: update best / prune / expand.
+        for rec in layer_records:
+            depth = rec["depth"]
+            free_cells = rec["free_cells"]
+            free_key = rec["free_key"]
+            frontier = rec["frontier"]
+            valid = rec["valid"]
+            tf = rec["tf"]
+
+            if rec["precheck_ok"] and rec["solve"] is not None:
+                solvable, res_switches = rec["solve"]
+                if solvable:
+                    if first_solvable_depth is None:
+                        first_solvable_depth = depth
+                        logs.append(f"    first solvable @ depth={depth}")
+                    if res_switches is not None and res_switches > best_switches:
+                        best_switches = res_switches
+                        best_free_max = free_key
+                        best_free_min = free_key
+                        min_free_at_max = len(free_cells)
+                        logs.append(f"    NEW MAX: {res_switches} (D:{depth}, F:{len(free_cells)})")
+                    elif (
+                        res_switches is not None
+                        and res_switches == best_switches
+                        and len(free_cells) < min_free_at_max
+                    ):
+                        min_free_at_max = len(free_cells)
+                        best_free_min = free_key
+                        logs.append(f"    MIN-FREE witness: {len(free_cells)} (S:{res_switches})")
+                    n_children = len(frontier)
+                    if n_children > 0:
+                        solvable_prunes += 1
+                        solvable_prune_children_skipped += n_children
+                    continue
+
+            if (
+                first_solvable_depth is not None
+                and (depth + 1) > first_solvable_depth + max_depth_past_first
+            ):
+                continue
+
+            for cells_to_dig in dig_options(free_cells, frontier, valid, rows, cols, n):
+                expansions_total += 1
+                new_free_set = free_cells | cells_to_dig
+                new_key = frozenset(new_free_set)
+
+                # Incremental transforms_free update: OR in the bits for each cell dug.
+                t0 = time.perf_counter()
+                new_tf_list = list(tf)
+                for c in cells_to_dig:
+                    bits = _CELL_BITS[c]  # type: ignore
+                    for k in range(_N_KINDS):  # type: ignore
+                        new_tf_list[k] |= bits[k]
+                new_tf = tuple(new_tf_list)
+                new_canon = _canonical_key(new_tf, seconds, thirds)
+                t_canon += time.perf_counter() - t0
+
+                if new_canon in visited:
+                    canon_dupes_skipped += 1
+                    continue
+                visited.add(new_canon)
+
+                t0 = time.perf_counter()
+                new_frontier = frontier
+                for cell in cells_to_dig:
+                    new_frontier = _extend_frontier(new_frontier, cell, new_free_set, rows, cols)
+                t_frontier += time.perf_counter() - t0
+
+                new_valid = valid
+                for cell in cells_to_dig:
+                    new_valid = _extend_valid(new_valid, cell, new_free_set, rows, cols, n)
+
+                heapq.heappush(
+                    queue,
+                    (
+                        depth + 1,
+                        len(new_valid),
+                        seq,
+                        (new_key, new_frontier, new_valid, new_tf, depth + 1),
+                    ),
+                )
+                seq += 1
 
     t_total = time.perf_counter() - t_start
     unique_enqueued = expansions_total - canon_dupes_skipped
@@ -532,11 +602,19 @@ DIG_STRATEGIES = {
 }
 
 
-def _worker(args):
+def _worker(args, solver_pool=None):
     rows, cols, n, pos_a, pos_b, max_depth_past_first, placement_dir, dig_options = args
     logs = []
     res = dig_search(
-        rows, cols, n, pos_a, pos_b, max_depth_past_first, logs, dig_options=dig_options
+        rows,
+        cols,
+        n,
+        pos_a,
+        pos_b,
+        max_depth_past_first,
+        logs,
+        dig_options=dig_options,
+        solver_pool=solver_pool,
     )
 
     out = {
@@ -585,12 +663,39 @@ def _worker(args):
 
 
 def all_adjacent_placements(rows, cols, n):
+    """Full-edge-adjacent pairs only: B directly right of or below A."""
     for r in range(rows - n + 1):
         for c in range(cols - 2 * n + 1):
             yield ((r, c), (r, c + n))
     for r in range(rows - 2 * n + 1):
         for c in range(cols - n + 1):
             yield ((r, c), (r + n, c))
+    return
+
+
+def all_touching_placements(rows, cols, n):
+    """All non-overlapping A/B placements where the two n*n blocks touch —
+    full edge, partial edge, or just a corner. Includes everything
+    `all_adjacent_placements` yields plus partial-offset and corner pairs.
+
+    Non-overlapping + touching condition: (|dr|==n AND |dc|<=n) OR
+    (|dr|<=n AND |dc|==n), where (dr, dc) = pos_b - pos_a.
+    """
+    offsets = []
+    for dr in range(-n, n + 1):
+        for dc in range(-n, n + 1):
+            if dr == 0 and dc == 0:
+                continue
+            if abs(dr) == n or abs(dc) == n:
+                offsets.append((dr, dc))
+
+    for r_a in range(rows - n + 1):
+        for c_a in range(cols - n + 1):
+            for dr, dc in offsets:
+                r_b = r_a + dr
+                c_b = c_a + dc
+                if 0 <= r_b <= rows - n and 0 <= c_b <= cols - n:
+                    yield ((r_a, c_a), (r_b, c_b))
     return
 
 
@@ -609,11 +714,12 @@ def _pick_central_placements(keepers, rows, cols, n):
     center_c = (cols - 1) / 2.0
 
     def orient(pa, pb):
-        if pa[0] == pb[0] and pb[1] == pa[1] + n:
-            return "H"
-        if pa[1] == pb[1] and pb[0] == pa[0] + n:
-            return "V"
-        return "other"
+        # Key by |dr|, |dc| so that placements related by reflection/rotation
+        # collapse to the same orientation class. Covers full-edge, partial
+        # edge, and corner touching.
+        dr = pb[0] - pa[0]
+        dc = pb[1] - pa[1]
+        return (min(abs(dr), abs(dc)), max(abs(dr), abs(dc)))
 
     def dist_sq(pa, pb):
         r_lo = min(pa[0], pb[0])
@@ -677,6 +783,7 @@ def find_hardest(
     processes=None,
     strategy="strip",
     central_only=False,
+    touching="edge",
 ):
     run_dir = os.path.join(get_plots_dir(), "hardest", f"run_{rows}x{cols}_n{n}")
     if os.path.exists(run_dir):
@@ -686,12 +793,14 @@ def find_hardest(
     dig_options = DIG_STRATEGIES[strategy]
 
     summary = [
-        f"Run: {rows}x{cols}, n={n}, depth_past_first={max_depth_past_first}, strategy={strategy}",
+        f"Run: {rows}x{cols}, n={n}, depth_past_first={max_depth_past_first}, "
+        f"strategy={strategy}, touching={touching}",
         "",
     ]
 
     _init_transform_tables(rows, cols, n)
-    all_placements = list(all_adjacent_placements(rows, cols, n))
+    placement_gen = all_touching_placements if touching == "all" else all_adjacent_placements
+    all_placements = list(placement_gen(rows, cols, n))
     keepers, merged = _dedup_placements(rows, cols, n, all_placements)
 
     # Optional: reduce further to just the most-central representative per
@@ -735,15 +844,13 @@ def find_hardest(
 
     nproc = processes or min(8, mp.cpu_count())
     results = []
-    with mp.get_context("spawn").Pool(
-        processes=nproc,
-        initializer=_set_transform_tables,
-        initargs=(_N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE),
-    ) as pool:
-        # Terminal-based kill switch: type 'stop', 'quit', 'kill', or 'q' + Enter
-        # in this terminal to terminate every worker immediately.
-        if verbose:
-            print("Kill switch: type 'stop' (or 'q') + Enter in this terminal to abort.")
+
+    # Shared stdin kill-switch registration helper — installed for both the
+    # placement-pool and central-only code paths.
+    def _install_stdin_killer(pool_to_terminate):
+        if not verbose:
+            return
+        print("Kill switch: type 'stop' (or 'q') + Enter in this terminal to abort.")
 
         def _stdin_watcher():
             try:
@@ -752,31 +859,70 @@ def find_hardest(
                     if line.strip().lower() in ("q", "quit", "stop", "kill", "exit"):
                         print("\n⚠  Kill requested — terminating workers.", flush=True)
                         try:
-                            pool.terminate()
+                            pool_to_terminate.terminate()
                         except Exception:
                             pass
                         os._exit(130)
             except (EOFError, OSError):
-                pass  # stdin closed — keep running normally
+                pass
 
         threading.Thread(target=_stdin_watcher, daemon=True).start()
 
-        for out in pool.imap_unordered(_worker, jobs):
-            results.append(out)
-            tag = (
-                f"placement_A{out['pos_a'][0]}{out['pos_a'][1]}_B{out['pos_b'][0]}{out['pos_b'][1]}"
-            )
-            if verbose:
-                print(f"\n{tag}")
-                for line in out["logs"]:
-                    print(line)
-                if out["error"]:
-                    print(f"    {out['error']}")
-                else:
-                    print(
-                        f"    DONE: {out['switches']} switches  "
-                        f"max-free={out['free_max']} min-free={out['free_min']}\n"
-                    )
+    # ────────────────────────────────────────────────────────────────────
+    # central-only fast path: few jobs (1-2), many idle cores.
+    # Run each placement sequentially in main, but give dig_search a fat
+    # inner solver pool so cache-miss solver calls parallelize.
+    # ────────────────────────────────────────────────────────────────────
+    if central_only and len(jobs) <= 2 and nproc >= 2:
+        # _set_transform_tables needs to run in each solver-pool worker
+        # so _build_workspace / Solver in them have valid module-level tables.
+        with mp.get_context("spawn").Pool(
+            processes=nproc,
+            initializer=_set_transform_tables,
+            initargs=(_N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE),
+        ) as solver_pool:
+            _install_stdin_killer(solver_pool)
+            for job in jobs:
+                out = _worker(job, solver_pool=solver_pool)
+                results.append(out)
+                tag = (
+                    f"placement_A{out['pos_a'][0]}{out['pos_a'][1]}"
+                    f"_B{out['pos_b'][0]}{out['pos_b'][1]}"
+                )
+                if verbose:
+                    print(f"\n{tag}")
+                    for line in out["logs"]:
+                        print(line)
+                    if out["error"]:
+                        print(f"    {out['error']}")
+                    else:
+                        print(
+                            f"    DONE: {out['switches']} switches  "
+                            f"max-free={out['free_max']} min-free={out['free_min']}\n"
+                        )
+    else:
+        with mp.get_context("spawn").Pool(
+            processes=nproc,
+            initializer=_set_transform_tables,
+            initargs=(_N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE),
+        ) as pool:
+            _install_stdin_killer(pool)
+
+            for out in pool.imap_unordered(_worker, jobs):
+                results.append(out)
+                tag = f"placement_A{out['pos_a'][0]}"
+                f"{out['pos_a'][1]}_B{out['pos_b'][0]}{out['pos_b'][1]}"
+                if verbose:
+                    print(f"\n{tag}")
+                    for line in out["logs"]:
+                        print(line)
+                    if out["error"]:
+                        print(f"    {out['error']}")
+                    else:
+                        print(
+                            f"    DONE: {out['switches']} switches  "
+                            f"max-free={out['free_max']} min-free={out['free_min']}\n"
+                        )
 
     global_max_sw = -1
     global_max = None
@@ -873,6 +1019,13 @@ if __name__ == "__main__":
         "(1-2 placements total). Valid because any other placement's workspaces "
         "can be replicated from a central placement.",
     )
+    p.add_argument(
+        "--touching",
+        choices=("edge", "all"),
+        default="edge",
+        help="'edge' (default) = only full-edge-adjacent robot pairs. "
+        "'all' = also include corner-adjacent and partial-edge-offset pairs.",
+    )
     args = p.parse_args()
 
     result, run_dir = find_hardest(
@@ -884,6 +1037,7 @@ if __name__ == "__main__":
         processes=args.processes,
         strategy=args.strategy,
         central_only=args.central_only,
+        touching=args.touching,
     )
     sw, gmax, gmin = result
     total_cells = args.rows * args.cols
