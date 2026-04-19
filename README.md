@@ -28,12 +28,13 @@ To skip the graph rebuild on a single commit (rare): `SKIP=graphify-build git co
 ```
 sliding-squares/
 ├── src/
-│   ├── bfs.py              # Layered BFS algorithm (core solver logic)
+│   ├── bfs.py              # Layered BFS — both unidirectional and bidirectional
 │   ├── grid.py             # Grid representation (free, boundary, hole tiles)
 │   ├── robot.py            # n×n square robot representation
 │   ├── state.py            # Immutable state snapshots for BFS
 │   ├── workspace.py        # Grid + robots + movement/collision rules
-│   ├── solver.py           # Solver interface wrapping BFS
+│   ├── symmetry.py         # Spatial symmetries + canonical keys (used to prune redundant BFS halves)
+│   ├── solver.py           # Solver wrapping bidirectional BFS
 │   ├── validator.py        # Step-by-step path execution and validation
 │   ├── visualizer.py       # Matplotlib visualization (grids, sequences, BFS frontiers)
 │   ├── path_resolver.py    # Compact path notation parser (e.g. "12R2US")
@@ -51,9 +52,10 @@ sliding-squares/
 ├── plots/
 ├── data/
 ├── scripts/
-│   └── graphify/           # Optional: build a code knowledge graph (see below)
+│   └── graphify/                  # Optional: build a code knowledge graph (see below)
 ├── demo_solver.py
 ├── demo_validator.py
+├── find_hardest_workspace.py      # Parallel search for the workspace requiring the most switches
 ├── run_tests.py
 ├── requirements.txt
 └── README.md
@@ -61,12 +63,13 @@ sliding-squares/
 
 ## Algorithm
 
-The solver uses a **layered breadth-first search** over the state space `(pos_a, pos_b, control)`:
+The solver runs a **bidirectional layered breadth-first search** over the state space `(pos_a, pos_b, control)` — see [`src/solver.py`](src/solver.py) and [`src/bfs.py`](src/bfs.py):
 
-1. Each BFS layer represents states reachable with exactly *k* control switches.
-2. Within a layer, `flood_fill` explores all positions reachable by moving the controlled robot without switching.
-3. The goal is checked at each layer — the first match is optimal by construction.
-4. Path reconstruction backtracks through parent pointers to produce a command sequence.
+1. **Layered structure.** Each BFS layer represents states reachable with exactly *k* control switches. Within a layer, `flood_fill` explores all positions the controlled robot can reach without switching.
+2. **Bidirectional expansion.** A forward BFS from the start and a backward BFS from the goal are expanded in lockstep. Both initial controllers are seeded in forward layer 0 and both final controllers in backward layer 0, so the run finds the minimum-switch solution over any choice of first/last mover in a single pass.
+3. **Symmetry pruning.** [`src/symmetry.py`](src/symmetry.py) detects when a workspace is invariant under an A↔B label swap; in that case the dual-start expansion is collapsed to a single BFS half, halving the work.
+4. **Memoization.** Per-process caches in `bfs.py` (`_FLOOD_CACHE`, `_VALID_POS_CACHE`) reuse flood-fill results and valid-position sets across forward/backward halves of the same run.
+5. **Optimality.** The goal is checked at each layer; the first match is optimal by construction. Path reconstruction backtracks through parent pointers to produce a command sequence.
 
 Commands: `U` (up), `D` (down), `L` (left), `R` (right), `S` (switch control).
 
@@ -90,6 +93,29 @@ python run_tests.py 3x3_robot_no_holes
 python demo_solver.py
 python demo_validator.py
 ```
+
+### Find the hardest workspace
+
+[`find_hardest_workspace.py`](find_hardest_workspace.py) is a parallel candidate generator that searches grid + obstacle configurations to find the workspace requiring the most control switches. It uses a priority queue with enqueue-time depth filtering, a sound symmetric-connectivity pre-check, multiprocessing across cores, and a kill-switch for graceful early termination.
+
+```bash
+python find_hardest_workspace.py --rows 3 --cols 3 --n 1 --depth 4
+```
+
+Flags:
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `--rows`, `--cols` | `3`, `3` | Grid dimensions |
+| `--n` | `1` | Robot edge length (n×n) |
+| `--depth` | `4` | Max obstacles to dig |
+| `--processes` | auto | Worker count for the multiprocessing pool |
+| `--strategy` | `single` | `single` digs one cell at a time; `strip` digs n-cell strips |
+| `--touching` | `edge` | `edge` = full-edge-adjacent robot pairs only; `all` = also corner / partial-offset pairs |
+| `--central-only` | off | Only run the most-central representative per adjacency orientation (1–2 placements) — sound because any placement's workspaces can be replicated from a central one |
+| `--quiet` | off | Suppress per-iteration progress output |
+
+Outputs land in `plots/hardest/run_<R>x<C>_n<N>/` (proof images plus a `summary.txt`).
 
 ## Test Cases
 
