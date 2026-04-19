@@ -594,6 +594,45 @@ def all_adjacent_placements(rows, cols, n):
     return
 
 
+def _pick_central_placements(keepers, rows, cols, n):
+    """
+    From the canonical-deduped keepers, return ONE representative per adjacency
+    orientation (horizontal vs vertical), picking whichever placement is
+    closest to the grid center.
+
+    Rationale: any workspace reachable from a non-central placement is also
+    reachable from a central placement (just leave the corresponding cells
+    undug to replicate the other placement's grid-boundary walls). So running
+    only the central representative(s) suffices for MAX and MIN-FREE.
+    """
+    center_r = (rows - 1) / 2.0
+    center_c = (cols - 1) / 2.0
+
+    def orient(pa, pb):
+        if pa[0] == pb[0] and pb[1] == pa[1] + n:
+            return "H"
+        if pa[1] == pb[1] and pb[0] == pa[0] + n:
+            return "V"
+        return "other"
+
+    def dist_sq(pa, pb):
+        r_lo = min(pa[0], pb[0])
+        r_hi = max(pa[0], pb[0]) + n - 1
+        c_lo = min(pa[1], pb[1])
+        c_hi = max(pa[1], pb[1]) + n - 1
+        mid_r = (r_lo + r_hi) / 2.0
+        mid_c = (c_lo + c_hi) / 2.0
+        return (mid_r - center_r) ** 2 + (mid_c - center_c) ** 2
+
+    best: dict = {}
+    for pa, pb in keepers:
+        o = orient(pa, pb)
+        d = dist_sq(pa, pb)
+        if o not in best or d < best[o][1]:
+            best[o] = ((pa, pb), d)
+    return [pair for pair, _ in best.values()]
+
+
 def _placement_canonical_key(rows, cols, pos_a, pos_b, n):
     if _CELL_TABLE is None or _POS_TABLE is None:
         _init_transform_tables(rows, cols, n)
@@ -630,7 +669,14 @@ def _dedup_placements(rows, cols, n, placements):
 
 
 def find_hardest(
-    rows, cols, n, max_depth_past_first, verbose=True, processes=None, strategy="strip"
+    rows,
+    cols,
+    n,
+    max_depth_past_first,
+    verbose=True,
+    processes=None,
+    strategy="strip",
+    central_only=False,
 ):
     run_dir = os.path.join(get_plots_dir(), "hardest", f"run_{rows}x{cols}_n{n}")
     if os.path.exists(run_dir):
@@ -648,11 +694,29 @@ def find_hardest(
     all_placements = list(all_adjacent_placements(rows, cols, n))
     keepers, merged = _dedup_placements(rows, cols, n, all_placements)
 
-    if verbose:
+    # Optional: reduce further to just the most-central representative per
+    # adjacency orientation. Valid because any non-central placement's
+    # workspace can be replicated from a central one by leaving cells undug.
+    if central_only:
+        central_keepers = _pick_central_placements(keepers, rows, cols, n)
+        if verbose:
+            print(
+                f"Placements: {len(all_placements)} total, {len(keepers)} after symmetry, "
+                f"{len(central_keepers)} after central-only filter"
+            )
+        summary.append(
+            f"Placements: {len(all_placements)} total, {len(keepers)} unique after dedup, "
+            f"{len(central_keepers)} after central-only filter"
+        )
+        keepers = central_keepers
+    elif verbose:
         print(
             f"Placements: {len(all_placements)} total, {len(keepers)} unique after symmetry dedup"
         )
-    summary.append(f"Placements: {len(all_placements)} total, {len(keepers)} unique after dedup")
+    if not central_only:
+        summary.append(
+            f"Placements: {len(all_placements)} total, {len(keepers)} unique after dedup"
+        )
     for rep, equiv_list in merged.items():
         if len(equiv_list) > 1:
             others = [p for p in equiv_list if p != rep]
@@ -802,6 +866,13 @@ if __name__ == "__main__":
     p.add_argument("--processes", type=int, default=None)
     p.add_argument("--quiet", action="store_true")
     p.add_argument("--strategy", choices=list(DIG_STRATEGIES.keys()), default="single")
+    p.add_argument(
+        "--central-only",
+        action="store_true",
+        help="Run only the most-central representative per adjacency orientation "
+        "(1-2 placements total). Valid because any other placement's workspaces "
+        "can be replicated from a central placement.",
+    )
     args = p.parse_args()
 
     result, run_dir = find_hardest(
@@ -812,6 +883,7 @@ if __name__ == "__main__":
         verbose=not args.quiet,
         processes=args.processes,
         strategy=args.strategy,
+        central_only=args.central_only,
     )
     sw, gmax, gmin = result
     total_cells = args.rows * args.cols

@@ -456,7 +456,11 @@ def draw_sequence(
     arrow_map = {first.label: COLOR_ARROW_A, second.label: COLOR_ARROW_B}
 
     if save_dir:
-        os.makedirs(save_dir, exist_ok=True)
+
+        def _ensure_dir():
+            os.makedirs(save_dir, exist_ok=True)
+
+        _ensure_dir()
         # start.png         = truly static initial state. No arrows, no highlights.
         # switch_init.png   = layer-0 moves (first mover's pre-switch moves),
         #                     only if any such movement actually exists.
@@ -465,6 +469,7 @@ def draw_sequence(
         fig, ax = plt.subplots(figsize=(grid.cols * 0.7 + 0.5, grid.rows * 0.7 + 0.5))
         draw(grid, robots=[a_0, b_0], title="start", ax=ax, show=False)
         plt.tight_layout()
+        _ensure_dir()
         plt.savefig(os.path.join(save_dir, "start.png"), dpi=150, bbox_inches="tight")
         plt.close()
 
@@ -472,6 +477,7 @@ def draw_sequence(
             fig, ax = plt.subplots(figsize=(grid.cols * 0.7 + 0.5, grid.rows * 0.7 + 0.5))
             _draw_turn(ax, grid, turn, color_map, arrow_map, robot_size)
             plt.tight_layout()
+            _ensure_dir()
             plt.savefig(
                 os.path.join(save_dir, f"switch_{turn['layer']:02d}.png"),
                 dpi=150,
@@ -479,6 +485,7 @@ def draw_sequence(
             )
             plt.close()
         # Aggregate heatmap: how many times each wall blocked a robot face
+        _ensure_dir()
         draw_blocker_heatmap(
             grid,
             turns,
