@@ -23,6 +23,7 @@ package is not affiliated with the project.)
 |---|---|
 | [`build_graph.py`](build_graph.py) | Build the graph end-to-end: detect files, AST-extract code, cluster, write report + JSON + HTML. AST only -- no tokens spent. |
 | [`list_communities.py`](list_communities.py) | Print every community's contents so you can pick human-readable names. |
+| [`precommit_hook.py`](precommit_hook.py) | Wrapper invoked by the `graphify-build` pre-commit hook. Rebuilds + re-stages outputs only when `.py` files are staged. Don't run it directly. |
 
 ## Usage
 
@@ -60,6 +61,22 @@ python scripts/graphify/build_graph.py . --exclude plots --exclude data --exclud
 python scripts/graphify/list_communities.py
 python scripts/graphify/list_communities.py graphify-out/graph.json --max-samples 15
 ```
+
+### Pre-commit hook (auto-rebuild on commit)
+
+The `graphify-build` hook is wired into [`.pre-commit-config.yaml`](../../.pre-commit-config.yaml) at the project root. After running `pre-commit install` once, every commit that touches a `.py` file will:
+
+1. Run `build_graph.py . --exclude plots`
+2. Re-stage `graphify-out/graph.json`, `GRAPH_REPORT.md`, `graph.html`, `manifest.json` so they land in the same commit
+3. Skip silently if no `.py` files are staged
+
+To skip the rebuild on a single commit (e.g. an emergency hotfix):
+
+```
+SKIP=graphify-build git commit -m "..."
+```
+
+If you copy this folder into another project, add the same `local` hook block to that project's `.pre-commit-config.yaml`.
 
 ## Outputs
 

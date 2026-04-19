@@ -5,3 +5,12 @@ repos:
       - id: ruff-format    # auto-formats code
       - id: ruff           # catches lint errors
         args: [--fix]
+
+  - repo: local
+    hooks:
+      - id: graphify-build
+        name: Rebuild code knowledge graph (AST-only)
+        entry: python scripts/graphify/precommit_hook.py
+        language: system
+        pass_filenames: false
+        always_run: true   # the hook itself gates on staged .py changes

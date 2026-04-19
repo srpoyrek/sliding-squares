@@ -9,7 +9,7 @@
       "source_file": "demo_solver.py",
       "source_location": "L1",
       "id": "demo_solver_py",
-      "community": 10,
+      "community": 16,
       "norm_label": "demo_solver.py"
     },
     {
@@ -18,7 +18,7 @@
       "source_file": "demo_validator.py",
       "source_location": "L1",
       "id": "demo_validator_py",
-      "community": 7,
+      "community": 9,
       "norm_label": "demo_validator.py"
     },
     {
@@ -27,7 +27,7 @@
       "source_file": "demo_validator.py",
       "source_location": "L1",
       "id": "demo_validator_rationale_1",
-      "community": 7,
+      "community": 9,
       "norm_label": "demo_validator.py ----------------- manual demo for the validator."
     },
     {
@@ -36,7 +36,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L1",
       "id": "find_hardest_workspace_py",
-      "community": 3,
+      "community": 2,
       "norm_label": "find_hardest_workspace.py"
     },
     {
@@ -45,7 +45,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L29",
       "id": "find_hardest_workspace_build_workspace",
-      "community": 3,
+      "community": 2,
       "norm_label": "_build_workspace()"
     },
     {
@@ -54,7 +54,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L39",
       "id": "find_hardest_workspace_free_set",
-      "community": 3,
+      "community": 2,
       "norm_label": "_free_set()"
     },
     {
@@ -63,7 +63,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L45",
       "id": "find_hardest_workspace_robot_block",
-      "community": 3,
+      "community": 2,
       "norm_label": "_robot_block()"
     },
     {
@@ -72,7 +72,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L50",
       "id": "find_hardest_workspace_initial_frontier",
-      "community": 3,
+      "community": 2,
       "norm_label": "_initial_frontier()"
     },
     {
@@ -81,7 +81,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L64",
       "id": "find_hardest_workspace_extend_frontier",
-      "community": 3,
+      "community": 2,
       "norm_label": "_extend_frontier()"
     },
     {
@@ -90,7 +90,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L79",
       "id": "find_hardest_workspace_valid_block_positions",
-      "community": 3,
+      "community": 2,
       "norm_label": "_valid_block_positions()"
     },
     {
@@ -99,7 +99,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L96",
       "id": "find_hardest_workspace_extend_valid",
-      "community": 3,
+      "community": 2,
       "norm_label": "_extend_valid()"
     },
     {
@@ -108,7 +108,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L123",
       "id": "find_hardest_workspace_robot_can_reach_goal_ignoring_other",
-      "community": 3,
+      "community": 2,
       "norm_label": "robot_can_reach_goal_ignoring_other()"
     },
     {
@@ -117,7 +117,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L141",
       "id": "find_hardest_workspace_solve_payload",
-      "community": 3,
+      "community": 0,
       "norm_label": "_solve_payload()"
     },
     {
@@ -126,7 +126,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L153",
       "id": "find_hardest_workspace_plot_proof",
-      "community": 3,
+      "community": 2,
       "norm_label": "_plot_proof()"
     },
     {
@@ -135,7 +135,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L181",
       "id": "find_hardest_workspace_build_cell_bits",
-      "community": 3,
+      "community": 2,
       "norm_label": "_build_cell_bits()"
     },
     {
@@ -144,7 +144,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L189",
       "id": "find_hardest_workspace_init_transform_tables",
-      "community": 3,
+      "community": 2,
       "norm_label": "_init_transform_tables()"
     },
     {
@@ -153,7 +153,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L197",
       "id": "find_hardest_workspace_set_transform_tables",
-      "community": 3,
+      "community": 2,
       "norm_label": "_set_transform_tables()"
     },
     {
@@ -162,7 +162,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L207",
       "id": "find_hardest_workspace_canonical_key",
-      "community": 3,
+      "community": 2,
       "norm_label": "_canonical_key()"
     },
     {
@@ -171,7 +171,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L233",
       "id": "find_hardest_workspace_dig_options_single_cell",
-      "community": 3,
+      "community": 2,
       "norm_label": "_dig_options_single_cell()"
     },
     {
@@ -180,7 +180,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L238",
       "id": "find_hardest_workspace_dig_options_n_strip",
-      "community": 1,
+      "community": 0,
       "norm_label": "_dig_options_n_strip()"
     },
     {
@@ -189,7 +189,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L274",
       "id": "find_hardest_workspace_dig_search",
-      "community": 3,
+      "community": 2,
       "norm_label": "dig_search()"
     },
     {
@@ -198,7 +198,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L605",
       "id": "find_hardest_workspace_worker",
-      "community": 3,
+      "community": 2,
       "norm_label": "_worker()"
     },
     {
@@ -207,7 +207,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L665",
       "id": "find_hardest_workspace_all_adjacent_placements",
-      "community": 3,
+      "community": 2,
       "norm_label": "all_adjacent_placements()"
     },
     {
@@ -216,7 +216,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L676",
       "id": "find_hardest_workspace_all_touching_placements",
-      "community": 3,
+      "community": 2,
       "norm_label": "all_touching_placements()"
     },
     {
@@ -225,7 +225,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L702",
       "id": "find_hardest_workspace_pick_central_placements",
-      "community": 3,
+      "community": 2,
       "norm_label": "_pick_central_placements()"
     },
     {
@@ -234,7 +234,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L742",
       "id": "find_hardest_workspace_placement_canonical_key",
-      "community": 3,
+      "community": 2,
       "norm_label": "_placement_canonical_key()"
     },
     {
@@ -243,7 +243,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L760",
       "id": "find_hardest_workspace_dedup_placements",
-      "community": 3,
+      "community": 2,
       "norm_label": "_dedup_placements()"
     },
     {
@@ -252,7 +252,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L777",
       "id": "find_hardest_workspace_find_hardest",
-      "community": 3,
+      "community": 2,
       "norm_label": "find_hardest()"
     },
     {
@@ -261,7 +261,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L1",
       "id": "find_hardest_workspace_rationale_1",
-      "community": 1,
+      "community": 0,
       "norm_label": "find_hardest_workspace.py ------------------------- self-contained, optimized"
     },
     {
@@ -270,7 +270,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L97",
       "id": "find_hardest_workspace_rationale_97",
-      "community": 1,
+      "community": 0,
       "norm_label": "incrementally update valid-block-positions after digging one cell.     only top"
     },
     {
@@ -279,7 +279,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L142",
       "id": "find_hardest_workspace_rationale_142",
-      "community": 1,
+      "community": 0,
       "norm_label": "worker function: rebuild workspace and run solver.     used by the batch-parall"
     },
     {
@@ -288,7 +288,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L182",
       "id": "find_hardest_workspace_rationale_182",
-      "community": 1,
+      "community": 0,
       "norm_label": "precompute, per cell, the bit-position values under each transform."
     },
     {
@@ -297,7 +297,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L190",
       "id": "find_hardest_workspace_rationale_190",
-      "community": 1,
+      "community": 0,
       "norm_label": "build and set module-level transform tables. called once in main process."
     },
     {
@@ -306,7 +306,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L198",
       "id": "find_hardest_workspace_rationale_198",
-      "community": 1,
+      "community": 0,
       "norm_label": "assign pre-built transform tables in worker processes (no recomputation)."
     },
     {
@@ -315,7 +315,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L208",
       "id": "find_hardest_workspace_rationale_208",
-      "community": 1,
+      "community": 0,
       "norm_label": "canonical key from a precomputed transforms_free tuple and per-transform     ti"
     },
     {
@@ -324,7 +324,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L239",
       "id": "find_hardest_workspace_rationale_239",
-      "community": 1,
+      "community": 0,
       "norm_label": "yield 1\u00d7n or n\u00d71 strips that extend the valid region by one robot step.      f"
     },
     {
@@ -333,7 +333,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L666",
       "id": "find_hardest_workspace_rationale_666",
-      "community": 1,
+      "community": 0,
       "norm_label": "full-edge-adjacent pairs only: b directly right of or below a."
     },
     {
@@ -342,7 +342,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L677",
       "id": "find_hardest_workspace_rationale_677",
-      "community": 1,
+      "community": 0,
       "norm_label": "all non-overlapping a/b placements where the two n*n blocks touch \u2014     full ed"
     },
     {
@@ -351,62 +351,8 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L703",
       "id": "find_hardest_workspace_rationale_703",
-      "community": 1,
+      "community": 0,
       "norm_label": "from the canonical-deduped keepers, return one representative per adjacency"
-    },
-    {
-      "label": "minimize_obstacles.py",
-      "file_type": "code",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L1",
-      "id": "minimize_obstacles_py",
-      "community": 1,
-      "norm_label": "minimize_obstacles.py"
-    },
-    {
-      "label": "_test_cell()",
-      "file_type": "code",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L39",
-      "id": "minimize_obstacles_test_cell",
-      "community": 1,
-      "norm_label": "_test_cell()"
-    },
-    {
-      "label": "minimize_obstacles()",
-      "file_type": "code",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L109",
-      "id": "minimize_obstacles_minimize_obstacles",
-      "community": 0,
-      "norm_label": "minimize_obstacles()"
-    },
-    {
-      "label": "minimize_obstacles.py --------------------- Finds the minimum set of obstacles",
-      "file_type": "rationale",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L1",
-      "id": "minimize_obstacles_rationale_1",
-      "community": 1,
-      "norm_label": "minimize_obstacles.py --------------------- finds the minimum set of obstacles"
-    },
-    {
-      "label": "Worker function.      Deep-copies the full workspace, disables *one* cell (obs",
-      "file_type": "rationale",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L40",
-      "id": "minimize_obstacles_rationale_40",
-      "community": 1,
-      "norm_label": "worker function.      deep-copies the full workspace, disables *one* cell (obs"
-    },
-    {
-      "label": "Test every obstacle and boundary cell in parallel.      Returns     -------",
-      "file_type": "rationale",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L116",
-      "id": "minimize_obstacles_rationale_116",
-      "community": 0,
-      "norm_label": "test every obstacle and boundary cell in parallel.      returns     -------"
     },
     {
       "label": "run_tests.py",
@@ -414,7 +360,7 @@
       "source_file": "run_tests.py",
       "source_location": "L1",
       "id": "run_tests_py",
-      "community": 5,
+      "community": 3,
       "norm_label": "run_tests.py"
     },
     {
@@ -423,7 +369,7 @@
       "source_file": "run_tests.py",
       "source_location": "L29",
       "id": "run_tests_discover_test_cases",
-      "community": 5,
+      "community": 3,
       "norm_label": "discover_test_cases()"
     },
     {
@@ -432,7 +378,7 @@
       "source_file": "run_tests.py",
       "source_location": "L43",
       "id": "run_tests_run_one",
-      "community": 4,
+      "community": 0,
       "norm_label": "run_one()"
     },
     {
@@ -441,7 +387,7 @@
       "source_file": "run_tests.py",
       "source_location": "L107",
       "id": "run_tests_run_all",
-      "community": 5,
+      "community": 3,
       "norm_label": "run_all()"
     },
     {
@@ -450,7 +396,7 @@
       "source_file": "run_tests.py",
       "source_location": "L1",
       "id": "run_tests_rationale_1",
-      "community": 5,
+      "community": 3,
       "norm_label": "run_tests.py ------------ discovers all test cases in testcases/ and runs them"
     },
     {
@@ -459,7 +405,7 @@
       "source_file": "scripts\\graphify\\build_graph.py",
       "source_location": "L1",
       "id": "scripts_graphify_build_graph_py",
-      "community": 8,
+      "community": 11,
       "norm_label": "build_graph.py"
     },
     {
@@ -468,7 +414,7 @@
       "source_file": "scripts\\graphify\\build_graph.py",
       "source_location": "L48",
       "id": "build_graph_filter_excluded",
-      "community": 8,
+      "community": 11,
       "norm_label": "filter_excluded()"
     },
     {
@@ -477,7 +423,7 @@
       "source_file": "scripts\\graphify\\build_graph.py",
       "source_location": "L72",
       "id": "build_graph_main",
-      "community": 8,
+      "community": 11,
       "norm_label": "main()"
     },
     {
@@ -486,7 +432,7 @@
       "source_file": "scripts\\graphify\\build_graph.py",
       "source_location": "L49",
       "id": "build_graph_rationale_49",
-      "community": 8,
+      "community": 11,
       "norm_label": "drop any file whose path contains one of the exclude folder names."
     },
     {
@@ -495,7 +441,7 @@
       "source_file": "scripts\\graphify\\list_communities.py",
       "source_location": "L1",
       "id": "scripts_graphify_list_communities_py",
-      "community": 9,
+      "community": 15,
       "norm_label": "list_communities.py"
     },
     {
@@ -504,8 +450,44 @@
       "source_file": "scripts\\graphify\\list_communities.py",
       "source_location": "L32",
       "id": "list_communities_main",
-      "community": 9,
+      "community": 15,
       "norm_label": "main()"
+    },
+    {
+      "label": "precommit_hook.py",
+      "file_type": "code",
+      "source_file": "scripts\\graphify\\precommit_hook.py",
+      "source_location": "L1",
+      "id": "scripts_graphify_precommit_hook_py",
+      "community": 12,
+      "norm_label": "precommit_hook.py"
+    },
+    {
+      "label": "staged_python_files()",
+      "file_type": "code",
+      "source_file": "scripts\\graphify\\precommit_hook.py",
+      "source_location": "L34",
+      "id": "precommit_hook_staged_python_files",
+      "community": 12,
+      "norm_label": "staged_python_files()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "scripts\\graphify\\precommit_hook.py",
+      "source_location": "L45",
+      "id": "precommit_hook_main",
+      "community": 12,
+      "norm_label": "main()"
+    },
+    {
+      "label": "Return paths of .py files staged for commit (any status).",
+      "file_type": "rationale",
+      "source_file": "scripts\\graphify\\precommit_hook.py",
+      "source_location": "L35",
+      "id": "precommit_hook_rationale_35",
+      "community": 12,
+      "norm_label": "return paths of .py files staged for commit (any status)."
     },
     {
       "label": "bfs.py",
@@ -513,7 +495,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L1",
       "id": "src_bfs_py",
-      "community": 2,
+      "community": 1,
       "norm_label": "bfs.py"
     },
     {
@@ -522,7 +504,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L42",
       "id": "bfs_clear_caches",
-      "community": 2,
+      "community": 1,
       "norm_label": "_clear_caches()"
     },
     {
@@ -531,7 +513,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L52",
       "id": "bfs_original_flood_fill",
-      "community": 2,
+      "community": 1,
       "norm_label": "_original_flood_fill()"
     },
     {
@@ -540,7 +522,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L72",
       "id": "bfs_cmds_from_parent_map",
-      "community": 2,
+      "community": 1,
       "norm_label": "_cmds_from_parent_map()"
     },
     {
@@ -549,7 +531,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L83",
       "id": "bfs_flood_fill",
-      "community": 2,
+      "community": 1,
       "norm_label": "flood_fill()"
     },
     {
@@ -558,7 +540,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L118",
       "id": "bfs_expand_one",
-      "community": 2,
+      "community": 1,
       "norm_label": "_expand_one()"
     },
     {
@@ -567,7 +549,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L145",
       "id": "bfs_expand_layer",
-      "community": 2,
+      "community": 1,
       "norm_label": "_expand_layer()"
     },
     {
@@ -576,7 +558,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L160",
       "id": "bfs_seed_fwd",
-      "community": 2,
+      "community": 1,
       "norm_label": "_seed_fwd()"
     },
     {
@@ -585,7 +567,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L194",
       "id": "bfs_seed_bwd",
-      "community": 2,
+      "community": 1,
       "norm_label": "_seed_bwd()"
     },
     {
@@ -594,7 +576,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L208",
       "id": "bfs_reconstruct_fwd",
-      "community": 2,
+      "community": 1,
       "norm_label": "_reconstruct_fwd()"
     },
     {
@@ -603,7 +585,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L243",
       "id": "bfs_reconstruct_bwd",
-      "community": 2,
+      "community": 1,
       "norm_label": "_reconstruct_bwd()"
     },
     {
@@ -612,7 +594,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L280",
       "id": "bfs_bfs",
-      "community": 2,
+      "community": 1,
       "norm_label": "bfs()"
     },
     {
@@ -621,7 +603,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L325",
       "id": "bfs_bfs_bidirectional",
-      "community": 2,
+      "community": 1,
       "norm_label": "bfs_bidirectional()"
     },
     {
@@ -630,7 +612,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L1",
       "id": "bfs_rationale_1",
-      "community": 2,
+      "community": 1,
       "norm_label": "bfs.py ------ core bfs logic for the sliding squares problem.  public api:     f"
     },
     {
@@ -639,7 +621,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L53",
       "id": "bfs_rationale_53",
-      "community": 2,
+      "community": 1,
       "norm_label": "bfs inside one robot's reach (other robot static). returns parent_map:     {pos:"
     },
     {
@@ -648,7 +630,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L73",
       "id": "bfs_rationale_73",
-      "community": 2,
+      "community": 1,
       "norm_label": "walk parent_map from target back to pos_moving to rebuild the cmd list."
     },
     {
@@ -657,7 +639,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L148",
       "id": "bfs_rationale_148",
-      "community": 2,
+      "community": 1,
       "norm_label": "expand one bfs layer. mutates visited and parent; returns new frontier set."
     },
     {
@@ -666,7 +648,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L161",
       "id": "bfs_rationale_161",
-      "community": 2,
+      "community": 1,
       "norm_label": "build forward layer-0 frontier by flooding each initial controller from start."
     },
     {
@@ -675,7 +657,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L195",
       "id": "bfs_rationale_195",
-      "community": 2,
+      "community": 1,
       "norm_label": "build backward layer-0: the two goal states (one per possible final ctrl)."
     },
     {
@@ -684,7 +666,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L209",
       "id": "bfs_rationale_209",
-      "community": 2,
+      "community": 1,
       "norm_label": "walk fwd parent-chain from end_state back through layer 0. returns cmd list"
     },
     {
@@ -693,7 +675,7 @@
       "source_file": "src\\bfs.py",
       "source_location": "L244",
       "id": "bfs_rationale_244",
-      "community": 2,
+      "community": 1,
       "norm_label": "walk bwd parent from meeting forward-in-time to goal. returns cmd list."
     },
     {
@@ -702,7 +684,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L1",
       "id": "src_directories_py",
-      "community": 5,
+      "community": 3,
       "norm_label": "directories.py"
     },
     {
@@ -711,7 +693,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L24",
       "id": "directories_get_src_dir",
-      "community": 5,
+      "community": 3,
       "norm_label": "get_src_dir()"
     },
     {
@@ -720,7 +702,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L29",
       "id": "directories_get_project_root",
-      "community": 5,
+      "community": 3,
       "norm_label": "get_project_root()"
     },
     {
@@ -729,7 +711,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L37",
       "id": "directories_get_plots_dir",
-      "community": 5,
+      "community": 3,
       "norm_label": "get_plots_dir()"
     },
     {
@@ -738,7 +720,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L44",
       "id": "directories_get_data_dir",
-      "community": 5,
+      "community": 3,
       "norm_label": "get_data_dir()"
     },
     {
@@ -747,7 +729,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L51",
       "id": "directories_get_testcases_dir",
-      "community": 5,
+      "community": 3,
       "norm_label": "get_testcases_dir()"
     },
     {
@@ -756,7 +738,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L61",
       "id": "directories_plots_path",
-      "community": 5,
+      "community": 3,
       "norm_label": "plots_path()"
     },
     {
@@ -765,7 +747,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L66",
       "id": "directories_data_path",
-      "community": 5,
+      "community": 3,
       "norm_label": "data_path()"
     },
     {
@@ -774,7 +756,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L71",
       "id": "directories_testcases_path",
-      "community": 5,
+      "community": 3,
       "norm_label": "testcases_path()"
     },
     {
@@ -783,7 +765,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L1",
       "id": "directories_rationale_1",
-      "community": 5,
+      "community": 3,
       "norm_label": "directories.py -------- central place for all project directory paths.  ever"
     },
     {
@@ -792,7 +774,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L25",
       "id": "directories_rationale_25",
-      "community": 5,
+      "community": 3,
       "norm_label": "absolute path to src/ (where this file lives)."
     },
     {
@@ -801,7 +783,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L30",
       "id": "directories_rationale_30",
-      "community": 5,
+      "community": 3,
       "norm_label": "absolute path to the project root (one level above src/)."
     },
     {
@@ -810,7 +792,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L38",
       "id": "directories_rationale_38",
-      "community": 5,
+      "community": 3,
       "norm_label": "absolute path to plots/. created if it doesn't exist."
     },
     {
@@ -819,7 +801,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L45",
       "id": "directories_rationale_45",
-      "community": 5,
+      "community": 3,
       "norm_label": "absolute path to data/. created if it doesn't exist."
     },
     {
@@ -828,7 +810,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L52",
       "id": "directories_rationale_52",
-      "community": 5,
+      "community": 3,
       "norm_label": "absolute path to testcases/. created if it doesn't exist."
     },
     {
@@ -837,7 +819,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L62",
       "id": "directories_rationale_62",
-      "community": 5,
+      "community": 3,
       "norm_label": "full path for a file in plots/.  e.g. plots_path('start.png')"
     },
     {
@@ -846,7 +828,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L67",
       "id": "directories_rationale_67",
-      "community": 5,
+      "community": 3,
       "norm_label": "full path for a file in data/.  e.g. data_path('grid_01.json')"
     },
     {
@@ -855,7 +837,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L72",
       "id": "directories_rationale_72",
-      "community": 5,
+      "community": 3,
       "norm_label": "full path for a file in testcases/.  e.g. testcases_path('test.json')"
     },
     {
@@ -864,7 +846,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L1",
       "id": "src_grid_py",
-      "community": 0,
+      "community": 5,
       "norm_label": "grid.py"
     },
     {
@@ -873,7 +855,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L18",
       "id": "grid_grid",
-      "community": 0,
+      "community": 5,
       "norm_label": "grid"
     },
     {
@@ -882,7 +864,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L32",
       "id": "grid_grid_init",
-      "community": 0,
+      "community": 5,
       "norm_label": ".__init__()"
     },
     {
@@ -891,7 +873,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L61",
       "id": "grid_grid_add_hole",
-      "community": 0,
+      "community": 10,
       "norm_label": ".add_hole()"
     },
     {
@@ -900,7 +882,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L68",
       "id": "grid_grid_add_boundary",
-      "community": 0,
+      "community": 10,
       "norm_label": ".add_boundary()"
     },
     {
@@ -909,7 +891,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L75",
       "id": "grid_grid_add_rect_boundary",
-      "community": 0,
+      "community": 10,
       "norm_label": ".add_rect_boundary()"
     },
     {
@@ -918,7 +900,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L88",
       "id": "grid_grid_get_holes",
-      "community": 0,
+      "community": 5,
       "norm_label": ".get_holes()"
     },
     {
@@ -927,7 +909,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L92",
       "id": "grid_grid_get_boundaries",
-      "community": 0,
+      "community": 5,
       "norm_label": ".get_boundaries()"
     },
     {
@@ -936,7 +918,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L96",
       "id": "grid_grid_get_all_obstacles",
-      "community": 0,
+      "community": 5,
       "norm_label": ".get_all_obstacles()"
     },
     {
@@ -945,7 +927,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L102",
       "id": "grid_grid_in_bounds",
-      "community": 6,
+      "community": 8,
       "norm_label": ".in_bounds()"
     },
     {
@@ -954,7 +936,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L106",
       "id": "grid_grid_is_free",
-      "community": 6,
+      "community": 8,
       "norm_label": ".is_free()"
     },
     {
@@ -963,7 +945,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L110",
       "id": "grid_grid_is_boundary",
-      "community": 6,
+      "community": 8,
       "norm_label": ".is_boundary()"
     },
     {
@@ -972,7 +954,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L114",
       "id": "grid_grid_is_hole",
-      "community": 6,
+      "community": 8,
       "norm_label": ".is_hole()"
     },
     {
@@ -981,7 +963,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L118",
       "id": "grid_grid_is_obstacle",
-      "community": 6,
+      "community": 8,
       "norm_label": ".is_obstacle()"
     },
     {
@@ -990,7 +972,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L124",
       "id": "grid_grid_display",
-      "community": 0,
+      "community": 5,
       "norm_label": ".display()"
     },
     {
@@ -999,7 +981,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L134",
       "id": "grid_grid_repr",
-      "community": 0,
+      "community": 5,
       "norm_label": ".__repr__()"
     },
     {
@@ -1008,7 +990,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L1",
       "id": "grid_rationale_1",
-      "community": 0,
+      "community": 5,
       "norm_label": "grid.py ------- the physical environment \u2014 a 2d map of free tiles and obstacle"
     },
     {
@@ -1017,7 +999,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L19",
       "id": "grid_rationale_19",
-      "community": 0,
+      "community": 5,
       "norm_label": "2d grid of tiles.       0 = free       1 = boundary (perimeter wall)      -1"
     },
     {
@@ -1026,7 +1008,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L62",
       "id": "grid_rationale_62",
-      "community": 0,
+      "community": 10,
       "norm_label": "set a rectangle of cells as internal holes/islands."
     },
     {
@@ -1035,7 +1017,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L69",
       "id": "grid_rationale_69",
-      "community": 0,
+      "community": 10,
       "norm_label": "set a rectangle of cells as boundary \u2014 same as add_hole but marks as boundary."
     },
     {
@@ -1044,7 +1026,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L76",
       "id": "grid_rationale_76",
-      "community": 0,
+      "community": 10,
       "norm_label": "draw the full perimeter of the grid as boundary."
     },
     {
@@ -1053,7 +1035,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L89",
       "id": "grid_rationale_89",
-      "community": 0,
+      "community": 5,
       "norm_label": "return set of all hole cell positions (row, col)."
     },
     {
@@ -1062,7 +1044,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L93",
       "id": "grid_rationale_93",
-      "community": 0,
+      "community": 5,
       "norm_label": "return set of all boundary cell positions (row, col)."
     },
     {
@@ -1071,7 +1053,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L97",
       "id": "grid_rationale_97",
-      "community": 0,
+      "community": 5,
       "norm_label": "return set of all obstacle positions \u2014 both holes and boundaries."
     },
     {
@@ -1080,7 +1062,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L103",
       "id": "grid_rationale_103",
-      "community": 6,
+      "community": 8,
       "norm_label": "is (row, col) within the grid?"
     },
     {
@@ -1089,7 +1071,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L107",
       "id": "grid_rationale_107",
-      "community": 6,
+      "community": 8,
       "norm_label": "is (row, col) in bounds and not an obstacle?"
     },
     {
@@ -1098,7 +1080,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L111",
       "id": "grid_rationale_111",
-      "community": 6,
+      "community": 8,
       "norm_label": "is (row, col) a boundary wall?"
     },
     {
@@ -1107,7 +1089,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L115",
       "id": "grid_rationale_115",
-      "community": 6,
+      "community": 8,
       "norm_label": "is (row, col) an internal hole / island?"
     },
     {
@@ -1116,7 +1098,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L119",
       "id": "grid_rationale_119",
-      "community": 6,
+      "community": 8,
       "norm_label": "is (row, col) out of bounds or any kind of obstacle?"
     },
     {
@@ -1125,7 +1107,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L125",
       "id": "grid_rationale_125",
-      "community": 0,
+      "community": 5,
       "norm_label": "print the raw grid. '.' = free, '#' = boundary, 'o' = hole."
     },
     {
@@ -1134,7 +1116,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L1",
       "id": "src_path_resolver_py",
-      "community": 7,
+      "community": 9,
       "norm_label": "path_resolver.py"
     },
     {
@@ -1143,7 +1125,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L23",
       "id": "path_resolver_pathresolver",
-      "community": 7,
+      "community": 9,
       "norm_label": "pathresolver"
     },
     {
@@ -1152,7 +1134,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L24",
       "id": "path_resolver_pathresolver_init",
-      "community": 7,
+      "community": 9,
       "norm_label": ".__init__()"
     },
     {
@@ -1161,7 +1143,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L27",
       "id": "path_resolver_pathresolver_resolve",
-      "community": 7,
+      "community": 9,
       "norm_label": ".resolve()"
     },
     {
@@ -1170,7 +1152,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L55",
       "id": "path_resolver_pathresolver_parse_segment",
-      "community": 7,
+      "community": 9,
       "norm_label": "._parse_segment()"
     },
     {
@@ -1179,7 +1161,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L1",
       "id": "path_resolver_rationale_1",
-      "community": 7,
+      "community": 9,
       "norm_label": "path_resolver.py ---------------- converts compact path strings into flat comm"
     },
     {
@@ -1188,7 +1170,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L28",
       "id": "path_resolver_rationale_28",
-      "community": 7,
+      "community": 9,
       "norm_label": "convert compact path string(s) to flat command list.          accepts:"
     },
     {
@@ -1197,7 +1179,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L56",
       "id": "path_resolver_rationale_56",
-      "community": 7,
+      "community": 9,
       "norm_label": "parse a single segment like '12r2us'."
     },
     {
@@ -1206,7 +1188,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L1",
       "id": "src_robot_py",
-      "community": 1,
+      "community": 7,
       "norm_label": "robot.py"
     },
     {
@@ -1215,7 +1197,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L20",
       "id": "robot_robot",
-      "community": 1,
+      "community": 7,
       "norm_label": "robot"
     },
     {
@@ -1224,7 +1206,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L26",
       "id": "robot_robot_init",
-      "community": 1,
+      "community": 7,
       "norm_label": ".__init__()"
     },
     {
@@ -1233,7 +1215,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L40",
       "id": "robot_robot_position",
-      "community": 2,
+      "community": 1,
       "norm_label": ".position()"
     },
     {
@@ -1242,7 +1224,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L44",
       "id": "robot_robot_cells",
-      "community": 1,
+      "community": 7,
       "norm_label": ".cells()"
     },
     {
@@ -1251,7 +1233,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L50",
       "id": "robot_robot_clone",
-      "community": 1,
+      "community": 7,
       "norm_label": ".clone()"
     },
     {
@@ -1260,7 +1242,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L56",
       "id": "robot_robot_repr",
-      "community": 1,
+      "community": 7,
       "norm_label": ".__repr__()"
     },
     {
@@ -1269,7 +1251,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L59",
       "id": "robot_robot_eq",
-      "community": 1,
+      "community": 7,
       "norm_label": ".__eq__()"
     },
     {
@@ -1278,7 +1260,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L62",
       "id": "robot_robot_hash",
-      "community": 1,
+      "community": 7,
       "norm_label": ".__hash__()"
     },
     {
@@ -1287,7 +1269,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L1",
       "id": "robot_rationale_1",
-      "community": 1,
+      "community": 7,
       "norm_label": "robot.py -------- a single n\u00d7n square robot.  knows only:   - its label"
     },
     {
@@ -1296,7 +1278,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L21",
       "id": "robot_rationale_21",
-      "community": 1,
+      "community": 7,
       "norm_label": "an n\u00d7n square robot on a grid.     position is the (row, col) of its top-left c"
     },
     {
@@ -1305,7 +1287,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L27",
       "id": "robot_rationale_27",
-      "community": 1,
+      "community": 7,
       "norm_label": "label : name, e.g. 'a' or 'b'         n     : edge length in tiles         row"
     },
     {
@@ -1314,7 +1296,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L41",
       "id": "robot_rationale_41",
-      "community": 2,
+      "community": 1,
       "norm_label": "top-left corner (row, col)."
     },
     {
@@ -1323,7 +1305,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L45",
       "id": "robot_rationale_45",
-      "community": 1,
+      "community": 7,
       "norm_label": "all (row, col) tiles this robot occupies."
     },
     {
@@ -1332,7 +1314,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L51",
       "id": "robot_rationale_51",
-      "community": 1,
+      "community": 7,
       "norm_label": "return an independent copy of this robot."
     },
     {
@@ -1341,7 +1323,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L1",
       "id": "src_solver_py",
-      "community": 1,
+      "community": 0,
       "norm_label": "solver.py"
     },
     {
@@ -1350,7 +1332,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L15",
       "id": "solver_solverresult",
-      "community": 1,
+      "community": 0,
       "norm_label": "solverresult"
     },
     {
@@ -1359,7 +1341,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L16",
       "id": "solver_solverresult_init",
-      "community": 1,
+      "community": 0,
       "norm_label": ".__init__()"
     },
     {
@@ -1368,7 +1350,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L22",
       "id": "solver_solverresult_repr",
-      "community": 1,
+      "community": 0,
       "norm_label": ".__repr__()"
     },
     {
@@ -1377,7 +1359,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L31",
       "id": "solver_solver",
-      "community": 1,
+      "community": 0,
       "norm_label": "solver"
     },
     {
@@ -1386,7 +1368,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L32",
       "id": "solver_solver_init",
-      "community": 1,
+      "community": 0,
       "norm_label": ".__init__()"
     },
     {
@@ -1395,7 +1377,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L37",
       "id": "solver_solver_solve",
-      "community": 3,
+      "community": 0,
       "norm_label": ".solve()"
     },
     {
@@ -1404,7 +1386,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L1",
       "id": "solver_rationale_1",
-      "community": 1,
+      "community": 0,
       "norm_label": "solver.py --------- uses bfs to find the minimum number of control switches t"
     },
     {
@@ -1413,7 +1395,7 @@
       "source_file": "src\\state.py",
       "source_location": "L1",
       "id": "src_state_py",
-      "community": 2,
+      "community": 1,
       "norm_label": "state.py"
     },
     {
@@ -1422,7 +1404,7 @@
       "source_file": "src\\state.py",
       "source_location": "L20",
       "id": "state_state",
-      "community": 2,
+      "community": 1,
       "norm_label": "state"
     },
     {
@@ -1431,7 +1413,7 @@
       "source_file": "src\\state.py",
       "source_location": "L30",
       "id": "state_state_init",
-      "community": 2,
+      "community": 1,
       "norm_label": ".__init__()"
     },
     {
@@ -1440,7 +1422,7 @@
       "source_file": "src\\state.py",
       "source_location": "L37",
       "id": "state_state_eq",
-      "community": 2,
+      "community": 1,
       "norm_label": ".__eq__()"
     },
     {
@@ -1449,7 +1431,7 @@
       "source_file": "src\\state.py",
       "source_location": "L46",
       "id": "state_state_hash",
-      "community": 2,
+      "community": 1,
       "norm_label": ".__hash__()"
     },
     {
@@ -1458,7 +1440,7 @@
       "source_file": "src\\state.py",
       "source_location": "L51",
       "id": "state_state_repr",
-      "community": 2,
+      "community": 1,
       "norm_label": ".__repr__()"
     },
     {
@@ -1467,7 +1449,7 @@
       "source_file": "src\\state.py",
       "source_location": "L1",
       "id": "state_rationale_1",
-      "community": 2,
+      "community": 1,
       "norm_label": "state.py -------- a frozen snapshot of the entire system at one moment.  use"
     },
     {
@@ -1476,7 +1458,7 @@
       "source_file": "src\\state.py",
       "source_location": "L21",
       "id": "state_rationale_21",
-      "community": 2,
+      "community": 1,
       "norm_label": "immutable snapshot of the system.      fields:         pos_a   : (row, col) o"
     },
     {
@@ -1485,7 +1467,7 @@
       "source_file": "src\\symmetry.py",
       "source_location": "L1",
       "id": "src_symmetry_py",
-      "community": 3,
+      "community": 2,
       "norm_label": "symmetry.py"
     },
     {
@@ -1494,7 +1476,7 @@
       "source_file": "src\\symmetry.py",
       "source_location": "L33",
       "id": "symmetry_build_transform_tables",
-      "community": 3,
+      "community": 2,
       "norm_label": "build_transform_tables()"
     },
     {
@@ -1503,7 +1485,7 @@
       "source_file": "src\\symmetry.py",
       "source_location": "L82",
       "id": "symmetry_canonical_key",
-      "community": 3,
+      "community": 2,
       "norm_label": "canonical_key()"
     },
     {
@@ -1512,7 +1494,7 @@
       "source_file": "src\\symmetry.py",
       "source_location": "L102",
       "id": "symmetry_is_label_swap_symmetric",
-      "community": 3,
+      "community": 2,
       "norm_label": "is_label_swap_symmetric()"
     },
     {
@@ -1521,7 +1503,7 @@
       "source_file": "src\\symmetry.py",
       "source_location": "L1",
       "id": "symmetry_rationale_1",
-      "community": 3,
+      "community": 2,
       "norm_label": "symmetry.py ----------- spatial symmetry helpers: transform tables, canonical ke"
     },
     {
@@ -1530,7 +1512,7 @@
       "source_file": "src\\symmetry.py",
       "source_location": "L34",
       "id": "symmetry_rationale_34",
-      "community": 3,
+      "community": 2,
       "norm_label": "return (n_kinds, cell_table, pos_table) for an rows*cols grid and n*n robot."
     },
     {
@@ -1539,7 +1521,7 @@
       "source_file": "src\\symmetry.py",
       "source_location": "L83",
       "id": "symmetry_rationale_83",
-      "community": 3,
+      "community": 2,
       "norm_label": "lex-min canonical form over all spatial transforms and both label orderings."
     },
     {
@@ -1548,7 +1530,7 @@
       "source_file": "src\\symmetry.py",
       "source_location": "L114",
       "id": "symmetry_rationale_114",
-      "community": 3,
+      "community": 2,
       "norm_label": "is there a non-identity spatial transform that:       - leaves the tile layout i"
     },
     {
@@ -1557,7 +1539,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L1",
       "id": "src_test_case_py",
-      "community": 5,
+      "community": 3,
       "norm_label": "test_case.py"
     },
     {
@@ -1566,7 +1548,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L15",
       "id": "test_case_testresult",
-      "community": 5,
+      "community": 3,
       "norm_label": "testresult"
     },
     {
@@ -1575,7 +1557,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L22",
       "id": "test_case_testresult_repr",
-      "community": 5,
+      "community": 3,
       "norm_label": ".__repr__()"
     },
     {
@@ -1584,7 +1566,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L32",
       "id": "test_case_testcase",
-      "community": 0,
+      "community": 6,
       "norm_label": "testcase"
     },
     {
@@ -1593,7 +1575,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L52",
       "id": "test_case_testcase_setup",
-      "community": 0,
+      "community": 6,
       "norm_label": ".setup()"
     },
     {
@@ -1602,7 +1584,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L1",
       "id": "test_case_rationale_1",
-      "community": 5,
+      "community": 3,
       "norm_label": "test_case.py ------------ base class for all test cases. every test case in t"
     },
     {
@@ -1611,7 +1593,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L33",
       "id": "test_case_rationale_33",
-      "community": 0,
+      "community": 6,
       "norm_label": "subclass this and implement setup().      minimal example:          class my"
     },
     {
@@ -1620,7 +1602,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L1",
       "id": "src_validator_py",
-      "community": 4,
+      "community": 0,
       "norm_label": "validator.py"
     },
     {
@@ -1629,7 +1611,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L18",
       "id": "validator_validationresult",
-      "community": 4,
+      "community": 0,
       "norm_label": "validationresult"
     },
     {
@@ -1638,7 +1620,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L19",
       "id": "validator_validationresult_init",
-      "community": 4,
+      "community": 0,
       "norm_label": ".__init__()"
     },
     {
@@ -1647,7 +1629,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L28",
       "id": "validator_validationresult_repr",
-      "community": 4,
+      "community": 0,
       "norm_label": ".__repr__()"
     },
     {
@@ -1674,7 +1656,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L43",
       "id": "validator_validator_run",
-      "community": 4,
+      "community": 0,
       "norm_label": ".run()"
     },
     {
@@ -1692,7 +1674,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L1",
       "id": "validator_rationale_1",
-      "community": 4,
+      "community": 0,
       "norm_label": "validator.py ------------ given a workspace, a path, and goal positions: vali"
     },
     {
@@ -1908,7 +1890,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L1",
       "id": "src_workspace_py",
-      "community": 1,
+      "community": 7,
       "norm_label": "workspace.py"
     },
     {
@@ -1917,7 +1899,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L39",
       "id": "workspace_workspace",
-      "community": 1,
+      "community": 0,
       "norm_label": "workspace"
     },
     {
@@ -1926,7 +1908,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L44",
       "id": "workspace_workspace_init",
-      "community": 1,
+      "community": 0,
       "norm_label": ".__init__()"
     },
     {
@@ -1935,7 +1917,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L52",
       "id": "workspace_workspace_robot_fits_at",
-      "community": 6,
+      "community": 0,
       "norm_label": ".robot_fits_at()"
     },
     {
@@ -1944,7 +1926,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L65",
       "id": "workspace_workspace_robots_overlap",
-      "community": 2,
+      "community": 0,
       "norm_label": ".robots_overlap()"
     },
     {
@@ -1953,7 +1935,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L81",
       "id": "workspace_workspace_can_move",
-      "community": 6,
+      "community": 0,
       "norm_label": ".can_move()"
     },
     {
@@ -1962,7 +1944,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L104",
       "id": "workspace_workspace_do_move",
-      "community": 6,
+      "community": 0,
       "norm_label": ".do_move()"
     },
     {
@@ -1971,7 +1953,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L119",
       "id": "workspace_workspace_get_state",
-      "community": 2,
+      "community": 1,
       "norm_label": ".get_state()"
     },
     {
@@ -1980,7 +1962,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L130",
       "id": "workspace_workspace_load_state",
-      "community": 1,
+      "community": 7,
       "norm_label": ".load_state()"
     },
     {
@@ -1989,7 +1971,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L141",
       "id": "workspace_workspace_repr",
-      "community": 2,
+      "community": 1,
       "norm_label": ".__repr__()"
     },
     {
@@ -1998,7 +1980,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L1",
       "id": "workspace_rationale_1",
-      "community": 1,
+      "community": 7,
       "norm_label": "workspace.py ------------ the grid + both robots + all movement rules.  owns"
     },
     {
@@ -2007,7 +1989,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L40",
       "id": "workspace_rationale_40",
-      "community": 1,
+      "community": 7,
       "norm_label": "combines a grid with two robots and enforces movement rules."
     },
     {
@@ -2016,7 +1998,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L53",
       "id": "workspace_rationale_53",
-      "community": 6,
+      "community": 7,
       "norm_label": "would robot fit at (row, col) without hitting any obstacle or wall?         doe"
     },
     {
@@ -2025,7 +2007,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L68",
       "id": "workspace_rationale_68",
-      "community": 2,
+      "community": 5,
       "norm_label": "would two robots overlap?         each robot has its own size (n_a, n_b) \u2014 they"
     },
     {
@@ -2034,7 +2016,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L82",
       "id": "workspace_rationale_82",
-      "community": 6,
+      "community": 7,
       "norm_label": "can `robot` move one step in `direction`?         checks: grid fit + no collisi"
     },
     {
@@ -2043,7 +2025,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L105",
       "id": "workspace_rationale_105",
-      "community": 6,
+      "community": 5,
       "norm_label": "move `robot` one step in `direction` if valid.         returns true if move was"
     },
     {
@@ -2052,7 +2034,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L120",
       "id": "workspace_rationale_120",
-      "community": 2,
+      "community": 1,
       "norm_label": "return a frozen state snapshot of current robot positions.         bfs uses thi"
     },
     {
@@ -2061,7 +2043,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L131",
       "id": "workspace_rationale_131",
-      "community": 1,
+      "community": 7,
       "norm_label": "restore robot positions from a state snapshot.         bfs uses this to backtra"
     },
     {
@@ -2070,7 +2052,7 @@
       "source_file": "src\\__init__.py",
       "source_location": "L1",
       "id": "src_init_py",
-      "community": 11,
+      "community": 17,
       "norm_label": "__init__.py"
     },
     {
@@ -2079,7 +2061,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_1x1_robot_no_holes_py",
-      "community": 0,
+      "community": 14,
       "norm_label": "1x1_robot_no_holes.py"
     },
     {
@@ -2088,7 +2070,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L20",
       "id": "1x1_robot_no_holes_onebyonenoholes",
-      "community": 0,
+      "community": 14,
       "norm_label": "onebyonenoholes"
     },
     {
@@ -2097,7 +2079,7 @@
       "source_file": "",
       "source_location": "",
       "id": "testcase",
-      "community": 0,
+      "community": 6,
       "norm_label": "testcase"
     },
     {
@@ -2106,7 +2088,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L23",
       "id": "1x1_robot_no_holes_onebyonenoholes_setup",
-      "community": 0,
+      "community": 14,
       "norm_label": ".setup()"
     },
     {
@@ -2115,7 +2097,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L1",
       "id": "1x1_robot_no_holes_rationale_1",
-      "community": 0,
+      "community": 14,
       "norm_label": "1x1_robot_no_holes.py ------------------- trivial 1x1 swap with a pocket."
     },
     {
@@ -2124,7 +2106,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_2x2_robot_holes_py",
-      "community": 0,
+      "community": 6,
       "norm_label": "2x2_robot_holes.py"
     },
     {
@@ -2133,7 +2115,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L21",
       "id": "2x2_robot_holes_twobytwoholes",
-      "community": 0,
+      "community": 6,
       "norm_label": "twobytwoholes"
     },
     {
@@ -2142,7 +2124,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L24",
       "id": "2x2_robot_holes_twobytwoholes_setup",
-      "community": 0,
+      "community": 10,
       "norm_label": ".setup()"
     },
     {
@@ -2151,7 +2133,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L1",
       "id": "2x2_robot_holes_rationale_1",
-      "community": 0,
+      "community": 6,
       "norm_label": "2x2_robot_holes.py ------------------- test case for a 2x2 robot scenario with"
     },
     {
@@ -2160,7 +2142,7 @@
       "source_file": "testcases\\2x2_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_2x2_robot_no_holes_py",
-      "community": 0,
+      "community": 13,
       "norm_label": "2x2_robot_no_holes.py"
     },
     {
@@ -2169,7 +2151,7 @@
       "source_file": "testcases\\2x2_robot_no_holes.py",
       "source_location": "L21",
       "id": "2x2_robot_no_holes_twobytwonoholes",
-      "community": 0,
+      "community": 13,
       "norm_label": "twobytwonoholes"
     },
     {
@@ -2178,7 +2160,7 @@
       "source_file": "testcases\\2x2_robot_no_holes.py",
       "source_location": "L24",
       "id": "2x2_robot_no_holes_twobytwonoholes_setup",
-      "community": 0,
+      "community": 13,
       "norm_label": ".setup()"
     },
     {
@@ -2187,7 +2169,7 @@
       "source_file": "testcases\\2x2_robot_no_holes.py",
       "source_location": "L1",
       "id": "2x2_robot_no_holes_rationale_1",
-      "community": 0,
+      "community": 13,
       "norm_label": "2x2_robot_no_holes.py ------------------- test case for a 2x2 robot scenario w"
     },
     {
@@ -2196,7 +2178,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_3x3_robot_holes_py",
-      "community": 0,
+      "community": 6,
       "norm_label": "3x3_robot_holes.py"
     },
     {
@@ -2205,7 +2187,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L21",
       "id": "3x3_robot_holes_threebythreeholes",
-      "community": 0,
+      "community": 6,
       "norm_label": "threebythreeholes"
     },
     {
@@ -2214,7 +2196,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L24",
       "id": "3x3_robot_holes_threebythreeholes_setup",
-      "community": 0,
+      "community": 10,
       "norm_label": ".setup()"
     },
     {
@@ -2223,7 +2205,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L1",
       "id": "3x3_robot_holes_rationale_1",
-      "community": 0,
+      "community": 6,
       "norm_label": "3x3_robot_holes.py ------------------- test case for a 3x3 robot scenario with"
     },
     {
@@ -2232,7 +2214,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_3x3_robot_no_holes_py",
-      "community": 0,
+      "community": 5,
       "norm_label": "3x3_robot_no_holes.py"
     },
     {
@@ -2241,7 +2223,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L21",
       "id": "3x3_robot_no_holes_threebythreenoholes",
-      "community": 0,
+      "community": 5,
       "norm_label": "threebythreenoholes"
     },
     {
@@ -2250,7 +2232,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L24",
       "id": "3x3_robot_no_holes_threebythreenoholes_setup",
-      "community": 0,
+      "community": 5,
       "norm_label": ".setup()"
     },
     {
@@ -2259,7 +2241,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L1",
       "id": "3x3_robot_no_holes_rationale_1",
-      "community": 0,
+      "community": 5,
       "norm_label": "3x3_robot_no_holes.py ------------------- test case for a 3x3 robot scenario w"
     },
     {
@@ -2268,7 +2250,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_4x4_robot_holes_py",
-      "community": 0,
+      "community": 6,
       "norm_label": "4x4_robot_holes.py"
     },
     {
@@ -2277,7 +2259,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L21",
       "id": "4x4_robot_holes_fourbyfourholes",
-      "community": 0,
+      "community": 6,
       "norm_label": "fourbyfourholes"
     },
     {
@@ -2286,7 +2268,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L24",
       "id": "4x4_robot_holes_fourbyfourholes_setup",
-      "community": 0,
+      "community": 10,
       "norm_label": ".setup()"
     },
     {
@@ -2295,7 +2277,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L1",
       "id": "4x4_robot_holes_rationale_1",
-      "community": 0,
+      "community": 6,
       "norm_label": "4x4_robot_holes.py ------------------- test case for a 4x4 robot scenario with"
     },
     {
@@ -2304,7 +2286,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_4x4_robot_no_holes_py",
-      "community": 1,
+      "community": 6,
       "norm_label": "4x4_robot_no_holes.py"
     },
     {
@@ -2313,7 +2295,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L21",
       "id": "4x4_robot_no_holes_fourbyfournoholes",
-      "community": 1,
+      "community": 6,
       "norm_label": "fourbyfournoholes"
     },
     {
@@ -2322,7 +2304,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L24",
       "id": "4x4_robot_no_holes_fourbyfournoholes_setup",
-      "community": 1,
+      "community": 6,
       "norm_label": ".setup()"
     },
     {
@@ -2331,7 +2313,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L1",
       "id": "4x4_robot_no_holes_rationale_1",
-      "community": 1,
+      "community": 6,
       "norm_label": "4x4_robot_no_holes.py ------------------- test case for a 4x4 robot scenario w"
     },
     {
@@ -2340,7 +2322,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_5x5_robot_no_holes_py",
-      "community": 0,
+      "community": 6,
       "norm_label": "5x5_robot_no_holes.py"
     },
     {
@@ -2349,7 +2331,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L21",
       "id": "5x5_robot_no_holes_fivebyfivenoholes",
-      "community": 0,
+      "community": 6,
       "norm_label": "fivebyfivenoholes"
     },
     {
@@ -2367,7 +2349,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L1",
       "id": "5x5_robot_no_holes_rationale_1",
-      "community": 0,
+      "community": 6,
       "norm_label": "5x5_robot_no_holes.py ------------------- test case for a 5x5 robot scenario w"
     }
   ],
@@ -4019,366 +4001,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L39",
-      "weight": 1.0,
-      "_src": "minimize_obstacles_py",
-      "_tgt": "minimize_obstacles_test_cell",
-      "source": "minimize_obstacles_py",
-      "target": "minimize_obstacles_test_cell",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L109",
-      "weight": 1.0,
-      "_src": "minimize_obstacles_py",
-      "_tgt": "minimize_obstacles_minimize_obstacles",
-      "source": "minimize_obstacles_py",
-      "target": "minimize_obstacles_minimize_obstacles",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_src": "minimize_obstacles_rationale_1",
-      "_tgt": "minimize_obstacles_py",
-      "source": "minimize_obstacles_py",
-      "target": "minimize_obstacles_rationale_1",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L40",
-      "weight": 1.0,
-      "_src": "minimize_obstacles_rationale_40",
-      "_tgt": "minimize_obstacles_test_cell",
-      "source": "minimize_obstacles_test_cell",
-      "target": "minimize_obstacles_rationale_40",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L86",
-      "weight": 1.0,
-      "_src": "minimize_obstacles_test_cell",
-      "_tgt": "grid_grid",
-      "source": "minimize_obstacles_test_cell",
-      "target": "grid_grid"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L87",
-      "weight": 1.0,
-      "_src": "minimize_obstacles_test_cell",
-      "_tgt": "robot_robot",
-      "source": "minimize_obstacles_test_cell",
-      "target": "robot_robot"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L89",
-      "weight": 1.0,
-      "_src": "minimize_obstacles_test_cell",
-      "_tgt": "workspace_workspace",
-      "source": "minimize_obstacles_test_cell",
-      "target": "workspace_workspace"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L91",
-      "weight": 1.0,
-      "_src": "minimize_obstacles_test_cell",
-      "_tgt": "solver_solver_solve",
-      "source": "minimize_obstacles_test_cell",
-      "target": "solver_solver_solve"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L91",
-      "weight": 1.0,
-      "_src": "minimize_obstacles_test_cell",
-      "_tgt": "solver_solver",
-      "source": "minimize_obstacles_test_cell",
-      "target": "solver_solver"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L116",
-      "weight": 1.0,
-      "_src": "minimize_obstacles_rationale_116",
-      "_tgt": "minimize_obstacles_minimize_obstacles",
-      "source": "minimize_obstacles_minimize_obstacles",
-      "target": "minimize_obstacles_rationale_116",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L128",
-      "weight": 1.0,
-      "_src": "minimize_obstacles_minimize_obstacles",
-      "_tgt": "grid_grid_get_all_obstacles",
-      "source": "minimize_obstacles_minimize_obstacles",
-      "target": "grid_grid_get_all_obstacles"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L180",
-      "weight": 1.0,
-      "_src": "minimize_obstacles_minimize_obstacles",
-      "_tgt": "grid_grid",
-      "source": "minimize_obstacles_minimize_obstacles",
-      "target": "grid_grid"
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L77",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_1",
-      "_tgt": "grid_grid",
-      "source": "minimize_obstacles_rationale_1",
-      "target": "grid_grid",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L78",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_1",
-      "_tgt": "robot_robot",
-      "source": "minimize_obstacles_rationale_1",
-      "target": "robot_robot",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L79",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_1",
-      "_tgt": "solver_solver",
-      "source": "minimize_obstacles_rationale_1",
-      "target": "solver_solver",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L80",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_1",
-      "_tgt": "workspace_workspace",
-      "source": "minimize_obstacles_rationale_1",
-      "target": "workspace_workspace",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L194",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_1",
-      "_tgt": "test_case_testcase",
-      "source": "minimize_obstacles_rationale_1",
-      "target": "test_case_testcase",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L195",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_1",
-      "_tgt": "validator_validator",
-      "source": "minimize_obstacles_rationale_1",
-      "target": "validator_validator",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L77",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_40",
-      "_tgt": "grid_grid",
-      "source": "minimize_obstacles_rationale_40",
-      "target": "grid_grid",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L78",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_40",
-      "_tgt": "robot_robot",
-      "source": "minimize_obstacles_rationale_40",
-      "target": "robot_robot",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L79",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_40",
-      "_tgt": "solver_solver",
-      "source": "minimize_obstacles_rationale_40",
-      "target": "solver_solver",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L80",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_40",
-      "_tgt": "workspace_workspace",
-      "source": "minimize_obstacles_rationale_40",
-      "target": "workspace_workspace",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L194",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_40",
-      "_tgt": "test_case_testcase",
-      "source": "minimize_obstacles_rationale_40",
-      "target": "test_case_testcase",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L195",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_40",
-      "_tgt": "validator_validator",
-      "source": "minimize_obstacles_rationale_40",
-      "target": "validator_validator",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L77",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_116",
-      "_tgt": "grid_grid",
-      "source": "minimize_obstacles_rationale_116",
-      "target": "grid_grid",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L78",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_116",
-      "_tgt": "robot_robot",
-      "source": "minimize_obstacles_rationale_116",
-      "target": "robot_robot",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L79",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_116",
-      "_tgt": "solver_solver",
-      "source": "minimize_obstacles_rationale_116",
-      "target": "solver_solver",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L80",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_116",
-      "_tgt": "workspace_workspace",
-      "source": "minimize_obstacles_rationale_116",
-      "target": "workspace_workspace",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L194",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_116",
-      "_tgt": "test_case_testcase",
-      "source": "minimize_obstacles_rationale_116",
-      "target": "test_case_testcase",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "minimize_obstacles.py",
-      "source_location": "L195",
-      "weight": 0.8,
-      "_src": "minimize_obstacles_rationale_116",
-      "_tgt": "validator_validator",
-      "source": "minimize_obstacles_rationale_116",
-      "target": "validator_validator",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
       "source_location": "L29",
       "weight": 1.0,
@@ -4663,6 +4285,66 @@
       "source": "scripts_graphify_list_communities_py",
       "target": "list_communities_main",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\graphify\\precommit_hook.py",
+      "source_location": "L34",
+      "weight": 1.0,
+      "_src": "scripts_graphify_precommit_hook_py",
+      "_tgt": "precommit_hook_staged_python_files",
+      "source": "scripts_graphify_precommit_hook_py",
+      "target": "precommit_hook_staged_python_files",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\graphify\\precommit_hook.py",
+      "source_location": "L45",
+      "weight": 1.0,
+      "_src": "scripts_graphify_precommit_hook_py",
+      "_tgt": "precommit_hook_main",
+      "source": "scripts_graphify_precommit_hook_py",
+      "target": "precommit_hook_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\graphify\\precommit_hook.py",
+      "source_location": "L46",
+      "weight": 1.0,
+      "_src": "precommit_hook_main",
+      "_tgt": "precommit_hook_staged_python_files",
+      "source": "precommit_hook_staged_python_files",
+      "target": "precommit_hook_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\graphify\\precommit_hook.py",
+      "source_location": "L35",
+      "weight": 1.0,
+      "_src": "precommit_hook_rationale_35",
+      "_tgt": "precommit_hook_staged_python_files",
+      "source": "precommit_hook_staged_python_files",
+      "target": "precommit_hook_rationale_35",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "scripts\\graphify\\precommit_hook.py",
+      "source_location": "L36",
+      "weight": 1.0,
+      "_src": "precommit_hook_staged_python_files",
+      "_tgt": "validator_validator_run",
+      "source": "precommit_hook_staged_python_files",
+      "target": "validator_validator_run"
     },
     {
       "relation": "contains",

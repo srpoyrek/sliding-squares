@@ -16,6 +16,13 @@ python -m pre_commit install
 
 Requires Python 3.8+.
 
+The `pre-commit` hooks run on every commit:
+
+- **ruff** — auto-format and lint Python code
+- **graphify-build** — rebuild the code knowledge graph (only when `.py` files are staged) and re-stage the regenerated `graphify-out/` artifacts so the graph stays in sync with the code
+
+To skip the graph rebuild on a single commit (rare): `SKIP=graphify-build git commit -m "..."`.
+
 ## Structure
 
 ```
@@ -43,6 +50,8 @@ sliding-squares/
 │   └── 5x5_robot_no_holes.py
 ├── plots/
 ├── data/
+├── scripts/
+│   └── graphify/           # Optional: build a code knowledge graph (see below)
 ├── demo_solver.py
 ├── demo_validator.py
 ├── run_tests.py
@@ -94,3 +103,28 @@ python demo_validator.py
 | `4x4_robot_no_holes` | 4×4 | No |
 | `4x4_robot_holes` | 4×4 | Yes |
 | `5x5_robot_no_holes` | 5×5 | No |
+
+## Code Knowledge Graph (optional)
+
+The `scripts/graphify/` folder contains a small wrapper around [graphify](https://github.com/safishamsi/graphify) that builds a queryable knowledge graph of this codebase — useful for navigating the architecture or handing a structured map of the code to other AI models.
+
+```bash
+pip install graphifyy
+python scripts/graphify/build_graph.py . --exclude plots
+```
+
+Outputs land in `graphify-out/`:
+
+- `graph.json` — raw graph data (pass this to ChatGPT, Cursor, Codex, etc.)
+- `GRAPH_REPORT.md` — audit report with god nodes, surprising connections, and suggested questions
+- `graph.html` — interactive visualization, open in any browser
+
+To list community contents (helps when naming them):
+
+```bash
+python scripts/graphify/list_communities.py
+```
+
+The graph is **rebuilt automatically on every commit** that touches a `.py` file, via the `graphify-build` pre-commit hook. You don't need to run `build_graph.py` manually unless you want to refresh between commits.
+
+For richer extraction that also reads docs and images via AI subagents, use the `/graphify` skill inside [Claude Code](https://claude.com/claude-code). See [`scripts/graphify/README.md`](scripts/graphify/README.md) for full details.
