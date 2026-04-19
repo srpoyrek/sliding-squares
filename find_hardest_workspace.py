@@ -12,6 +12,7 @@ import heapq
 import multiprocessing as mp
 import os
 import shutil
+import threading
 import time
 from collections import deque
 
@@ -675,6 +676,27 @@ def find_hardest(
         initializer=_set_transform_tables,
         initargs=(_N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE),
     ) as pool:
+        # Terminal-based kill switch: type 'stop', 'quit', 'kill', or 'q' + Enter
+        # in this terminal to terminate every worker immediately.
+        if verbose:
+            print("Kill switch: type 'stop' (or 'q') + Enter in this terminal to abort.")
+
+        def _stdin_watcher():
+            try:
+                while True:
+                    line = input()
+                    if line.strip().lower() in ("q", "quit", "stop", "kill", "exit"):
+                        print("\n⚠  Kill requested — terminating workers.", flush=True)
+                        try:
+                            pool.terminate()
+                        except Exception:
+                            pass
+                        os._exit(130)
+            except (EOFError, OSError):
+                pass  # stdin closed — keep running normally
+
+        threading.Thread(target=_stdin_watcher, daemon=True).start()
+
         for out in pool.imap_unordered(_worker, jobs):
             results.append(out)
             tag = (
