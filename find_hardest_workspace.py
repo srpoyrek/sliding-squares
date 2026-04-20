@@ -359,15 +359,15 @@ def dig_search(
     canon_dupes_skipped = 0
     solvable_prunes = 0  # how many solvable nodes we skipped expanding
     solvable_prune_children_skipped = 0  # immediate children that would have been enqueued
-    # Solver result cache: different free_cells patterns with the same `valid`
-    # set have identical solver results (solver only cares about where robots
-    # can physically sit).  Keyed by frozenset(valid). LRU-bounded so deep
-    # searches on large grids don't exhaust memory per worker.
-    solver_cache: LRUCache = LRUCache(maxsize=8192)
+    # Solver / precheck caches are keyed by frozenset(valid). In practice the
+    # outer canonical dedup on free_cells already eliminates most would-be
+    # cache hits before we reach this lookup, so real-world hit rates are ~0%
+    # on n>=2 grids too. Kept at a small LRU cap purely to catch the rare
+    # stepping-stone states where two different canonical free_cells do yield
+    # the same valid set — without wasting ~100 MB/worker on dead weight.
+    solver_cache: LRUCache = LRUCache(maxsize=256)
     solver_cache_hits = 0
-    # Precheck cache: single-robot reachability only depends on `valid` + the
-    # (pos, goal) pairs; (pos, goal) are placement-constants here.
-    precheck_cache: LRUCache = LRUCache(maxsize=8192)
+    precheck_cache: LRUCache = LRUCache(maxsize=256)
     precheck_cache_hits = 0
     t_start = time.perf_counter()
 

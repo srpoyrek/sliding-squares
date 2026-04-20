@@ -40,8 +40,8 @@ from src.workspace import COMMANDS, DIRECTIONS
 # _PARENT_MAP_CACHE  key: (free_key, pos_static, n, pos_moving)  -> parent_map dict
 # ---------------------------------------------------------------------------
 _VALID_POS_CACHE: LRUCache = LRUCache(maxsize=2048)
-_USABLE_CACHE: LRUCache = LRUCache(maxsize=8192)
-_PARENT_MAP_CACHE: LRUCache = LRUCache(maxsize=16384)
+_USABLE_CACHE: LRUCache = LRUCache(maxsize=32768)
+_PARENT_MAP_CACHE: LRUCache = LRUCache(maxsize=65536)
 
 _INVERSE_CMD = {"U": "D", "D": "U", "L": "R", "R": "L"}
 
