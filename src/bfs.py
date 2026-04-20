@@ -39,9 +39,36 @@ from src.workspace import COMMANDS, DIRECTIONS
 # _USABLE_CACHE      key: (free_key, pos_static, n)              -> usable positions
 # _PARENT_MAP_CACHE  key: (free_key, pos_static, n, pos_moving)  -> parent_map dict
 # ---------------------------------------------------------------------------
-_VALID_POS_CACHE: LRUCache = LRUCache(maxsize=2048)
-_USABLE_CACHE: LRUCache = LRUCache(maxsize=32768)
-_PARENT_MAP_CACHE: LRUCache = LRUCache(maxsize=65536)
+_VALID_POS_CACHE: LRUCache = LRUCache(maxsize=1024)
+_USABLE_CACHE: LRUCache = LRUCache(maxsize=4096)
+_PARENT_MAP_CACHE: LRUCache = LRUCache(maxsize=8192)
+
+
+def configure_caches_for_grid(rows: int, cols: int, n: int, target_mb: int = 150) -> None:
+    """Resize module-level LRU caches so total memory scales with grid area.
+
+    Each parent_map / usable / valid_pos entry stores O(valid_positions)
+    cell tuples; per-entry size grows roughly linearly with grid area. At a
+    fixed cache count, 30x30 uses ~50x more memory than 4x4. This sizes the
+    caps so the per-worker footprint stays near `target_mb`.
+    """
+    global _VALID_POS_CACHE, _USABLE_CACHE, _PARENT_MAP_CACHE
+    valid_positions = max(1, (rows - n + 1) * (cols - n + 1))
+    pm_bytes_per_entry = valid_positions * 160 + 200
+    usable_bytes_per_entry = valid_positions * 60 + 200
+    valid_bytes_per_entry = valid_positions * 60 + 200
+
+    budget_bytes = target_mb * 1024 * 1024
+    pm_share, usable_share, valid_share = 0.70, 0.25, 0.05
+
+    pm_cap = max(256, int(budget_bytes * pm_share / pm_bytes_per_entry))
+    usable_cap = max(128, int(budget_bytes * usable_share / usable_bytes_per_entry))
+    valid_cap = max(64, int(budget_bytes * valid_share / valid_bytes_per_entry))
+
+    _VALID_POS_CACHE = LRUCache(maxsize=valid_cap)
+    _USABLE_CACHE = LRUCache(maxsize=usable_cap)
+    _PARENT_MAP_CACHE = LRUCache(maxsize=pm_cap)
+
 
 _INVERSE_CMD = {"U": "D", "D": "U", "L": "R", "R": "L"}
 

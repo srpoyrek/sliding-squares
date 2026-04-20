@@ -189,22 +189,47 @@ def _build_cell_bits(cell_table, bit_stride):
     return cb
 
 
-def _init_transform_tables(rows, cols, n):
+def _init_transform_tables(rows, cols, n, cache_mb=150):
     """Build and set module-level transform tables. Called once in main process."""
     global _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE, _CELL_BITS
     _N_KINDS, _CELL_TABLE, _POS_TABLE = build_transform_tables(rows, cols, n)
     _BIT_STRIDE = cols
     _CELL_BITS = _build_cell_bits(_CELL_TABLE, _BIT_STRIDE)
 
+    from src import bfs as _bfs
 
-def _set_transform_tables(n_kinds, cell_table, pos_table, bit_stride):
-    """Assign pre-built transform tables in worker processes (no recomputation)."""
+    _bfs.configure_caches_for_grid(rows, cols, n, target_mb=cache_mb)
+    print(
+        f"Cache sizing (budget={cache_mb} MB/worker): "
+        f"parent_map={_bfs._PARENT_MAP_CACHE.maxsize}  "
+        f"usable={_bfs._USABLE_CACHE.maxsize}  "
+        f"valid_pos={_bfs._VALID_POS_CACHE.maxsize}"
+    )
+
+
+def _set_transform_tables(
+    n_kinds,
+    cell_table,
+    pos_table,
+    bit_stride,
+    grid_rows=None,
+    grid_cols=None,
+    grid_n=None,
+    cache_mb=150,
+):
+    """Assign pre-built transform tables in worker processes (no recomputation).
+    Also sizes the per-worker bfs caches for the current grid dimensions so
+    per-entry memory scales sanely from 4x4 to 30x30+."""
     global _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE, _CELL_BITS
     _N_KINDS = n_kinds
     _CELL_TABLE = cell_table
     _POS_TABLE = pos_table
     _BIT_STRIDE = bit_stride
     _CELL_BITS = _build_cell_bits(cell_table, bit_stride)
+    if grid_rows is not None and grid_cols is not None and grid_n is not None:
+        from src.bfs import configure_caches_for_grid
+
+        configure_caches_for_grid(grid_rows, grid_cols, grid_n, target_mb=cache_mb)
 
 
 def _canonical_key(tf, seconds, thirds):
@@ -818,6 +843,7 @@ def find_hardest(
     strategy="strip",
     central_only=False,
     touching="edge",
+    cache_mb=150,
 ):
     run_dir = os.path.join(get_plots_dir(), "hardest", f"run_{rows}x{cols}_n{n}")
     if os.path.exists(run_dir):
@@ -832,7 +858,7 @@ def find_hardest(
         "",
     ]
 
-    _init_transform_tables(rows, cols, n)
+    _init_transform_tables(rows, cols, n, cache_mb=cache_mb)
     placement_gen = all_touching_placements if touching == "all" else all_adjacent_placements
     all_placements = list(placement_gen(rows, cols, n))
     keepers, merged = _dedup_placements(rows, cols, n, all_placements)
@@ -913,7 +939,7 @@ def find_hardest(
         with mp.get_context("spawn").Pool(
             processes=nproc,
             initializer=_set_transform_tables,
-            initargs=(_N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE),
+            initargs=(_N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE, rows, cols, n, cache_mb),
         ) as solver_pool:
             _install_stdin_killer(solver_pool)
             for job in jobs:
@@ -938,7 +964,7 @@ def find_hardest(
         with mp.get_context("spawn").Pool(
             processes=nproc,
             initializer=_set_transform_tables,
-            initargs=(_N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE),
+            initargs=(_N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE, rows, cols, n, cache_mb),
         ) as pool:
             _install_stdin_killer(pool)
 
@@ -1080,7 +1106,7 @@ if __name__ == "__main__":
     p.add_argument("--cols", type=int, default=3)
     p.add_argument("--n", type=int, default=1)
     p.add_argument("--depth", type=int, default=4)
-    p.add_argument("--processes", type=int, default=None)
+    p.add_argument("--processes", type=int, default=4)
     p.add_argument("--quiet", action="store_true")
     p.add_argument("--strategy", choices=list(DIG_STRATEGIES.keys()), default="single")
     p.add_argument(
@@ -1097,6 +1123,15 @@ if __name__ == "__main__":
         help="'edge' (default) = only full-edge-adjacent robot pairs. "
         "'all' = also include corner-adjacent and partial-edge-offset pairs.",
     )
+    p.add_argument(
+        "--cache-mb",
+        type=int,
+        default=150,
+        help="Per-worker memory budget for bfs flood caches. Cap counts "
+        "auto-scale with grid area so memory stays near this target. "
+        "Raise for very large grids (e.g. 500 for 30x30, 1000+ for 100x100) "
+        "if you have the RAM, or lower --processes.",
+    )
     args = p.parse_args()
 
     result, run_dir = find_hardest(
@@ -1109,6 +1144,7 @@ if __name__ == "__main__":
         strategy=args.strategy,
         central_only=args.central_only,
         touching=args.touching,
+        cache_mb=args.cache_mb,
     )
     sw, gmax, gmin = result
     total_cells = args.rows * args.cols
