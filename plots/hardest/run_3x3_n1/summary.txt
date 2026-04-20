@@ -1,16 +1,22 @@
 TIGHTEST WORKSPACE: 3 switches in 4 free cells (44.4% of 9-cell grid)
-  placement: A=(0, 0) B=(0, 1)
+  placement: A=(1, 0) B=(1, 1)
   proof:     C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x3_n1\GLOBAL_TIGHTEST_S03_F04
 
-Run: 3x3, n=1, depth_past_first=20, strategy=single
+Run: 3x3, n=1, depth_past_first=2, strategy=single, touching=edge
 
 Placements: 12 total, 2 unique after dedup
   ((0, 0), (0, 1)) represents: [((0, 1), (0, 2)), ((2, 0), (2, 1)), ((2, 1), (2, 2)), ((0, 0), (1, 0)), ((0, 2), (1, 2)), ((1, 0), (2, 0)), ((1, 2), (2, 2))]
   ((1, 0), (1, 1)) represents: [((1, 1), (1, 2)), ((0, 1), (1, 1)), ((1, 1), (2, 1))]
 
-placement_A00_B01: switches=3  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x3_n1\placement_A00_B01\max_switches_S03_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x3_n1\placement_A00_B01\min_free_S03_F04
 placement_A10_B11: switches=3  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x3_n1\placement_A10_B11\max_switches_S03_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x3_n1\placement_A10_B11\min_free_S03_F04
+placement_A00_B01: switches=3  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x3_n1\placement_A00_B01\max_switches_S03_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x3_n1\placement_A00_B01\min_free_S03_F04
 
 GLOBAL MAX SWITCHES: 3 switches, 4 free cells (44.4% of 9-cell grid)
-  placement: A=(0, 0) B=(0, 1)
+  placement: A=(1, 0) B=(1, 1)
   proof:     C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x3_n1\GLOBAL_MAX_SWITCHES_S03_F04
+
+CACHE USAGE (aggregated across all placements)
+  solver      peak_size=41/8192 (1%)  hits=0  misses=74  hit_rate=0.0%  evictions=0
+  precheck    peak_size=41/8192 (1%)  hits=0  misses=74  hit_rate=0.0%  evictions=0
+  usable      peak_size=6/512 (1%)  hits=1330  misses=361  hit_rate=78.7%  evictions=0
+  parent_map  peak_size=30/8192 (0%)  hits=916  misses=775  hit_rate=54.2%  evictions=0

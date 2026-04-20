@@ -22,25 +22,31 @@ Parent tuple convention (unified across fwd and bwd): (prev_state, target_pos, m
 from __future__ import annotations
 
 from collections import deque
-from typing import Dict, Tuple
+from typing import Dict
 
+from src.lru import LRUCache
 from src.state import State
 from src.visualizer import draw_bfs_frontier
 from src.workspace import COMMANDS, DIRECTIONS
 
 # ---------------------------------------------------------------------------
 # Memoization caches — shared between unidirectional and bidirectional BFS.
-# _FLOOD_CACHE key: (pos_static, n) -> {"usable": set, "flood": {pos_moving: parent_map}}
-# _VALID_POS_CACHE key: n -> set of (row, col) where robot of size n fits
+# _USABLE_CACHE      key: (pos_static, n)              -> usable positions set
+# _PARENT_MAP_CACHE  key: (pos_static, n, pos_moving)  -> flood parent_map dict
+# _VALID_POS_CACHE   key: n                             -> positions where robot fits
+#
+# LRU-bounded so a single deep solve cannot blow up per-worker memory.
 # ---------------------------------------------------------------------------
-_FLOOD_CACHE: Dict[Tuple, Dict] = {}
+_USABLE_CACHE: LRUCache = LRUCache(maxsize=512)
+_PARENT_MAP_CACHE: LRUCache = LRUCache(maxsize=8192)
 _VALID_POS_CACHE: Dict[int, set] = {}
 
 _INVERSE_CMD = {"U": "D", "D": "U", "L": "R", "R": "L"}
 
 
 def _clear_caches():
-    _FLOOD_CACHE.clear()
+    _USABLE_CACHE.clear()
+    _PARENT_MAP_CACHE.clear()
     _VALID_POS_CACHE.clear()
 
 
@@ -81,8 +87,9 @@ def _cmds_from_parent_map(parent_map: dict, pos_moving, target) -> list:
 
 
 def flood_fill(workspace, pos_moving, pos_static, n) -> dict:
-    cache_key = (pos_static, n)
-    if cache_key not in _FLOOD_CACHE:
+    usable_key = (pos_static, n)
+    usable = _USABLE_CACHE.get(usable_key)
+    if usable is None:
         if n not in _VALID_POS_CACHE:
             valid_set = set()
             for r in range(workspace.grid.rows - n + 1):
@@ -97,11 +104,14 @@ def flood_fill(workspace, pos_moving, pos_static, n) -> dict:
         usable = {
             (r, c) for (r, c) in valid_positions if not workspace.robots_overlap(r, c, n, sr, sc, n)
         }
-        _FLOOD_CACHE[cache_key] = {"usable": usable, "flood": {}}
-    bucket = _FLOOD_CACHE[cache_key]
-    if pos_moving not in bucket["flood"]:
-        bucket["flood"][pos_moving] = _original_flood_fill(bucket["usable"], pos_moving)
-    return bucket["flood"][pos_moving]
+        _USABLE_CACHE[usable_key] = usable
+
+    pm_key = (pos_static, n, pos_moving)
+    parent_map = _PARENT_MAP_CACHE.get(pm_key)
+    if parent_map is None:
+        parent_map = _original_flood_fill(usable, pos_moving)
+        _PARENT_MAP_CACHE[pm_key] = parent_map
+    return parent_map
 
 
 # ---------------------------------------------------------------------------
@@ -227,7 +237,7 @@ def _reconstruct_fwd(parent: dict, end_state, workspace) -> list:
                 source_pos, static_pos = prev_state.pos_a, prev_state.pos_b
             else:
                 source_pos, static_pos = prev_state.pos_b, prev_state.pos_a
-        pm = _FLOOD_CACHE[(static_pos, n)]["flood"][source_pos]
+        pm = flood_fill(workspace, source_pos, static_pos, n)
         cmds = _cmds_from_parent_map(pm, source_pos, target_pos)
         for cmd in reversed(cmds):
             path.append(cmd)
@@ -257,7 +267,7 @@ def _reconstruct_bwd(bwd_parent: dict, meeting, workspace) -> list:
         else:
             flood_root = next_state.pos_b
             static_pos = next_state.pos_a
-        pm = _FLOOD_CACHE[(static_pos, n)]["flood"][flood_root]
+        pm = flood_fill(workspace, flood_root, static_pos, n)
         # new_pos is the mover's position in `state` (earlier in forward time);
         # walk up the flood tree rooted at flood_root, inverting cmds.
         cmds = []

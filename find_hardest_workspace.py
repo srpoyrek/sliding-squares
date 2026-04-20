@@ -18,6 +18,7 @@ from collections import deque
 
 from src.directories import get_plots_dir
 from src.grid import Grid
+from src.lru import LRUCache
 from src.robot import Robot
 from src.solver import Solver
 from src.symmetry import build_transform_tables, canonical_key
@@ -281,6 +282,7 @@ def dig_search(
     logs,
     dig_options=_dig_options_single_cell,
     solver_pool=None,
+    cache_stats_out=None,
 ):
     goal_a, goal_b = pos_b, pos_a
 
@@ -356,12 +358,13 @@ def dig_search(
     solvable_prune_children_skipped = 0  # immediate children that would have been enqueued
     # Solver result cache: different free_cells patterns with the same `valid`
     # set have identical solver results (solver only cares about where robots
-    # can physically sit).  Keyed by frozenset(valid).
-    solver_cache = {}
+    # can physically sit).  Keyed by frozenset(valid). LRU-bounded so deep
+    # searches on large grids don't exhaust memory per worker.
+    solver_cache: LRUCache = LRUCache(maxsize=8192)
     solver_cache_hits = 0
     # Precheck cache: single-robot reachability only depends on `valid` + the
     # (pos, goal) pairs; (pos, goal) are placement-constants here.
-    precheck_cache = {}
+    precheck_cache: LRUCache = LRUCache(maxsize=8192)
     precheck_cache_hits = 0
     t_start = time.perf_counter()
 
@@ -578,6 +581,13 @@ def dig_search(
         f" precheck_hits={precheck_cache_hits}"
         f" runs={total_pc_asks - precheck_cache_hits} ({pc_hit_pct:.1f}%)"
     )
+    logs.append(
+        f"    lru:     solver[{solver_cache.stats()}]  " f"precheck[{precheck_cache.stats()}]"
+    )
+
+    if cache_stats_out is not None:
+        cache_stats_out["solver"] = _lru_snapshot(solver_cache)
+        cache_stats_out["precheck"] = _lru_snapshot(precheck_cache)
 
     if best_free_max is None or best_free_min is None:
         return None
@@ -602,9 +612,20 @@ DIG_STRATEGIES = {
 }
 
 
+def _lru_snapshot(cache: LRUCache) -> dict:
+    return {
+        "size": len(cache),
+        "maxsize": cache.maxsize,
+        "hits": cache.hits,
+        "misses": cache.misses,
+        "evictions": cache.evictions,
+    }
+
+
 def _worker(args, solver_pool=None):
     rows, cols, n, pos_a, pos_b, max_depth_past_first, placement_dir, dig_options = args
     logs = []
+    cache_stats: dict = {}
     res = dig_search(
         rows,
         cols,
@@ -615,7 +636,16 @@ def _worker(args, solver_pool=None):
         logs,
         dig_options=dig_options,
         solver_pool=solver_pool,
+        cache_stats_out=cache_stats,
     )
+
+    # Capture bfs-level LRU snapshots (populated by all solver calls this
+    # worker made). Imported lazily so the module-level import order stays
+    # clean for the multiprocessing spawn path.
+    from src.bfs import _PARENT_MAP_CACHE, _USABLE_CACHE
+
+    cache_stats["usable"] = _lru_snapshot(_USABLE_CACHE)
+    cache_stats["parent_map"] = _lru_snapshot(_PARENT_MAP_CACHE)
 
     out = {
         "pos_a": pos_a,
@@ -630,6 +660,7 @@ def _worker(args, solver_pool=None):
         "goals": None,
         "free_max": None,
         "free_min": None,
+        "cache_stats": cache_stats,
     }
 
     if res is None:
@@ -910,8 +941,10 @@ def find_hardest(
 
             for out in pool.imap_unordered(_worker, jobs):
                 results.append(out)
-                tag = f"placement_A{out['pos_a'][0]}"
-                f"{out['pos_a'][1]}_B{out['pos_b'][0]}{out['pos_b'][1]}"
+                tag = (
+                    f"placement_A{out['pos_a'][0]}{out['pos_a'][1]}"
+                    f"_B{out['pos_b'][0]}{out['pos_b'][1]}"
+                )
                 if verbose:
                     print(f"\n{tag}")
                     for line in out["logs"]:
@@ -994,6 +1027,41 @@ def find_hardest(
             f"  placement: A={placement_t[0]} B={placement_t[1]}",
             f"  proof:     {gdir}",
         ]
+
+    # Aggregate LRU cache stats across all workers.
+    agg: dict = {}
+    for out in results:
+        stats_per_cache = out.get("cache_stats") or {}
+        for cache_name, s in stats_per_cache.items():
+            a = agg.setdefault(
+                cache_name,
+                {"hits": 0, "misses": 0, "evictions": 0, "peak_size": 0, "maxsize": s["maxsize"]},
+            )
+            a["hits"] += s["hits"]
+            a["misses"] += s["misses"]
+            a["evictions"] += s["evictions"]
+            a["peak_size"] = max(a["peak_size"], s["size"])
+            a["maxsize"] = s["maxsize"]
+
+    if agg:
+        summary.append("")
+        summary.append("CACHE USAGE (aggregated across all placements)")
+        for cache_name in ("solver", "precheck", "usable", "parent_map"):
+            a = agg.get(cache_name)
+            if a is None:
+                continue
+            total = a["hits"] + a["misses"]
+            rate = (100.0 * a["hits"] / total) if total else 0.0
+            limit_hit = "  HIT LIMIT" if a["evictions"] > 0 else ""
+            fill_pct = (100.0 * a["peak_size"] / a["maxsize"]) if a["maxsize"] else 0.0
+            summary.append(
+                f"  {cache_name:<11} peak_size={a['peak_size']}/{a['maxsize']} "
+                f"({fill_pct:.0f}%)  hits={a['hits']}  misses={a['misses']}  "
+                f"hit_rate={rate:.1f}%  evictions={a['evictions']}{limit_hit}"
+            )
+        if verbose:
+            for line in summary[-(len(agg) + 2) :]:
+                print(line)
 
     summary_path = os.path.join(run_dir, "summary.txt")
     with open(summary_path, "w") as f:

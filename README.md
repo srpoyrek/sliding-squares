@@ -68,7 +68,7 @@ The solver runs a **bidirectional layered breadth-first search** over the state 
 1. **Layered structure.** Each BFS layer represents states reachable with exactly *k* control switches. Within a layer, `flood_fill` explores all positions the controlled robot can reach without switching.
 2. **Bidirectional expansion.** A forward BFS from the start and a backward BFS from the goal are expanded in lockstep. Both initial controllers are seeded in forward layer 0 and both final controllers in backward layer 0, so the run finds the minimum-switch solution over any choice of first/last mover in a single pass.
 3. **Symmetry pruning.** [`src/symmetry.py`](src/symmetry.py) detects when a workspace is invariant under an A↔B label swap; in that case the dual-start expansion is collapsed to a single BFS half, halving the work.
-4. **Memoization.** Per-process caches in `bfs.py` (`_FLOOD_CACHE`, `_VALID_POS_CACHE`) reuse flood-fill results and valid-position sets across forward/backward halves of the same run.
+4. **Memoization.** Per-process LRU caches in `bfs.py` (`_USABLE_CACHE`, `_PARENT_MAP_CACHE`, `_VALID_POS_CACHE`) reuse flood-fill results and valid-position sets across forward/backward halves of the same run. Sizes are bounded so a single deep solve cannot exhaust worker memory.
 5. **Optimality.** The goal is checked at each layer; the first match is optimal by construction. Path reconstruction backtracks through parent pointers to produce a command sequence.
 
 Commands: `U` (up), `D` (down), `L` (left), `R` (right), `S` (switch control).
