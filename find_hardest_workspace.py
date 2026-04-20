@@ -141,6 +141,94 @@ def robot_can_reach_goal_ignoring_other(valid, start, goal):
     return False
 
 
+def valid_has_bypass(valid, start, n):
+    """N-aware topology check (tight): swap is feasible only if the component
+    of `valid` containing `start` satisfies:
+
+      - contains a vertex of degree >= 3 whose branches reach positions with
+        axis-diff >= n from the vertex in at least TWO directions (so one
+        branch can serve as the "parking" spot for one robot while the others
+        form the corridor the other robot traverses without overlap), OR
+      - contains a cycle that spans two positions with axis-diff >= n (a
+        cycle big enough to accommodate two non-overlapping n x n robots).
+
+    For n = 1 this reduces to the simple "degree >= 3 or cycle" check because
+    any edge in the valid graph has axis-diff exactly 1 = n.
+
+    O(|component|^2) worst case. Necessary condition only — some apparently
+    feasible configurations may still be infeasible due to geometric
+    constraints the solver resolves — but always sound (never falsely rejects).
+    """
+    if start not in valid:
+        return False
+    seen = {start}
+    queue = deque([start])
+    component = []
+    edge_halves = 0
+    degree_3_vertices = []
+    while queue:
+        pos = queue.popleft()
+        component.append(pos)
+        r, c = pos
+        deg = 0
+        for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            nbr = (r + dr, c + dc)
+            if nbr in valid:
+                deg += 1
+                edge_halves += 1
+                if nbr not in seen:
+                    seen.add(nbr)
+                    queue.append(nbr)
+        if deg >= 3:
+            degree_3_vertices.append(pos)
+
+    vertices = len(component)
+    edges = edge_halves // 2
+    has_cycle = edges > vertices - 1
+
+    if not (degree_3_vertices or has_cycle):
+        return False  # pure path — no swap for any n
+
+    # For each degree->=3 vertex, count branches that extend to axis-diff >= n.
+    # Need at least 2 such branches: one serves as parking, another as corridor.
+    for v in degree_3_vertices:
+        neighbors = []
+        for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            nb = (v[0] + dr, v[1] + dc)
+            if nb in valid:
+                neighbors.append(nb)
+        deep_branches = 0
+        for branch_start in neighbors:
+            # DFS into branch, forbidden from crossing v. Stop at first
+            # position with axis-diff >= n from v (short-circuit).
+            stack = [branch_start]
+            branch_seen = {v, branch_start}
+            branch_deep = False
+            while stack:
+                curr = stack.pop()
+                if abs(curr[0] - v[0]) >= n or abs(curr[1] - v[1]) >= n:
+                    branch_deep = True
+                    break
+                for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                    nb = (curr[0] + dr, curr[1] + dc)
+                    if nb in valid and nb not in branch_seen:
+                        branch_seen.add(nb)
+                        stack.append(nb)
+            if branch_deep:
+                deep_branches += 1
+                if deep_branches >= 2:
+                    return True
+
+    # Cycle fallback: if component has a cycle AND two positions with
+    # axis-diff >= n, swap has room in principle.
+    if has_cycle:
+        for i, p1 in enumerate(component):
+            for p2 in component[i + 1 :]:
+                if abs(p1[0] - p2[0]) >= n or abs(p1[1] - p2[1]) >= n:
+                    return True
+    return False
+
+
 def _solve_payload(payload):
     """Worker function: rebuild workspace and run solver.
     Used by the batch-parallel solver pool in dig_search.
@@ -321,6 +409,14 @@ def dig_search(
     init_valid = _valid_block_positions(rows, cols, init_free, n)
     init_key = frozenset(init_free)
 
+    # Monotonicity shortcut: if both robots can already reach their goals at
+    # init_free (e.g. edge-adjacent placements), they can reach them at every
+    # future state (valid set only grows as cells are dug). We can skip the
+    # reach-check inside the hot loop entirely.
+    reach_always_ok = robot_can_reach_goal_ignoring_other(
+        init_valid, pos_a, goal_a
+    ) and robot_can_reach_goal_ignoring_other(init_valid, pos_b, goal_b)
+
     # Per-placement tiebreakers: pos_a and pos_b don't change within one
     # dig_search call, so the (a_t, b_t) / (b_t, a_t) tiebreaker pairs are
     # constant per transform. Precompute once.
@@ -382,6 +478,7 @@ def dig_search(
     solver_calls = 0
     expansions_total = 0
     canon_dupes_skipped = 0
+    bypass_rejects = 0  # valid-graph topology (no branch/cycle/room) rejected the workspace
     solvable_prunes = 0  # how many solvable nodes we skipped expanding
     solvable_prune_children_skipped = 0  # immediate children that would have been enqueued
     # Solver / precheck caches are keyed by frozenset(valid). In practice the
@@ -445,9 +542,22 @@ def dig_search(
                 precheck_ok = pc_cached
             else:
                 t0 = time.perf_counter()
-                precheck_ok = robot_can_reach_goal_ignoring_other(
-                    valid, pos_a, goal_a
-                ) and robot_can_reach_goal_ignoring_other(valid, pos_b, goal_b)
+                # Skip reach-check when init_valid already passed (monotonic:
+                # reach_ok stays True once any ancestor has it). Otherwise
+                # fall through to the real reachability test.
+                if reach_always_ok:
+                    reach_ok = True
+                else:
+                    reach_ok = robot_can_reach_goal_ignoring_other(
+                        valid, pos_a, goal_a
+                    ) and robot_can_reach_goal_ignoring_other(valid, pos_b, goal_b)
+                if reach_ok:
+                    bypass_ok = valid_has_bypass(valid, pos_a, n)
+                    if not bypass_ok:
+                        bypass_rejects += 1
+                    precheck_ok = bypass_ok
+                else:
+                    precheck_ok = False
                 t_precheck += time.perf_counter() - t0
                 precheck_cache[valid_key] = precheck_ok
 
@@ -591,6 +701,8 @@ def dig_search(
         f"sync={t_sync:.2f}s  frontier={t_frontier:.2f}s  "
         f"nodes={nodes_visited}  solves={solver_calls}"
     )
+    bypass_pct = (100.0 * bypass_rejects / nodes_visited) if nodes_visited else 0.0
+    logs.append(f"    bypass:  rejected={bypass_rejects}/{nodes_visited} ({bypass_pct:.1f}%)")
     logs.append(
         f"    dedup:   expansions={expansions_total}  unique={unique_enqueued}  "
         f"symmetric_dropped={canon_dupes_skipped}  ({dedup_pct:.1f}% pruned)"

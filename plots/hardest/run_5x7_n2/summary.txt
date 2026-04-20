@@ -1,5 +1,5 @@
 TIGHTEST WORKSPACE: 5 switches in 18 free cells (51.4% of 35-cell grid)
-  placement: A=(0, 1) B=(2, 2)
+  placement: A=(0, 2) B=(2, 2)
   proof:     C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\GLOBAL_TIGHTEST_S05_F18
 
 Run: 5x7, n=2, depth_past_first=20, strategy=strip, touching=all
@@ -30,18 +30,18 @@ Placements: 176 total, 22 unique after dedup
 
 placement_A00_B02: switches=5  max-free=27 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B02\max_switches_S05_F27  |  min-free=27 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B02\min_free_S05_F27
 placement_A00_B12: switches=3  max-free=16 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B12\max_switches_S03_F16  |  min-free=16 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B12\min_free_S03_F16
-placement_A00_B20: switches=5  max-free=24 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B20\max_switches_S05_F24  |  min-free=24 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B20\min_free_S05_F24
-placement_A00_B21: switches=3  max-free=16 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B21\max_switches_S03_F16  |  min-free=16 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B21\min_free_S03_F16
 placement_A00_B22: switches=3  max-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B22\max_switches_S03_F18  |  min-free=17 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B22\min_free_S03_F17
+placement_A00_B20: switches=5  max-free=24 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B20\max_switches_S05_F24  |  min-free=24 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B20\min_free_S05_F24
 placement_A01_B03: switches=5  max-free=24 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B03\max_switches_S05_F24  |  min-free=24 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B03\min_free_S05_F24
-placement_A01_B13: switches=5  max-free=19 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B13\max_switches_S05_F19  |  min-free=19 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B13\min_free_S05_F19
+placement_A00_B21: switches=3  max-free=16 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B21\max_switches_S03_F16  |  min-free=16 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A00_B21\min_free_S03_F16
 placement_A01_B20: switches=5  max-free=19 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B20\max_switches_S05_F19  |  min-free=19 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B20\min_free_S05_F19
-placement_A01_B22: switches=5  max-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B22\max_switches_S05_F18  |  min-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B22\min_free_S05_F18
-placement_A01_B21: switches=5  max-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B21\max_switches_S05_F18  |  min-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B21\min_free_S05_F18
-placement_A01_B23: PROOF FAILED (max): validator failed: 'R' invalid for robot B at (3,3)
-placement_A02_B10: switches=5  max-free=19 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B10\max_switches_S05_F19  |  min-free=19 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B10\min_free_S05_F19
+placement_A01_B13: switches=5  max-free=19 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B13\max_switches_S05_F19  |  min-free=19 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B13\min_free_S05_F19
 placement_A02_B22: switches=5  max-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B22\max_switches_S05_F18  |  min-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B22\min_free_S05_F18
+placement_A02_B10: switches=5  max-free=19 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B10\max_switches_S05_F19  |  min-free=19 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B10\min_free_S05_F19
+placement_A01_B22: switches=5  max-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B22\max_switches_S05_F18  |  min-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B22\min_free_S05_F18
+placement_A01_B23: switches=3  max-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B23\max_switches_S03_F18  |  min-free=17 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B23\min_free_S03_F17
 placement_A02_B20: switches=4  max-free=27 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B20\max_switches_S04_F27  |  min-free=27 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B20\min_free_S04_F27
+placement_A01_B21: switches=5  max-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B21\max_switches_S05_F18  |  min-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A01_B21\min_free_S05_F18
 placement_A02_B14: switches=5  max-free=19 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B14\max_switches_S05_F19  |  min-free=19 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B14\min_free_S05_F19
 placement_A02_B21: switches=5  max-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B21\max_switches_S05_F18  |  min-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B21\min_free_S05_F18
 placement_A02_B23: switches=5  max-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B23\max_switches_S05_F18  |  min-free=18 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\placement_A02_B23\min_free_S05_F18
@@ -56,7 +56,7 @@ GLOBAL MAX SWITCHES: 5 switches, 27 free cells (77.1% of 35-cell grid)
   proof:     C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_5x7_n2\GLOBAL_MAX_SWITCHES_S05_F27
 
 CACHE USAGE (aggregated across all placements)
-  solver      peak_size=8192/8192 (100%)  hits=0  misses=383561  hit_rate=0.0%  evictions=203337  HIT LIMIT
-  precheck    peak_size=8192/8192 (100%)  hits=0  misses=450654  hit_rate=0.0%  evictions=270430  HIT LIMIT
-  usable      peak_size=8192/8192 (100%)  hits=110953843  misses=13812466  hit_rate=88.9%  evictions=13632242  HIT LIMIT
-  parent_map  peak_size=16384/16384 (100%)  hits=61899152  misses=62867157  hit_rate=49.6%  evictions=62506709  HIT LIMIT
+  solver      peak_size=256/256 (100%)  hits=0  misses=373446  hit_rate=0.0%  evictions=367814  HIT LIMIT
+  precheck    peak_size=256/256 (100%)  hits=0  misses=450654  hit_rate=0.0%  evictions=445022  HIT LIMIT
+  usable      peak_size=23976/23976 (100%)  hits=63945109  misses=8185969  hit_rate=88.7%  evictions=7658497  HIT LIMIT
+  parent_map  peak_size=27252/27252 (100%)  hits=35778266  misses=36352812  hit_rate=49.6%  evictions=35753268  HIT LIMIT
