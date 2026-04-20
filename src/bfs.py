@@ -22,7 +22,6 @@ Parent tuple convention (unified across fwd and bwd): (prev_state, target_pos, m
 from __future__ import annotations
 
 from collections import deque
-from typing import Dict
 
 from src.lru import LRUCache
 from src.state import State
@@ -31,15 +30,18 @@ from src.workspace import COMMANDS, DIRECTIONS
 
 # ---------------------------------------------------------------------------
 # Memoization caches — shared between unidirectional and bidirectional BFS.
-# _USABLE_CACHE      key: (pos_static, n)              -> usable positions set
-# _PARENT_MAP_CACHE  key: (pos_static, n, pos_moving)  -> flood parent_map dict
-# _VALID_POS_CACHE   key: n                             -> positions where robot fits
+# Keys include `free_key` (a frozenset of free-cell positions) so each cache
+# entry is a pure function of its inputs. No per-solve clearing is required:
+# entries remain valid across any number of solve calls on any grid topology,
+# and LRU bounds control memory.
 #
-# LRU-bounded so a single deep solve cannot blow up per-worker memory.
+# _VALID_POS_CACHE   key: (free_key, n)                          -> valid positions
+# _USABLE_CACHE      key: (free_key, pos_static, n)              -> usable positions
+# _PARENT_MAP_CACHE  key: (free_key, pos_static, n, pos_moving)  -> parent_map dict
 # ---------------------------------------------------------------------------
-_USABLE_CACHE: LRUCache = LRUCache(maxsize=512)
-_PARENT_MAP_CACHE: LRUCache = LRUCache(maxsize=8192)
-_VALID_POS_CACHE: Dict[int, set] = {}
+_VALID_POS_CACHE: LRUCache = LRUCache(maxsize=2048)
+_USABLE_CACHE: LRUCache = LRUCache(maxsize=8192)
+_PARENT_MAP_CACHE: LRUCache = LRUCache(maxsize=16384)
 
 _INVERSE_CMD = {"U": "D", "D": "U", "L": "R", "R": "L"}
 
@@ -86,27 +88,50 @@ def _cmds_from_parent_map(parent_map: dict, pos_moving, target) -> list:
     return cmds
 
 
+def _workspace_free_key(workspace):
+    """Frozen identifier of the workspace's free-cell set. Preferred path is
+    the `_free_key` attribute set by callers that know the frozen set already
+    (e.g. find_hardest_workspace). Falls back to computing it from tiles."""
+    key = getattr(workspace, "_free_key", None)
+    if key is not None:
+        return key
+    tiles = workspace.grid.tiles
+    free = frozenset(
+        (r, c)
+        for r in range(workspace.grid.rows)
+        for c in range(workspace.grid.cols)
+        if tiles[r][c] == 0
+    )
+    workspace._free_key = free
+    return free
+
+
 def flood_fill(workspace, pos_moving, pos_static, n) -> dict:
-    usable_key = (pos_static, n)
+    free_key = _workspace_free_key(workspace)
+
+    valid_key = (free_key, n)
+    valid_positions = _VALID_POS_CACHE.get(valid_key)
+    if valid_positions is None:
+        valid_set = set()
+        for r in range(workspace.grid.rows - n + 1):
+            for c in range(workspace.grid.cols - n + 1):
+                if all(
+                    workspace.grid.is_free(r + dr, c + dc) for dr in range(n) for dc in range(n)
+                ):
+                    valid_set.add((r, c))
+        valid_positions = valid_set
+        _VALID_POS_CACHE[valid_key] = valid_positions
+
+    usable_key = (free_key, pos_static, n)
     usable = _USABLE_CACHE.get(usable_key)
     if usable is None:
-        if n not in _VALID_POS_CACHE:
-            valid_set = set()
-            for r in range(workspace.grid.rows - n + 1):
-                for c in range(workspace.grid.cols - n + 1):
-                    if all(
-                        workspace.grid.is_free(r + dr, c + dc) for dr in range(n) for dc in range(n)
-                    ):
-                        valid_set.add((r, c))
-            _VALID_POS_CACHE[n] = valid_set
-        valid_positions = _VALID_POS_CACHE[n]
         sr, sc = pos_static
         usable = {
             (r, c) for (r, c) in valid_positions if not workspace.robots_overlap(r, c, n, sr, sc, n)
         }
         _USABLE_CACHE[usable_key] = usable
 
-    pm_key = (pos_static, n, pos_moving)
+    pm_key = (free_key, pos_static, n, pos_moving)
     parent_map = _PARENT_MAP_CACHE.get(pm_key)
     if parent_map is None:
         parent_map = _original_flood_fill(usable, pos_moving)
@@ -288,7 +313,6 @@ def _reconstruct_bwd(bwd_parent: dict, meeting, workspace) -> list:
 
 
 def bfs(workspace, goal_a, goal_b, draw=False):
-    _clear_caches()
     n = workspace.robot_a.n
     initial_ctrl = workspace.get_state().control
     seeds = _seed_fwd(workspace, [initial_ctrl])
@@ -333,7 +357,6 @@ def bfs(workspace, goal_a, goal_b, draw=False):
 
 
 def bfs_bidirectional(workspace, goal_a, goal_b, draw=False):
-    _clear_caches()
     n = workspace.robot_a.n
     robot_a = workspace.robot_a
     robot_b = workspace.robot_b

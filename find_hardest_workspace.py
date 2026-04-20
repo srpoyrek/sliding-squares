@@ -34,7 +34,9 @@ def _build_workspace(rows, cols, free_cells, pos_a, pos_b, n):
     grid = Grid(tiles)
     a = Robot("A", n, pos_a[0], pos_a[1])
     b = Robot("B", n, pos_b[0], pos_b[1])
-    return Workspace(grid, a, b)
+    ws = Workspace(grid, a, b)
+    ws._free_key = frozenset(free_cells)
+    return ws
 
 
 def _free_set(ws):
@@ -339,6 +341,7 @@ def dig_search(
             shared_tiles[r][c] = 1
         current_free_set.clear()
         current_free_set.update(target_free)
+        shared_ws._free_key = frozenset(target_free)
 
     best_switches = -1
     best_free_max, best_free_min = None, None
