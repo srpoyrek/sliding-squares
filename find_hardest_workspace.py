@@ -366,7 +366,7 @@ def dig_search(
             shared_tiles[r][c] = 1
         current_free_set.clear()
         current_free_set.update(target_free)
-        shared_ws._free_key = frozenset(target_free)
+        shared_ws._free_key = frozenset(target_free)  # type: ignore
 
     best_switches = -1
     best_free_max, best_free_min = None, None
