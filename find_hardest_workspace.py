@@ -489,6 +489,13 @@ def dig_search(
     # batches to keep memory usage stable even when the BFS layer is very wide.
     MAX_BATCH_SIZE = 5000
 
+    # reach-check monotonicity flag. At init it's True iff `reach_always_ok` is
+    # False (corner-adjacent placements). During the BFS we watch every full
+    # layer: once a layer completes with zero reach_ok=False states, all
+    # descendants inherit True (valid set only grows), so we can disable the
+    # check for the rest of the run.
+    reach_check_needed = not reach_always_ok
+
     while queue:
         current_depth = queue[0][0]
         if (
@@ -499,6 +506,9 @@ def dig_search(
             while queue and queue[0][0] == current_depth:
                 heapq.heappop(queue)
             continue
+
+        # Tracks whether any state at current_depth computed reach_ok=False.
+        layer_had_reach_false = False
 
         while queue and queue[0][0] == current_depth:
             # Process the current depth in chunks to avoid memory spikes
@@ -529,12 +539,14 @@ def dig_search(
                 free_cells = set(free_key)
 
                 t0 = time.perf_counter()
-                if reach_always_ok:
+                if not reach_check_needed:
                     reach_ok = True
                 else:
                     reach_ok = robot_can_reach_goal_ignoring_other(
                         valid, pos_a, goal_a
                     ) and robot_can_reach_goal_ignoring_other(valid, pos_b, goal_b)
+                    if not reach_ok:
+                        layer_had_reach_false = True
                 if reach_ok:
                     bypass_ok = valid_has_bypass(valid, pos_a, n)
                     if not bypass_ok:
@@ -668,6 +680,13 @@ def dig_search(
                         ),
                     )
                     seq += 1
+
+        # End of current_depth layer. If the reach-check was needed but no
+        # state at this depth saw reach_ok=False, monotonicity guarantees all
+        # descendants have reach_ok=True — disable the check for the rest of
+        # the run.
+        if reach_check_needed and not layer_had_reach_false:
+            reach_check_needed = False
 
     t_total = time.perf_counter() - t_start
     unique_enqueued = expansions_total - canon_dupes_skipped
