@@ -9,7 +9,7 @@
       "source_file": "demo_solver.py",
       "source_location": "L1",
       "id": "demo_solver_py",
-      "community": 16,
+      "community": 15,
       "norm_label": "demo_solver.py"
     },
     {
@@ -205,7 +205,7 @@
       "label": "_lru_snapshot()",
       "file_type": "code",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L763",
+      "source_location": "L715",
       "id": "find_hardest_workspace_lru_snapshot",
       "community": 1,
       "norm_label": "_lru_snapshot()"
@@ -214,7 +214,7 @@
       "label": "_worker()",
       "file_type": "code",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L773",
+      "source_location": "L725",
       "id": "find_hardest_workspace_worker",
       "community": 1,
       "norm_label": "_worker()"
@@ -223,7 +223,7 @@
       "label": "all_adjacent_placements()",
       "file_type": "code",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L844",
+      "source_location": "L796",
       "id": "find_hardest_workspace_all_adjacent_placements",
       "community": 1,
       "norm_label": "all_adjacent_placements()"
@@ -232,7 +232,7 @@
       "label": "all_touching_placements()",
       "file_type": "code",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L855",
+      "source_location": "L807",
       "id": "find_hardest_workspace_all_touching_placements",
       "community": 1,
       "norm_label": "all_touching_placements()"
@@ -241,7 +241,7 @@
       "label": "_pick_central_placements()",
       "file_type": "code",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L881",
+      "source_location": "L833",
       "id": "find_hardest_workspace_pick_central_placements",
       "community": 1,
       "norm_label": "_pick_central_placements()"
@@ -250,7 +250,7 @@
       "label": "_placement_canonical_key()",
       "file_type": "code",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L921",
+      "source_location": "L873",
       "id": "find_hardest_workspace_placement_canonical_key",
       "community": 1,
       "norm_label": "_placement_canonical_key()"
@@ -259,7 +259,7 @@
       "label": "_dedup_placements()",
       "file_type": "code",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L939",
+      "source_location": "L891",
       "id": "find_hardest_workspace_dedup_placements",
       "community": 1,
       "norm_label": "_dedup_placements()"
@@ -268,7 +268,7 @@
       "label": "find_hardest()",
       "file_type": "code",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L956",
+      "source_location": "L908",
       "id": "find_hardest_workspace_find_hardest",
       "community": 1,
       "norm_label": "find_hardest()"
@@ -279,7 +279,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L1",
       "id": "find_hardest_workspace_rationale_1",
-      "community": 5,
+      "community": 1,
       "norm_label": "find_hardest_workspace.py ------------------------- self-contained, optimized"
     },
     {
@@ -288,7 +288,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L101",
       "id": "find_hardest_workspace_rationale_101",
-      "community": 9,
+      "community": 1,
       "norm_label": "incrementally update valid-block-positions after digging one cell.     only top"
     },
     {
@@ -297,7 +297,7 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L146",
       "id": "find_hardest_workspace_rationale_146",
-      "community": 1,
+      "community": 9,
       "norm_label": "n-aware topology check (tight): swap is feasible only if the component     of `"
     },
     {
@@ -358,8 +358,8 @@
       "label": "Full-edge-adjacent pairs only: B directly right of or below A.",
       "file_type": "rationale",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L845",
-      "id": "find_hardest_workspace_rationale_845",
+      "source_location": "L797",
+      "id": "find_hardest_workspace_rationale_797",
       "community": 1,
       "norm_label": "full-edge-adjacent pairs only: b directly right of or below a."
     },
@@ -367,8 +367,8 @@
       "label": "All non-overlapping A/B placements where the two n*n blocks touch \u2014     full ed",
       "file_type": "rationale",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L856",
-      "id": "find_hardest_workspace_rationale_856",
+      "source_location": "L808",
+      "id": "find_hardest_workspace_rationale_808",
       "community": 1,
       "norm_label": "all non-overlapping a/b placements where the two n*n blocks touch \u2014     full ed"
     },
@@ -376,8 +376,8 @@
       "label": "From the canonical-deduped keepers, return ONE representative per adjacency",
       "file_type": "rationale",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L882",
-      "id": "find_hardest_workspace_rationale_882",
+      "source_location": "L834",
+      "id": "find_hardest_workspace_rationale_834",
       "community": 1,
       "norm_label": "from the canonical-deduped keepers, return one representative per adjacency"
     },
@@ -945,7 +945,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L1",
       "id": "src_grid_py",
-      "community": 9,
+      "community": 7,
       "norm_label": "grid.py"
     },
     {
@@ -954,7 +954,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L18",
       "id": "grid_grid",
-      "community": 9,
+      "community": 7,
       "norm_label": "grid"
     },
     {
@@ -963,7 +963,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L32",
       "id": "grid_grid_init",
-      "community": 9,
+      "community": 7,
       "norm_label": ".__init__()"
     },
     {
@@ -999,7 +999,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L88",
       "id": "grid_grid_get_holes",
-      "community": 9,
+      "community": 7,
       "norm_label": ".get_holes()"
     },
     {
@@ -1008,7 +1008,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L92",
       "id": "grid_grid_get_boundaries",
-      "community": 9,
+      "community": 7,
       "norm_label": ".get_boundaries()"
     },
     {
@@ -1017,7 +1017,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L96",
       "id": "grid_grid_get_all_obstacles",
-      "community": 9,
+      "community": 7,
       "norm_label": ".get_all_obstacles()"
     },
     {
@@ -1071,7 +1071,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L124",
       "id": "grid_grid_display",
-      "community": 15,
+      "community": 7,
       "norm_label": ".display()"
     },
     {
@@ -1080,7 +1080,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L134",
       "id": "grid_grid_repr",
-      "community": 9,
+      "community": 7,
       "norm_label": ".__repr__()"
     },
     {
@@ -1089,7 +1089,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L1",
       "id": "grid_rationale_1",
-      "community": 9,
+      "community": 7,
       "norm_label": "grid.py ------- the physical environment \u2014 a 2d map of free tiles and obstacle"
     },
     {
@@ -1098,7 +1098,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L19",
       "id": "grid_rationale_19",
-      "community": 9,
+      "community": 7,
       "norm_label": "2d grid of tiles.       0 = free       1 = boundary (perimeter wall)      -1"
     },
     {
@@ -1134,7 +1134,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L89",
       "id": "grid_rationale_89",
-      "community": 9,
+      "community": 7,
       "norm_label": "return set of all hole cell positions (row, col)."
     },
     {
@@ -1143,7 +1143,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L93",
       "id": "grid_rationale_93",
-      "community": 9,
+      "community": 7,
       "norm_label": "return set of all boundary cell positions (row, col)."
     },
     {
@@ -1152,7 +1152,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L97",
       "id": "grid_rationale_97",
-      "community": 9,
+      "community": 7,
       "norm_label": "return set of all obstacle positions \u2014 both holes and boundaries."
     },
     {
@@ -1206,7 +1206,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L125",
       "id": "grid_rationale_125",
-      "community": 15,
+      "community": 7,
       "norm_label": "print the raw grid. '.' = free, '#' = boundary, 'o' = hole."
     },
     {
@@ -2106,7 +2106,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L1",
       "id": "src_workspace_py",
-      "community": 7,
+      "community": 9,
       "norm_label": "workspace.py"
     },
     {
@@ -2115,7 +2115,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L39",
       "id": "workspace_workspace",
-      "community": 7,
+      "community": 9,
       "norm_label": "workspace"
     },
     {
@@ -2124,7 +2124,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L44",
       "id": "workspace_workspace_init",
-      "community": 7,
+      "community": 9,
       "norm_label": ".__init__()"
     },
     {
@@ -2178,7 +2178,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L130",
       "id": "workspace_workspace_load_state",
-      "community": 5,
+      "community": 9,
       "norm_label": ".load_state()"
     },
     {
@@ -2196,7 +2196,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L1",
       "id": "workspace_rationale_1",
-      "community": 7,
+      "community": 9,
       "norm_label": "workspace.py ------------ the grid + both robots + all movement rules.  owns"
     },
     {
@@ -2205,7 +2205,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L40",
       "id": "workspace_rationale_40",
-      "community": 7,
+      "community": 9,
       "norm_label": "combines a grid with two robots and enforces movement rules."
     },
     {
@@ -2259,7 +2259,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L131",
       "id": "workspace_rationale_131",
-      "community": 5,
+      "community": 9,
       "norm_label": "restore robot positions from a state snapshot.         bfs uses this to backtra"
     },
     {
@@ -2268,7 +2268,7 @@
       "source_file": "src\\__init__.py",
       "source_location": "L1",
       "id": "src_init_py",
-      "community": 17,
+      "community": 16,
       "norm_label": "__init__.py"
     },
     {
@@ -2277,7 +2277,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_1x1_robot_no_holes_py",
-      "community": 14,
+      "community": 4,
       "norm_label": "1x1_robot_no_holes.py"
     },
     {
@@ -2286,7 +2286,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L20",
       "id": "1x1_robot_no_holes_onebyonenoholes",
-      "community": 14,
+      "community": 4,
       "norm_label": "onebyonenoholes"
     },
     {
@@ -2304,7 +2304,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L23",
       "id": "1x1_robot_no_holes_onebyonenoholes_setup",
-      "community": 14,
+      "community": 8,
       "norm_label": ".setup()"
     },
     {
@@ -2313,7 +2313,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L1",
       "id": "1x1_robot_no_holes_rationale_1",
-      "community": 14,
+      "community": 4,
       "norm_label": "1x1_robot_no_holes.py ------------------- trivial 1x1 swap with a pocket."
     },
     {
@@ -2322,7 +2322,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_2x2_robot_holes_py",
-      "community": 4,
+      "community": 8,
       "norm_label": "2x2_robot_holes.py"
     },
     {
@@ -2331,7 +2331,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L21",
       "id": "2x2_robot_holes_twobytwoholes",
-      "community": 4,
+      "community": 8,
       "norm_label": "twobytwoholes"
     },
     {
@@ -2349,7 +2349,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L1",
       "id": "2x2_robot_holes_rationale_1",
-      "community": 4,
+      "community": 8,
       "norm_label": "2x2_robot_holes.py ------------------- test case for a 2x2 robot scenario with"
     },
     {
@@ -2430,7 +2430,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_3x3_robot_no_holes_py",
-      "community": 4,
+      "community": 14,
       "norm_label": "3x3_robot_no_holes.py"
     },
     {
@@ -2439,7 +2439,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L21",
       "id": "3x3_robot_no_holes_threebythreenoholes",
-      "community": 4,
+      "community": 14,
       "norm_label": "threebythreenoholes"
     },
     {
@@ -2448,7 +2448,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L24",
       "id": "3x3_robot_no_holes_threebythreenoholes_setup",
-      "community": 4,
+      "community": 14,
       "norm_label": ".setup()"
     },
     {
@@ -2457,7 +2457,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L1",
       "id": "3x3_robot_no_holes_rationale_1",
-      "community": 4,
+      "community": 14,
       "norm_label": "3x3_robot_no_holes.py ------------------- test case for a 3x3 robot scenario w"
     },
     {
@@ -2466,7 +2466,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_4x4_robot_holes_py",
-      "community": 8,
+      "community": 9,
       "norm_label": "4x4_robot_holes.py"
     },
     {
@@ -2475,7 +2475,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L21",
       "id": "4x4_robot_holes_fourbyfourholes",
-      "community": 8,
+      "community": 9,
       "norm_label": "fourbyfourholes"
     },
     {
@@ -2484,7 +2484,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L24",
       "id": "4x4_robot_holes_fourbyfourholes_setup",
-      "community": 8,
+      "community": 9,
       "norm_label": ".setup()"
     },
     {
@@ -2493,7 +2493,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L1",
       "id": "4x4_robot_holes_rationale_1",
-      "community": 8,
+      "community": 9,
       "norm_label": "4x4_robot_holes.py ------------------- test case for a 4x4 robot scenario with"
     },
     {
@@ -2502,7 +2502,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_4x4_robot_no_holes_py",
-      "community": 7,
+      "community": 4,
       "norm_label": "4x4_robot_no_holes.py"
     },
     {
@@ -2511,7 +2511,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L21",
       "id": "4x4_robot_no_holes_fourbyfournoholes",
-      "community": 7,
+      "community": 4,
       "norm_label": "fourbyfournoholes"
     },
     {
@@ -2520,7 +2520,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L24",
       "id": "4x4_robot_no_holes_fourbyfournoholes_setup",
-      "community": 7,
+      "community": 4,
       "norm_label": ".setup()"
     },
     {
@@ -2529,7 +2529,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L1",
       "id": "4x4_robot_no_holes_rationale_1",
-      "community": 7,
+      "community": 4,
       "norm_label": "4x4_robot_no_holes.py ------------------- test case for a 4x4 robot scenario w"
     },
     {
@@ -2538,7 +2538,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_5x5_robot_no_holes_py",
-      "community": 7,
+      "community": 5,
       "norm_label": "5x5_robot_no_holes.py"
     },
     {
@@ -2547,7 +2547,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L21",
       "id": "5x5_robot_no_holes_fivebyfivenoholes",
-      "community": 7,
+      "community": 5,
       "norm_label": "fivebyfivenoholes"
     },
     {
@@ -2556,7 +2556,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L24",
       "id": "5x5_robot_no_holes_fivebyfivenoholes_setup",
-      "community": 7,
+      "community": 5,
       "norm_label": ".setup()"
     },
     {
@@ -2565,7 +2565,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L1",
       "id": "5x5_robot_no_holes_rationale_1",
-      "community": 7,
+      "community": 5,
       "norm_label": "5x5_robot_no_holes.py ------------------- test case for a 5x5 robot scenario w"
     }
   ],
@@ -2862,7 +2862,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L763",
+      "source_location": "L715",
       "weight": 1.0,
       "_src": "find_hardest_workspace_py",
       "_tgt": "find_hardest_workspace_lru_snapshot",
@@ -2874,7 +2874,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L773",
+      "source_location": "L725",
       "weight": 1.0,
       "_src": "find_hardest_workspace_py",
       "_tgt": "find_hardest_workspace_worker",
@@ -2886,7 +2886,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L844",
+      "source_location": "L796",
       "weight": 1.0,
       "_src": "find_hardest_workspace_py",
       "_tgt": "find_hardest_workspace_all_adjacent_placements",
@@ -2898,7 +2898,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L855",
+      "source_location": "L807",
       "weight": 1.0,
       "_src": "find_hardest_workspace_py",
       "_tgt": "find_hardest_workspace_all_touching_placements",
@@ -2910,7 +2910,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L881",
+      "source_location": "L833",
       "weight": 1.0,
       "_src": "find_hardest_workspace_py",
       "_tgt": "find_hardest_workspace_pick_central_placements",
@@ -2922,7 +2922,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L921",
+      "source_location": "L873",
       "weight": 1.0,
       "_src": "find_hardest_workspace_py",
       "_tgt": "find_hardest_workspace_placement_canonical_key",
@@ -2934,7 +2934,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L939",
+      "source_location": "L891",
       "weight": 1.0,
       "_src": "find_hardest_workspace_py",
       "_tgt": "find_hardest_workspace_dedup_placements",
@@ -2946,7 +2946,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L956",
+      "source_location": "L908",
       "weight": 1.0,
       "_src": "find_hardest_workspace_py",
       "_tgt": "find_hardest_workspace_find_hardest",
@@ -2994,7 +2994,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L462",
+      "source_location": "L456",
       "weight": 1.0,
       "_src": "find_hardest_workspace_dig_search",
       "_tgt": "find_hardest_workspace_build_workspace",
@@ -3006,7 +3006,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L1153",
+      "source_location": "L1105",
       "weight": 1.0,
       "_src": "find_hardest_workspace_find_hardest",
       "_tgt": "find_hardest_workspace_build_workspace",
@@ -3078,7 +3078,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L838",
+      "source_location": "L790",
       "weight": 1.0,
       "_src": "find_hardest_workspace_worker",
       "_tgt": "find_hardest_workspace_free_set",
@@ -3102,7 +3102,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L924",
+      "source_location": "L876",
       "weight": 1.0,
       "_src": "find_hardest_workspace_placement_canonical_key",
       "_tgt": "find_hardest_workspace_robot_block",
@@ -3126,7 +3126,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L683",
+      "source_location": "L652",
       "weight": 1.0,
       "_src": "find_hardest_workspace_dig_search",
       "_tgt": "find_hardest_workspace_extend_frontier",
@@ -3150,7 +3150,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L690",
+      "source_location": "L659",
       "weight": 1.0,
       "_src": "find_hardest_workspace_dig_search",
       "_tgt": "find_hardest_workspace_extend_valid",
@@ -3174,7 +3174,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L424",
+      "source_location": "L418",
       "weight": 1.0,
       "_src": "find_hardest_workspace_dig_search",
       "_tgt": "find_hardest_workspace_robot_can_reach_goal_ignoring_other",
@@ -3186,7 +3186,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L561",
+      "source_location": "L539",
       "weight": 1.0,
       "_src": "find_hardest_workspace_dig_search",
       "_tgt": "find_hardest_workspace_valid_has_bypass",
@@ -3246,7 +3246,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L822",
+      "source_location": "L774",
       "weight": 1.0,
       "_src": "find_hardest_workspace_worker",
       "_tgt": "find_hardest_workspace_plot_proof",
@@ -3258,7 +3258,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L1156",
+      "source_location": "L1108",
       "weight": 1.0,
       "_src": "find_hardest_workspace_find_hardest",
       "_tgt": "find_hardest_workspace_plot_proof",
@@ -3378,7 +3378,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L923",
+      "source_location": "L875",
       "weight": 1.0,
       "_src": "find_hardest_workspace_placement_canonical_key",
       "_tgt": "find_hardest_workspace_init_transform_tables",
@@ -3390,7 +3390,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L981",
+      "source_location": "L933",
       "weight": 1.0,
       "_src": "find_hardest_workspace_find_hardest",
       "_tgt": "find_hardest_workspace_init_transform_tables",
@@ -3462,7 +3462,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L672",
+      "source_location": "L641",
       "weight": 1.0,
       "_src": "find_hardest_workspace_dig_search",
       "_tgt": "find_hardest_workspace_canonical_key",
@@ -3498,19 +3498,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L737",
-      "weight": 1.0,
-      "_src": "find_hardest_workspace_dig_search",
-      "_tgt": "find_hardest_workspace_lru_snapshot",
-      "source": "find_hardest_workspace_dig_search",
-      "target": "find_hardest_workspace_lru_snapshot",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "find_hardest_workspace.py",
-      "source_location": "L777",
+      "source_location": "L729",
       "weight": 1.0,
       "_src": "find_hardest_workspace_worker",
       "_tgt": "find_hardest_workspace_dig_search",
@@ -3523,43 +3511,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L498",
-      "weight": 1.0,
-      "_src": "find_hardest_workspace_dig_search",
-      "_tgt": "lru_lrucache",
-      "source": "find_hardest_workspace_dig_search",
-      "target": "lru_lrucache"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "find_hardest_workspace.py",
-      "source_location": "L546",
-      "weight": 1.0,
-      "_src": "find_hardest_workspace_dig_search",
-      "_tgt": "bfs_pack_cells_mask",
-      "source": "find_hardest_workspace_dig_search",
-      "target": "bfs_pack_cells_mask"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "find_hardest_workspace.py",
-      "source_location": "L548",
-      "weight": 1.0,
-      "_src": "find_hardest_workspace_dig_search",
-      "_tgt": "lru_lrucache_get",
-      "source": "find_hardest_workspace_dig_search",
-      "target": "lru_lrucache_get"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "find_hardest_workspace.py",
-      "source_location": "L606",
+      "source_location": "L576",
       "weight": 1.0,
       "_src": "find_hardest_workspace_dig_search",
       "_tgt": "solver_solver_solve",
@@ -3571,7 +3523,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L606",
+      "source_location": "L576",
       "weight": 1.0,
       "_src": "find_hardest_workspace_dig_search",
       "_tgt": "solver_solver",
@@ -3580,21 +3532,9 @@
     },
     {
       "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "find_hardest_workspace.py",
-      "source_location": "L733",
-      "weight": 1.0,
-      "_src": "find_hardest_workspace_dig_search",
-      "_tgt": "lru_lrucache_stats",
-      "source": "find_hardest_workspace_dig_search",
-      "target": "lru_lrucache_stats"
-    },
-    {
-      "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L795",
+      "source_location": "L747",
       "weight": 1.0,
       "_src": "find_hardest_workspace_worker",
       "_tgt": "find_hardest_workspace_lru_snapshot",
@@ -3606,7 +3546,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L1066",
+      "source_location": "L1018",
       "weight": 1.0,
       "_src": "find_hardest_workspace_find_hardest",
       "_tgt": "find_hardest_workspace_worker",
@@ -3618,31 +3558,31 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L845",
+      "source_location": "L797",
       "weight": 1.0,
-      "_src": "find_hardest_workspace_rationale_845",
+      "_src": "find_hardest_workspace_rationale_797",
       "_tgt": "find_hardest_workspace_all_adjacent_placements",
       "source": "find_hardest_workspace_all_adjacent_placements",
-      "target": "find_hardest_workspace_rationale_845",
+      "target": "find_hardest_workspace_rationale_797",
       "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L856",
+      "source_location": "L808",
       "weight": 1.0,
-      "_src": "find_hardest_workspace_rationale_856",
+      "_src": "find_hardest_workspace_rationale_808",
       "_tgt": "find_hardest_workspace_all_touching_placements",
       "source": "find_hardest_workspace_all_touching_placements",
-      "target": "find_hardest_workspace_rationale_856",
+      "target": "find_hardest_workspace_rationale_808",
       "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L990",
+      "source_location": "L942",
       "weight": 1.0,
       "_src": "find_hardest_workspace_find_hardest",
       "_tgt": "find_hardest_workspace_pick_central_placements",
@@ -3654,19 +3594,19 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L882",
+      "source_location": "L834",
       "weight": 1.0,
-      "_src": "find_hardest_workspace_rationale_882",
+      "_src": "find_hardest_workspace_rationale_834",
       "_tgt": "find_hardest_workspace_pick_central_placements",
       "source": "find_hardest_workspace_pick_central_placements",
-      "target": "find_hardest_workspace_rationale_882",
+      "target": "find_hardest_workspace_rationale_834",
       "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L945",
+      "source_location": "L897",
       "weight": 1.0,
       "_src": "find_hardest_workspace_dedup_placements",
       "_tgt": "find_hardest_workspace_placement_canonical_key",
@@ -3679,7 +3619,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L928",
+      "source_location": "L880",
       "weight": 1.0,
       "_src": "find_hardest_workspace_placement_canonical_key",
       "_tgt": "symmetry_canonical_key",
@@ -3690,7 +3630,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L984",
+      "source_location": "L936",
       "weight": 1.0,
       "_src": "find_hardest_workspace_find_hardest",
       "_tgt": "find_hardest_workspace_dedup_placements",
@@ -3703,7 +3643,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L968",
+      "source_location": "L920",
       "weight": 1.0,
       "_src": "find_hardest_workspace_find_hardest",
       "_tgt": "directories_get_plots_dir",
@@ -3715,7 +3655,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "find_hardest_workspace.py",
-      "source_location": "L1183",
+      "source_location": "L1135",
       "weight": 1.0,
       "_src": "find_hardest_workspace_find_hardest",
       "_tgt": "lru_lrucache_get",
@@ -4376,9 +4316,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L21",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_845",
+      "_src": "find_hardest_workspace_rationale_797",
       "_tgt": "grid_grid",
-      "source": "find_hardest_workspace_rationale_845",
+      "source": "find_hardest_workspace_rationale_797",
       "target": "grid_grid",
       "confidence_score": 0.5
     },
@@ -4388,9 +4328,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L22",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_845",
+      "_src": "find_hardest_workspace_rationale_797",
       "_tgt": "lru_lrucache",
-      "source": "find_hardest_workspace_rationale_845",
+      "source": "find_hardest_workspace_rationale_797",
       "target": "lru_lrucache",
       "confidence_score": 0.5
     },
@@ -4400,9 +4340,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L23",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_845",
+      "_src": "find_hardest_workspace_rationale_797",
       "_tgt": "robot_robot",
-      "source": "find_hardest_workspace_rationale_845",
+      "source": "find_hardest_workspace_rationale_797",
       "target": "robot_robot",
       "confidence_score": 0.5
     },
@@ -4412,9 +4352,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L24",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_845",
+      "_src": "find_hardest_workspace_rationale_797",
       "_tgt": "solver_solver",
-      "source": "find_hardest_workspace_rationale_845",
+      "source": "find_hardest_workspace_rationale_797",
       "target": "solver_solver",
       "confidence_score": 0.5
     },
@@ -4424,9 +4364,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_845",
+      "_src": "find_hardest_workspace_rationale_797",
       "_tgt": "validator_validator",
-      "source": "find_hardest_workspace_rationale_845",
+      "source": "find_hardest_workspace_rationale_797",
       "target": "validator_validator",
       "confidence_score": 0.5
     },
@@ -4436,9 +4376,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L28",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_845",
+      "_src": "find_hardest_workspace_rationale_797",
       "_tgt": "workspace_workspace",
-      "source": "find_hardest_workspace_rationale_845",
+      "source": "find_hardest_workspace_rationale_797",
       "target": "workspace_workspace",
       "confidence_score": 0.5
     },
@@ -4448,9 +4388,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L21",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_856",
+      "_src": "find_hardest_workspace_rationale_808",
       "_tgt": "grid_grid",
-      "source": "find_hardest_workspace_rationale_856",
+      "source": "find_hardest_workspace_rationale_808",
       "target": "grid_grid",
       "confidence_score": 0.5
     },
@@ -4460,9 +4400,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L22",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_856",
+      "_src": "find_hardest_workspace_rationale_808",
       "_tgt": "lru_lrucache",
-      "source": "find_hardest_workspace_rationale_856",
+      "source": "find_hardest_workspace_rationale_808",
       "target": "lru_lrucache",
       "confidence_score": 0.5
     },
@@ -4472,9 +4412,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L23",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_856",
+      "_src": "find_hardest_workspace_rationale_808",
       "_tgt": "robot_robot",
-      "source": "find_hardest_workspace_rationale_856",
+      "source": "find_hardest_workspace_rationale_808",
       "target": "robot_robot",
       "confidence_score": 0.5
     },
@@ -4484,9 +4424,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L24",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_856",
+      "_src": "find_hardest_workspace_rationale_808",
       "_tgt": "solver_solver",
-      "source": "find_hardest_workspace_rationale_856",
+      "source": "find_hardest_workspace_rationale_808",
       "target": "solver_solver",
       "confidence_score": 0.5
     },
@@ -4496,9 +4436,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_856",
+      "_src": "find_hardest_workspace_rationale_808",
       "_tgt": "validator_validator",
-      "source": "find_hardest_workspace_rationale_856",
+      "source": "find_hardest_workspace_rationale_808",
       "target": "validator_validator",
       "confidence_score": 0.5
     },
@@ -4508,9 +4448,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L28",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_856",
+      "_src": "find_hardest_workspace_rationale_808",
       "_tgt": "workspace_workspace",
-      "source": "find_hardest_workspace_rationale_856",
+      "source": "find_hardest_workspace_rationale_808",
       "target": "workspace_workspace",
       "confidence_score": 0.5
     },
@@ -4520,9 +4460,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L21",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_882",
+      "_src": "find_hardest_workspace_rationale_834",
       "_tgt": "grid_grid",
-      "source": "find_hardest_workspace_rationale_882",
+      "source": "find_hardest_workspace_rationale_834",
       "target": "grid_grid",
       "confidence_score": 0.5
     },
@@ -4532,9 +4472,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L22",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_882",
+      "_src": "find_hardest_workspace_rationale_834",
       "_tgt": "lru_lrucache",
-      "source": "find_hardest_workspace_rationale_882",
+      "source": "find_hardest_workspace_rationale_834",
       "target": "lru_lrucache",
       "confidence_score": 0.5
     },
@@ -4544,9 +4484,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L23",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_882",
+      "_src": "find_hardest_workspace_rationale_834",
       "_tgt": "robot_robot",
-      "source": "find_hardest_workspace_rationale_882",
+      "source": "find_hardest_workspace_rationale_834",
       "target": "robot_robot",
       "confidence_score": 0.5
     },
@@ -4556,9 +4496,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L24",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_882",
+      "_src": "find_hardest_workspace_rationale_834",
       "_tgt": "solver_solver",
-      "source": "find_hardest_workspace_rationale_882",
+      "source": "find_hardest_workspace_rationale_834",
       "target": "solver_solver",
       "confidence_score": 0.5
     },
@@ -4568,9 +4508,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_882",
+      "_src": "find_hardest_workspace_rationale_834",
       "_tgt": "validator_validator",
-      "source": "find_hardest_workspace_rationale_882",
+      "source": "find_hardest_workspace_rationale_834",
       "target": "validator_validator",
       "confidence_score": 0.5
     },
@@ -4580,9 +4520,9 @@
       "source_file": "find_hardest_workspace.py",
       "source_location": "L28",
       "weight": 0.8,
-      "_src": "find_hardest_workspace_rationale_882",
+      "_src": "find_hardest_workspace_rationale_834",
       "_tgt": "workspace_workspace",
-      "source": "find_hardest_workspace_rationale_882",
+      "source": "find_hardest_workspace_rationale_834",
       "target": "workspace_workspace",
       "confidence_score": 0.5
     },

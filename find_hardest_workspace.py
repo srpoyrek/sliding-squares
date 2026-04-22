@@ -411,12 +411,6 @@ def dig_search(
     init_valid = _valid_block_positions(rows, cols, init_free, n)
     init_key = frozenset(init_free)
 
-    # Valid positions (top-lefts where an n x n block fits) live in a
-    # (rows-n+1) x (cols-n+1) grid. Use `pack_cells_mask` with this stride
-    # as the cache key — same uniqueness as frozenset(valid), ~300x less
-    # memory per entry, O(1) int hashing.
-    valid_col_span = cols - n + 1
-
     # Monotonicity shortcut: if both robots can already reach their goals at
     # init_free (e.g. edge-adjacent placements), they can reach them at every
     # future state (valid set only grows as cells are dug). We can skip the
@@ -489,16 +483,6 @@ def dig_search(
     bypass_rejects = 0  # valid-graph topology (no branch/cycle/room) rejected the workspace
     solvable_prunes = 0  # how many solvable nodes we skipped expanding
     solvable_prune_children_skipped = 0  # immediate children that would have been enqueued
-    # Solver / precheck caches are keyed by frozenset(valid). In practice the
-    # outer canonical dedup on free_cells already eliminates most would-be
-    # cache hits before we reach this lookup, so real-world hit rates are ~0%
-    # on n>=2 grids too. Kept at a small LRU cap purely to catch the rare
-    # stepping-stone states where two different canonical free_cells do yield
-    # the same valid set — without wasting ~100 MB/worker on dead weight.
-    solver_cache: LRUCache = LRUCache(maxsize=256)
-    solver_cache_hits = 0
-    precheck_cache: LRUCache = LRUCache(maxsize=256)
-    precheck_cache_hits = 0
     t_start = time.perf_counter()
 
     # Per-depth chunked processing. We process nodes at the current depth in
@@ -543,41 +527,28 @@ def dig_search(
                         flush=True,
                     )
                 free_cells = set(free_key)
-                valid_key = pack_cells_mask(valid, valid_col_span)
 
-                pc_cached = precheck_cache.get(valid_key)
-                if pc_cached is not None:
-                    precheck_cache_hits += 1
-                    precheck_ok = pc_cached
+                t0 = time.perf_counter()
+                if reach_always_ok:
+                    reach_ok = True
                 else:
-                    t0 = time.perf_counter()
-                    if reach_always_ok:
-                        reach_ok = True
-                    else:
-                        reach_ok = robot_can_reach_goal_ignoring_other(
-                            valid, pos_a, goal_a
-                        ) and robot_can_reach_goal_ignoring_other(valid, pos_b, goal_b)
-                    if reach_ok:
-                        bypass_ok = valid_has_bypass(valid, pos_a, n)
-                        if not bypass_ok:
-                            bypass_rejects += 1
-                        precheck_ok = bypass_ok
-                    else:
-                        precheck_ok = False
-                    t_precheck += time.perf_counter() - t0
-                    precheck_cache[valid_key] = precheck_ok
+                    reach_ok = robot_can_reach_goal_ignoring_other(
+                        valid, pos_a, goal_a
+                    ) and robot_can_reach_goal_ignoring_other(valid, pos_b, goal_b)
+                if reach_ok:
+                    bypass_ok = valid_has_bypass(valid, pos_a, n)
+                    if not bypass_ok:
+                        bypass_rejects += 1
+                    precheck_ok = bypass_ok
+                else:
+                    precheck_ok = False
+                t_precheck += time.perf_counter() - t0
 
-                solve_result = None
                 if precheck_ok:
-                    cached = solver_cache.get(valid_key)
-                    if cached is not None:
-                        solver_cache_hits += 1
-                        solve_result = cached
-                    else:
-                        need_solve_payloads.append(
-                            (rows, cols, n, free_key, pos_a, pos_b, goal_a, goal_b)
-                        )
-                        need_solve_indices.append(len(layer_records))
+                    need_solve_payloads.append(
+                        (rows, cols, n, free_key, pos_a, pos_b, goal_a, goal_b)
+                    )
+                    need_solve_indices.append(len(layer_records))
 
                 layer_records.append(
                     {
@@ -585,11 +556,10 @@ def dig_search(
                         "free_key": free_key,
                         "frontier": frontier,
                         "valid": valid,
-                        "valid_key": valid_key,
                         "tf": tf,
                         "depth": depth,
                         "precheck_ok": precheck_ok,
-                        "solve": solve_result,
+                        "solve": None,
                     }
                 )
 
@@ -609,7 +579,6 @@ def dig_search(
                 solver_calls += len(need_solve_payloads)
                 for idx, res in zip(need_solve_indices, batch_results):
                     rec = layer_records[idx]
-                    solver_cache[rec["valid_key"]] = res
                     rec["solve"] = res
 
             # Phase 3: expand
@@ -719,23 +688,6 @@ def dig_search(
         f"    prune:   solvable_nodes_pruned={solvable_prunes}  "
         f"immediate_children_skipped>={solvable_prune_children_skipped}"
     )
-    total_solver_asks = solver_calls + solver_cache_hits
-    solver_hit_pct = (100.0 * solver_cache_hits / total_solver_asks) if total_solver_asks else 0.0
-    total_pc_asks = nodes_visited  # one precheck ask per popped node
-    pc_hit_pct = (100.0 * precheck_cache_hits / total_pc_asks) if total_pc_asks else 0.0
-    logs.append(
-        f"    cache:   solver_hits={solver_cache_hits}"
-        f" runs={solver_calls} ({solver_hit_pct:.1f}%)"
-        f" precheck_hits={precheck_cache_hits}"
-        f" runs={total_pc_asks - precheck_cache_hits} ({pc_hit_pct:.1f}%)"
-    )
-    logs.append(
-        f"    lru:     solver[{solver_cache.stats()}]  " f"precheck[{precheck_cache.stats()}]"
-    )
-
-    if cache_stats_out is not None:
-        cache_stats_out["solver"] = _lru_snapshot(solver_cache)
-        cache_stats_out["precheck"] = _lru_snapshot(precheck_cache)
 
     if best_free_max is None or best_free_min is None:
         return None

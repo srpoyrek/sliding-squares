@@ -68,7 +68,7 @@ The solver runs a **bidirectional layered breadth-first search** over the state 
 1. **Layered structure.** Each BFS layer represents states reachable with exactly *k* control switches. Within a layer, `flood_fill` explores all positions the controlled robot can reach without switching.
 2. **Bidirectional expansion.** A forward BFS from the start and a backward BFS from the goal are expanded in lockstep. Both initial controllers are seeded in forward layer 0 and both final controllers in backward layer 0, so the run finds the minimum-switch solution over any choice of first/last mover in a single pass.
 3. **Symmetry pruning.** [`src/symmetry.py`](src/symmetry.py) detects when a workspace is invariant under an A↔B label swap; in that case the dual-start expansion is collapsed to a single BFS half, halving the work.
-4. **Memoization.** Per-process LRU caches in `bfs.py` (`_USABLE_CACHE`, `_PARENT_MAP_CACHE`, `_VALID_POS_CACHE`) memoize flood-fill results and valid-position sets. Keys include a `free_key` (frozenset of free cells), so cached entries are pure functions of their inputs and safely reused across every solve call within a worker. Caps are **auto-sized to the grid**: `find_hardest_workspace.py` calls `configure_caches_for_grid(rows, cols, n, target_mb)` at startup so per-worker memory stays near the target (default 150 MB) regardless of grid area. Override with `--cache-mb`.
+4. **Memoization.** Per-process LRU caches in `bfs.py` (`_USABLE_CACHE`, `_PARENT_MAP_CACHE`, `_VALID_POS_CACHE`) memoize flood-fill results and valid-position sets. Keys include a `free_key` (an int bitmask where bit `r*cols + c` is set iff cell `(r,c)` is free — ~300× smaller than a frozenset and O(1) to hash), so cached entries are pure functions of their inputs and safely reused across every solve call within a worker. Caps are **auto-sized to the grid**: `find_hardest_workspace.py` calls `configure_caches_for_grid(rows, cols, n, target_mb)` at startup so per-worker memory stays near the target (default 150 MB) regardless of grid area. Override with `--cache-mb`.
 5. **Optimality.** The goal is checked at each layer; the first match is optimal by construction. Path reconstruction backtracks through parent pointers to produce a command sequence.
 
 Commands: `U` (up), `D` (down), `L` (left), `R` (right), `S` (switch control).
@@ -126,8 +126,6 @@ Cache sizing (budget=150 MB/worker): parent_map=3400  usable=8400  valid_pos=420
 At the end of each run the aggregated cache usage is printed (and appended to `summary.txt`):
 ```
 CACHE USAGE (aggregated across all placements)
-  solver      peak_size=176/256 (69%)  hits=... hit_rate=...  evictions=...
-  precheck    peak_size=176/256 (69%)  ...
   usable      peak_size=.../8400 (...) hits=... hit_rate=...  evictions=...
   parent_map  peak_size=.../3400 (...) hits=... hit_rate=...  evictions=...
 ```
