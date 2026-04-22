@@ -219,12 +219,13 @@ def valid_has_bypass(valid, start, n):
                 if deep_branches >= 2:
                     return True
 
-    # Cycle fallback: if component has a cycle AND two positions with
-    # axis-diff >= n, swap has room in principle.
+    # Cycle fallback: A cycle allows a swap if it can accommodate two
+    # non-overlapping robots. This requires the cycle to span at
+    # least n units in BOTH dimensions.
     if has_cycle:
         for i, p1 in enumerate(component):
             for p2 in component[i + 1 :]:
-                if abs(p1[0] - p2[0]) >= n or abs(p1[1] - p2[1]) >= n:
+                if abs(p1[0] - p2[0]) >= n and abs(p1[1] - p2[1]) >= n:
                     return True
     return False
 
@@ -493,10 +494,10 @@ def dig_search(
     precheck_cache_hits = 0
     t_start = time.perf_counter()
 
-    # Per-depth layer-batched processing. When `solver_pool` is provided,
-    # cache-miss solver calls for the whole layer get batched and run in
-    # parallel. When solver_pool is None we fall back to the shared_ws-backed
-    # serial path (cheaper per call, no IPC).
+    # Per-depth chunked processing. We process nodes at the current depth in
+    # batches to keep memory usage stable even when the BFS layer is very wide.
+    MAX_BATCH_SIZE = 5000
+
     while queue:
         current_depth = queue[0][0]
         if (
@@ -508,189 +509,189 @@ def dig_search(
                 heapq.heappop(queue)
             continue
 
-        # Pop every item at this depth.
-        layer = []
         while queue and queue[0][0] == current_depth:
-            layer.append(heapq.heappop(queue))
+            # Process the current depth in chunks to avoid memory spikes
+            batch = []
+            for _ in range(MAX_BATCH_SIZE):
+                if not queue or queue[0][0] != current_depth:
+                    break
+                batch.append(heapq.heappop(queue))
 
-        # Phase 1: precheck every item; collect the ones needing solver.
-        # We keep a per-item record: (raw item, free_cells_set, valid_key,
-        # precheck_ok, solve_result_or_None)
-        layer_records = []
-        need_solve_payloads = []
-        need_solve_indices = []
-        for item in layer:
-            _pd, _pv, _pseq, (free_key, frontier, valid, tf, depth) = item
-            nodes_visited += 1
-            if nodes_visited % 20000 == 0:
-                elapsed = time.perf_counter() - t_start
-                qsize = len(queue) + len(layer_records)
-                rate = nodes_visited / elapsed if elapsed > 0 else 0
-                eta = qsize / rate if rate > 0 else 0
-                print(
-                    f"    [{pos_a}-{pos_b}] nodes={nodes_visited} depth={depth} "
-                    f"best={best_switches} queue={qsize} elapsed={elapsed:.1f}s "
-                    f"eta={eta:.0f}s ({rate:.0f} nodes/s)",
-                    flush=True,
-                )
-            free_cells = set(free_key)
-            valid_key = frozenset(valid)
-
-            pc_cached = precheck_cache.get(valid_key)
-            if pc_cached is not None:
-                precheck_cache_hits += 1
-                precheck_ok = pc_cached
-            else:
-                t0 = time.perf_counter()
-                # Skip reach-check when init_valid already passed (monotonic:
-                # reach_ok stays True once any ancestor has it). Otherwise
-                # fall through to the real reachability test.
-                if reach_always_ok:
-                    reach_ok = True
-                else:
-                    reach_ok = robot_can_reach_goal_ignoring_other(
-                        valid, pos_a, goal_a
-                    ) and robot_can_reach_goal_ignoring_other(valid, pos_b, goal_b)
-                if reach_ok:
-                    bypass_ok = valid_has_bypass(valid, pos_a, n)
-                    if not bypass_ok:
-                        bypass_rejects += 1
-                    precheck_ok = bypass_ok
-                else:
-                    precheck_ok = False
-                t_precheck += time.perf_counter() - t0
-                precheck_cache[valid_key] = precheck_ok
-
-            solve_result = None
-            if precheck_ok:
-                cached = solver_cache.get(valid_key)
-                if cached is not None:
-                    solver_cache_hits += 1
-                    solve_result = cached
-                else:
-                    # Defer solver computation to the batch phase.
-                    need_solve_payloads.append(
-                        (rows, cols, n, free_key, pos_a, pos_b, goal_a, goal_b)
+            # Phase 1: precheck batch; collect the ones needing solver.
+            layer_records = []
+            need_solve_payloads = []
+            need_solve_indices = []
+            for item in batch:
+                _pd, _pv, _pseq, (free_key, frontier, valid, tf, depth) = item
+                nodes_visited += 1
+                if nodes_visited % 20000 == 0:
+                    elapsed = time.perf_counter() - t_start
+                    qsize = len(queue) + len(layer_records)
+                    rate = nodes_visited / elapsed if elapsed > 0 else 0
+                    eta = qsize / rate if rate > 0 else 0
+                    print(
+                        f"    [{pos_a}-{pos_b}] nodes={nodes_visited} depth={depth} "
+                        f"best={best_switches} queue={qsize} elapsed={elapsed:.1f}s "
+                        f"eta={eta:.0f}s ({rate:.0f} nodes/s)",
+                        flush=True,
                     )
-                    need_solve_indices.append(len(layer_records))
+                free_cells = set(free_key)
+                valid_key = frozenset(valid)
 
-            layer_records.append(
-                {
-                    "item": item,
-                    "free_cells": free_cells,
-                    "free_key": free_key,
-                    "frontier": frontier,
-                    "valid": valid,
-                    "valid_key": valid_key,
-                    "tf": tf,
-                    "depth": depth,
-                    "precheck_ok": precheck_ok,
-                    "solve": solve_result,
-                }
-            )
+                pc_cached = precheck_cache.get(valid_key)
+                if pc_cached is not None:
+                    precheck_cache_hits += 1
+                    precheck_ok = pc_cached
+                else:
+                    t0 = time.perf_counter()
+                    if reach_always_ok:
+                        reach_ok = True
+                    else:
+                        reach_ok = robot_can_reach_goal_ignoring_other(
+                            valid, pos_a, goal_a
+                        ) and robot_can_reach_goal_ignoring_other(valid, pos_b, goal_b)
+                    if reach_ok:
+                        bypass_ok = valid_has_bypass(valid, pos_a, n)
+                        if not bypass_ok:
+                            bypass_rejects += 1
+                        precheck_ok = bypass_ok
+                    else:
+                        precheck_ok = False
+                    t_precheck += time.perf_counter() - t0
+                    precheck_cache[valid_key] = precheck_ok
 
-        # Phase 2: batch-solve the cache-miss items.
-        if need_solve_payloads:
-            t0 = time.perf_counter()
-            if solver_pool is not None and len(need_solve_payloads) > 1:
-                batch_results = list(solver_pool.map(_solve_payload, need_solve_payloads))
-            else:
-                # Serial path — reuse shared_ws to avoid per-call workspace rebuild.
-                batch_results = []
-                for p in need_solve_payloads:
-                    _rows, _cols, _n, fk, _pa, _pb, _ga, _gb = p
-                    sync_tiles_to(set(fk))
-                    result = Solver(shared_ws, goal_a, goal_b).solve()
-                    batch_results.append((result.solvable, result.switches))
-            t_solver += time.perf_counter() - t0
-            solver_calls += len(need_solve_payloads)
-            for idx, res in zip(need_solve_indices, batch_results):
-                rec = layer_records[idx]
-                solver_cache[rec["valid_key"]] = res
-                rec["solve"] = res
+                solve_result = None
+                if precheck_ok:
+                    cached = solver_cache.get(valid_key)
+                    if cached is not None:
+                        solver_cache_hits += 1
+                        solve_result = cached
+                    else:
+                        need_solve_payloads.append(
+                            (rows, cols, n, free_key, pos_a, pos_b, goal_a, goal_b)
+                        )
+                        need_solve_indices.append(len(layer_records))
 
-        # Phase 3: consume results per-item: update best / prune / expand.
-        for rec in layer_records:
-            depth = rec["depth"]
-            free_cells = rec["free_cells"]
-            free_key = rec["free_key"]
-            frontier = rec["frontier"]
-            valid = rec["valid"]
-            tf = rec["tf"]
-
-            if rec["precheck_ok"] and rec["solve"] is not None:
-                solvable, res_switches = rec["solve"]
-                if solvable:
-                    if first_solvable_depth is None:
-                        first_solvable_depth = depth
-                        logs.append(f"    first solvable @ depth={depth}")
-                    if res_switches is not None and res_switches > best_switches:
-                        best_switches = res_switches
-                        best_free_max = free_key
-                        best_free_min = free_key
-                        min_free_at_max = len(free_cells)
-                        logs.append(f"    NEW MAX: {res_switches} (D:{depth}, F:{len(free_cells)})")
-                    elif (
-                        res_switches is not None
-                        and res_switches == best_switches
-                        and len(free_cells) < min_free_at_max
-                    ):
-                        min_free_at_max = len(free_cells)
-                        best_free_min = free_key
-                        logs.append(f"    MIN-FREE witness: {len(free_cells)} (S:{res_switches})")
-                    n_children = len(frontier)
-                    if n_children > 0:
-                        solvable_prunes += 1
-                        solvable_prune_children_skipped += n_children
-                    continue
-
-            if (
-                first_solvable_depth is not None
-                and (depth + 1) > first_solvable_depth + max_depth_past_first
-            ):
-                continue
-
-            for cells_to_dig in dig_options(free_cells, frontier, valid, rows, cols, n):
-                expansions_total += 1
-                new_free_set = free_cells | cells_to_dig
-                new_key = frozenset(new_free_set)
-
-                # Incremental transforms_free update: OR in the bits for each cell dug.
-                t0 = time.perf_counter()
-                new_tf_list = list(tf)
-                for c in cells_to_dig:
-                    bits = _CELL_BITS[c]  # type: ignore
-                    for k in range(_N_KINDS):  # type: ignore
-                        new_tf_list[k] |= bits[k]
-                new_tf = tuple(new_tf_list)
-                new_canon = _canonical_key(new_tf, seconds, thirds)
-                t_canon += time.perf_counter() - t0
-
-                if new_canon in visited:
-                    canon_dupes_skipped += 1
-                    continue
-                visited.add(new_canon)
-
-                t0 = time.perf_counter()
-                new_frontier = frontier
-                for cell in cells_to_dig:
-                    new_frontier = _extend_frontier(new_frontier, cell, new_free_set, rows, cols)
-                t_frontier += time.perf_counter() - t0
-
-                new_valid = valid
-                for cell in cells_to_dig:
-                    new_valid = _extend_valid(new_valid, cell, new_free_set, rows, cols, n)
-
-                heapq.heappush(
-                    queue,
-                    (
-                        depth + 1,
-                        len(new_valid),
-                        seq,
-                        (new_key, new_frontier, new_valid, new_tf, depth + 1),
-                    ),
+                layer_records.append(
+                    {
+                        "free_cells": free_cells,
+                        "free_key": free_key,
+                        "frontier": frontier,
+                        "valid": valid,
+                        "valid_key": valid_key,
+                        "tf": tf,
+                        "depth": depth,
+                        "precheck_ok": precheck_ok,
+                        "solve": solve_result,
+                    }
                 )
-                seq += 1
+
+            # Phase 2: batch-solve
+            if need_solve_payloads:
+                t0 = time.perf_counter()
+                if solver_pool is not None and len(need_solve_payloads) > 1:
+                    batch_results = list(solver_pool.map(_solve_payload, need_solve_payloads))
+                else:
+                    batch_results = []
+                    for p in need_solve_payloads:
+                        _rows, _cols, _n, fk, _pa, _pb, _ga, _gb = p
+                        sync_tiles_to(set(fk))
+                        result = Solver(shared_ws, goal_a, goal_b).solve()
+                        batch_results.append((result.solvable, result.switches))
+                t_solver += time.perf_counter() - t0
+                solver_calls += len(need_solve_payloads)
+                for idx, res in zip(need_solve_indices, batch_results):
+                    rec = layer_records[idx]
+                    solver_cache[rec["valid_key"]] = res
+                    rec["solve"] = res
+
+            # Phase 3: expand
+            for rec in layer_records:
+                depth = rec["depth"]
+                free_cells = rec["free_cells"]
+                free_key = rec["free_key"]
+                frontier = rec["frontier"]
+                valid = rec["valid"]
+                tf = rec["tf"]
+
+                if rec["precheck_ok"] and rec["solve"] is not None:
+                    solvable, res_switches = rec["solve"]
+                    if solvable:
+                        if first_solvable_depth is None:
+                            first_solvable_depth = depth
+                            logs.append(f"    first solvable @ depth={depth}")
+                        if res_switches is not None and res_switches > best_switches:
+                            best_switches = res_switches
+                            best_free_max = free_key
+                            best_free_min = free_key
+                            min_free_at_max = len(free_cells)
+                            logs.append(
+                                f"    NEW MAX: {res_switches} (D:{depth}, F:{len(free_cells)})"
+                            )
+                        elif (
+                            res_switches is not None
+                            and res_switches == best_switches
+                            and len(free_cells) < min_free_at_max
+                        ):
+                            min_free_at_max = len(free_cells)
+                            best_free_min = free_key
+                            logs.append(
+                                f"    MIN-FREE witness: {len(free_cells)} (S:{res_switches})"
+                            )
+                        n_children = len(frontier)
+                        if n_children > 0:
+                            solvable_prunes += 1
+                            solvable_prune_children_skipped += n_children
+                        continue
+
+                if (
+                    first_solvable_depth is not None
+                    and (depth + 1) > first_solvable_depth + max_depth_past_first
+                ):
+                    continue
+
+                for cells_to_dig in dig_options(free_cells, frontier, valid, rows, cols, n):
+                    expansions_total += 1
+                    new_free_set = free_cells | cells_to_dig
+                    new_key = frozenset(new_free_set)
+
+                    t0 = time.perf_counter()
+                    new_tf_list = list(tf)
+                    for c in cells_to_dig:
+                        bits = _CELL_BITS[c]  # type: ignore
+                        for k in range(_N_KINDS):  # type: ignore
+                            new_tf_list[k] |= bits[k]
+                    new_tf = tuple(new_tf_list)
+                    new_canon = _canonical_key(new_tf, seconds, thirds)
+                    t_canon += time.perf_counter() - t0
+
+                    if new_canon in visited:
+                        canon_dupes_skipped += 1
+                        continue
+                    visited.add(new_canon)
+
+                    t0 = time.perf_counter()
+                    new_frontier = frontier
+                    for cell in cells_to_dig:
+                        new_frontier = _extend_frontier(
+                            new_frontier, cell, new_free_set, rows, cols
+                        )
+                    t_frontier += time.perf_counter() - t0
+
+                    new_valid = valid
+                    for cell in cells_to_dig:
+                        new_valid = _extend_valid(new_valid, cell, new_free_set, rows, cols, n)
+
+                    heapq.heappush(
+                        queue,
+                        (
+                            depth + 1,
+                            len(new_valid),
+                            seq,
+                            (new_key, new_frontier, new_valid, new_tf, depth + 1),
+                        ),
+                    )
+                    seq += 1
 
     t_total = time.perf_counter() - t_start
     unique_enqueued = expansions_total - canon_dupes_skipped

@@ -1,7 +1,7 @@
-# Graph Report - .  (2026-04-19)
+# Graph Report - .  (2026-04-21)
 
 ## Corpus Check
-- 34 files · ~19,849 words
+- 34 files · ~19,847 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -64,7 +64,7 @@ Nodes (41): OneByOneNoHoles, 1x1_robot_no_holes.py ------------------- Trivial 1
 
 ### Community 1 - "Community 1"
 Cohesion: 0.08
-Nodes (44): configure_caches_for_grid(), Resize module-level LRU caches so total memory scales with grid area.      Each, all_adjacent_placements(), all_touching_placements(), _build_cell_bits(), _build_workspace(), _canonical_key(), _dedup_placements() (+36 more)
+Nodes (44): configure_caches_for_grid(), Resize module-level LRU caches so total memory scales with grid area.      Eac, all_adjacent_placements(), all_touching_placements(), _build_cell_bits(), _build_workspace(), _canonical_key(), _dedup_placements() (+36 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.09

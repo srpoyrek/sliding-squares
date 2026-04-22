@@ -232,12 +232,13 @@ def _expand_one(workspace, sid, pack, unpack, n: int, direction: str):
         mover_pos, static_pos = pos_b, pos_a
 
     pm = flood_fill(workspace, mover_pos, static_pos, n)
-    for new_pos in pm:
-        if mover is robot_a:
-            new_sid = pack(new_pos, pos_b, new_ctrl)
-        else:
-            new_sid = pack(pos_a, new_pos, new_ctrl)
-        yield new_sid, new_pos, mover
+    # Pre-calculate packer offsets to avoid if-checks inside the loop
+    if mover is robot_a:
+        for new_pos in pm:
+            yield pack(new_pos, pos_b, new_ctrl), new_pos, mover
+    else:
+        for new_pos in pm:
+            yield pack(pos_a, new_pos, new_ctrl), new_pos, mover
 
 
 def _expand_layer(
