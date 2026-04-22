@@ -30,10 +30,10 @@ from src.workspace import COMMANDS, DIRECTIONS
 
 # ---------------------------------------------------------------------------
 # Memoization caches — shared between unidirectional and bidirectional BFS.
-# Keys include `free_key` (a frozenset of free-cell positions) so each cache
-# entry is a pure function of its inputs. No per-solve clearing is required:
-# entries remain valid across any number of solve calls on any grid topology,
-# and LRU bounds control memory.
+# Keys include `free_key` — an int bitmask where bit (r*cols + c) is 1 iff
+# cell (r, c) is free — so each cache entry is a pure function of its inputs.
+# No per-solve clearing is required: entries remain valid across any number
+# of solve calls on any grid topology, and LRU bounds control memory.
 #
 # _VALID_POS_CACHE   key: (free_key, n)                          -> valid positions
 # _USABLE_CACHE      key: (free_key, pos_static, n)              -> usable positions
@@ -115,22 +115,38 @@ def _cmds_from_parent_map(parent_map: dict, pos_moving, target) -> list:
     return cmds
 
 
+def pack_cells_mask(cells, stride: int) -> int:
+    """Pack a collection of (r, c) positions into a single int bitmask where
+    bit `r * stride + c` is 1 iff (r, c) is present.
+
+    Use `stride = cols` for free-cell masks (on the full grid), and
+    `stride = cols - n + 1` for valid-top-left masks (on the block-position
+    grid). Same encoding, different stride — any two inputs with the same
+    (cells, stride) yield the same int, and different inputs yield different
+    ints.
+    """
+    mask = 0
+    for r, c in cells:
+        mask |= 1 << (r * stride + c)
+    return mask
+
+
 def _workspace_free_key(workspace):
-    """Frozen identifier of the workspace's free-cell set. Preferred path is
-    the `_free_key` attribute set by callers that know the frozen set already
-    (e.g. find_hardest_workspace). Falls back to computing it from tiles."""
+    """Compact integer identifier of the workspace's free-cell set. Preferred
+    path is the `_free_key` attribute set by callers that know the bitmask
+    already (e.g. find_hardest_workspace). Falls back to computing it from
+    tiles via `pack_cells_mask(..., stride=cols)`."""
     key = getattr(workspace, "_free_key", None)
     if key is not None:
         return key
     tiles = workspace.grid.tiles
-    free = frozenset(
-        (r, c)
-        for r in range(workspace.grid.rows)
-        for c in range(workspace.grid.cols)
-        if tiles[r][c] == 0
+    cols = workspace.grid.cols
+    free_cells = (
+        (r, c) for r in range(workspace.grid.rows) for c in range(cols) if tiles[r][c] == 0
     )
-    workspace._free_key = free
-    return free
+    key = pack_cells_mask(free_cells, cols)
+    workspace._free_key = key
+    return key
 
 
 def flood_fill(workspace, pos_moving, pos_static, n) -> dict:

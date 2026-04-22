@@ -16,6 +16,7 @@ import threading
 import time
 from collections import deque
 
+from src.bfs import pack_cells_mask
 from src.directories import get_plots_dir
 from src.grid import Grid
 from src.lru import LRUCache
@@ -35,7 +36,7 @@ def _build_workspace(rows, cols, free_cells, pos_a, pos_b, n):
     a = Robot("A", n, pos_a[0], pos_a[1])
     b = Robot("B", n, pos_b[0], pos_b[1])
     ws = Workspace(grid, a, b)
-    ws._free_key = frozenset(free_cells)
+    ws._free_key = pack_cells_mask(free_cells, cols)
     return ws
 
 
@@ -410,6 +411,12 @@ def dig_search(
     init_valid = _valid_block_positions(rows, cols, init_free, n)
     init_key = frozenset(init_free)
 
+    # Valid positions (top-lefts where an n x n block fits) live in a
+    # (rows-n+1) x (cols-n+1) grid. Use `pack_cells_mask` with this stride
+    # as the cache key — same uniqueness as frozenset(valid), ~300x less
+    # memory per entry, O(1) int hashing.
+    valid_col_span = cols - n + 1
+
     # Monotonicity shortcut: if both robots can already reach their goals at
     # init_free (e.g. edge-adjacent placements), they can reach them at every
     # future state (valid set only grows as cells are dug). We can skip the
@@ -463,7 +470,7 @@ def dig_search(
             shared_tiles[r][c] = 1
         current_free_set.clear()
         current_free_set.update(target_free)
-        shared_ws._free_key = frozenset(target_free)  # type: ignore
+        shared_ws._free_key = pack_cells_mask(target_free, cols)  # type: ignore
 
     best_switches = -1
     best_free_max, best_free_min = None, None
@@ -536,7 +543,7 @@ def dig_search(
                         flush=True,
                     )
                 free_cells = set(free_key)
-                valid_key = frozenset(valid)
+                valid_key = pack_cells_mask(valid, valid_col_span)
 
                 pc_cached = precheck_cache.get(valid_key)
                 if pc_cached is not None:
