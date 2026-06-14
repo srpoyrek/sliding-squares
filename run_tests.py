@@ -3,12 +3,26 @@ run_tests.py
 ------------
 Discovers all test cases in testcases/ and runs them.
 
+After each test passes we run a batch simplification pass:
+  1. Aggregate the blocker heatmap from the validated solution.
+  2. Remove all black walls (zero contact). With --alternate, also remove
+     every other orange wall (nonzero contact, alternating in row-major
+     order).
+  3. Run the solver once on the simplified grid.
+  4. If switches are preserved, save the simplified workspace into
+     <plot_dir>/simplified/ alongside a comparison summary image.
+  5. If switches changed, report it and skip saving.
+
 Usage:
-    python run_tests.py
+    python run_tests.py                       # run every test
+    python run_tests.py <name>                # filter by substring
+    python run_tests.py --alternate           # also strip every-other orange
+    python run_tests.py <name> --alternate
 """
 
 from __future__ import annotations
 
+import argparse
 import inspect
 import multiprocessing as mp
 import os
@@ -17,13 +31,209 @@ import time
 import traceback
 
 from src.directories import get_plots_dir, get_testcases_dir
+from src.grid import Grid
+from src.robot import Robot
 from src.solver import Solver
 from src.test_case import TestCase, TestResult
 from src.validator import Validator
-from src.visualizer import draw_sequence
+from src.visualizer import (
+    _contact_along_turn,
+    _extract_turns,
+    draw_sequence,
+    draw_summary,
+)
+from src.workspace import Workspace
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
+
+
+# ── Batch simplification (black + every-other-orange wall removal) ─────
+
+
+def _aggregate_wall_counts(grid, snapshots, titles):
+    """Sum robot-face contact per wall cell across every turn."""
+    pairs = [[a, b] for a, b in snapshots]
+    turns = _extract_turns(pairs, titles)
+    counts: dict = {}
+    for turn in turns:
+        turn_walls, _ = _contact_along_turn(grid, turn)
+        for cell, hits in turn_walls.items():
+            counts[cell] = counts.get(cell, 0) + hits
+    return counts
+
+
+def _count_walls(grid):
+    return sum(1 for r in range(grid.rows) for c in range(grid.cols) if grid.tiles[r][c] != 0)
+
+
+def _build_workspace_from_tiles(tiles, ref_ws):
+    """Fresh Workspace with the given tile layout, robots at ref_ws's start."""
+    n = ref_ws.robot_a.n
+    grid = Grid([row[:] for row in tiles])
+    a = Robot(ref_ws.robot_a.label, n, ref_ws.robot_a.row, ref_ws.robot_a.col)
+    b = Robot(ref_ws.robot_b.label, n, ref_ws.robot_b.row, ref_ws.robot_b.col)
+    return Workspace(grid, a, b)
+
+
+def simplify_workspace(ws, contact_counts, remove_alternate_orange=False):
+    """Wall-removal simplification driven by the contact heatmap:
+
+      - Always: remove every black wall (contact count == 0).
+      - If `remove_alternate_orange` is True: also remove every other
+        orange wall (contact count > 0), in row-major order — start
+        with the first orange cell and skip every second.
+
+    Returns (simplified_workspace, removed_black, removed_orange).
+    """
+    rows, cols = ws.grid.rows, ws.grid.cols
+    new_tiles = [row[:] for row in ws.grid.tiles]
+
+    black_cells = []
+    orange_cells = []
+    for r in range(rows):
+        for c in range(cols):
+            if new_tiles[r][c] == 0:
+                continue
+            if contact_counts.get((r, c), 0) == 0:
+                black_cells.append((r, c))
+            else:
+                orange_cells.append((r, c))
+
+    removed_orange = []
+    if remove_alternate_orange:
+        orange_cells.sort()
+        removed_orange = orange_cells[::2]
+
+    for r, c in black_cells:
+        new_tiles[r][c] = 0
+    for r, c in removed_orange:
+        new_tiles[r][c] = 0
+
+    return _build_workspace_from_tiles(new_tiles, ws), black_cells, removed_orange
+
+
+def _run_simplification(
+    ws,
+    goal_a,
+    goal_b,
+    vr,
+    plot_dir,
+    target_switches,
+    test_name,
+    remove_alternate_orange=False,
+):
+    """Run the simplification pass; save results into <plot_dir>/simplified/.
+    Returns a status dict for the result summary.
+    """
+    counts = _aggregate_wall_counts(ws.grid, vr.snapshots, vr.titles)
+    walls_before = _count_walls(ws.grid)
+
+    simplified, removed_black, removed_orange = simplify_workspace(
+        ws, counts, remove_alternate_orange=remove_alternate_orange
+    )
+    walls_after = _count_walls(simplified.grid)
+    removed_total = len(removed_black) + len(removed_orange)
+
+    status: dict = {
+        "removed": removed_total,
+        "removed_black": len(removed_black),
+        "removed_orange": len(removed_orange),
+        "walls_before": walls_before,
+        "walls_after": walls_after,
+        "target_switches": target_switches,
+    }
+
+    if removed_total == 0:
+        status["note"] = "no walls eligible for removal"
+        status["preserved"] = True
+        status["new_switches"] = target_switches
+        return status
+
+    # Verify the simplification with one solver call.
+    res = Solver(simplified, goal_a, goal_b).solve()
+    status["new_switches"] = res.switches if res.solvable else None
+    status["preserved"] = res.solvable and res.switches == target_switches
+    if not res.solvable:
+        status["note"] = "simplified workspace is unsolvable"
+    elif not status["preserved"]:
+        status["note"] = (
+            f"switches changed from {target_switches} to {res.switches} "
+            "(removed walls were not all redundant)"
+        )
+
+    # Always save the attempted simplification — success or failure — so the
+    # user can inspect what was removed and why.
+    sub_dir = os.path.join(plot_dir, "simplified")
+    os.makedirs(sub_dir, exist_ok=True)
+
+    # Capture starting positions before validator mutates the workspace.
+    start_a = (simplified.robot_a.row, simplified.robot_a.col)
+    start_b = (simplified.robot_b.row, simplified.robot_b.col)
+
+    if res.solvable:
+        vr2 = Validator(simplified, goal_a, goal_b).run(res.path, plot=False)
+        snapshots = [[a, b] for a, b in vr2.snapshots]
+        draw_sequence(
+            simplified.grid,
+            snapshots,
+            titles=vr2.titles,
+            save_dir=sub_dir,
+            robot_size=ws.robot_a.n,
+        )
+
+    if status["preserved"]:
+        outcome = f"PRESERVED — switches stayed at {target_switches}"
+    elif res.solvable:
+        outcome = f"FAILED — switches changed from {target_switches} to {res.switches}"
+    else:
+        outcome = "FAILED — simplified workspace is unsolvable"
+
+    with open(os.path.join(sub_dir, "simplification.txt"), "w") as f:
+        f.write(
+            f"Status: {outcome}\n"
+            f"Walls before: {walls_before}\n"
+            f"Walls after:  {walls_after}\n"
+            f"Black walls removed ({len(removed_black)}): {removed_black}\n"
+            f"Orange walls removed ({len(removed_orange)}): {removed_orange}\n"
+        )
+
+    # Comparison summary image: original | simplified | stats.
+    pct = 100.0 * removed_total / walls_before if walls_before else 0.0
+    stats = [
+        ("test", test_name),
+        ("status", outcome),
+        ("grid", f"{ws.grid.rows} x {ws.grid.cols}"),
+        ("robot size", f"{ws.robot_a.n} x {ws.robot_a.n}"),
+        ("original switches", target_switches),
+        (
+            "simplified switches",
+            res.switches if res.solvable else "unsolvable",
+        ),
+        ("walls before", walls_before),
+        ("walls after", walls_after),
+        ("removed black", len(removed_black)),
+        ("removed orange", len(removed_orange)),
+        ("total removed", f"{removed_total} ({pct:.1f}%)"),
+    ]
+    summary_a = Robot(simplified.robot_a.label, simplified.robot_a.n, *start_a)
+    summary_b = Robot(simplified.robot_b.label, simplified.robot_b.n, *start_b)
+    panels = [
+        (ws.grid, [ws.robot_a, ws.robot_b], "original"),
+        (simplified.grid, [summary_a, summary_b], "simplified"),
+    ]
+    draw_summary(
+        panels,
+        stats,
+        os.path.join(sub_dir, "summary.png"),
+        title=f"{test_name}  —  {outcome}",
+    )
+
+    status["plot_dir"] = sub_dir
+    return status
+
+
+# ── Test discovery and execution ────────────────────────────────────────
 
 
 def discover_test_cases() -> list[type]:
@@ -40,7 +250,9 @@ def discover_test_cases() -> list[type]:
     return cases
 
 
-def run_one(cls_name: str) -> TestResult:
+def run_one(args) -> TestResult:
+    """Run a single test by class name. `args` is (cls_name, alternate_flag)."""
+    cls_name, remove_alternate_orange = args
     sys.path.insert(0, BASE_DIR)
     sys.path.insert(0, get_testcases_dir())
 
@@ -97,6 +309,23 @@ def run_one(cls_name: str) -> TestResult:
         result.plot_path = plot_dir
         result.passed = True
 
+        # Simplification pass. Validator mutated `ws.robot_a/b`, so rebuild
+        # from the test case to get fresh starting positions.
+        try:
+            ws2, goal_a2, goal_b2 = tc.setup()
+            result.simplification = _run_simplification(  # type: ignore[attr-defined]
+                ws2,
+                goal_a2,
+                goal_b2,
+                vr,
+                plot_dir,
+                solver_result.switches,
+                tc.name,
+                remove_alternate_orange=remove_alternate_orange,
+            )
+        except Exception as e:
+            result.simplification = {"error": f"{type(e).__name__}: {e}"}  # type: ignore[attr-defined]
+
     except Exception as e:
         result.error = f"{type(e).__name__}: {e}"
         traceback.print_exc()
@@ -104,7 +333,38 @@ def run_one(cls_name: str) -> TestResult:
     return result
 
 
-def run_all():
+def _print_simplification(simp: dict) -> None:
+    if "error" in simp:
+        print(f"         simplify -> ERROR: {simp['error']}", flush=True)
+        return
+    if simp.get("note") and simp.get("removed", 0) == 0:
+        print(f"         simplify -> {simp['note']}", flush=True)
+        return
+    if not simp.get("preserved", False):
+        print(
+            f"         simplify -> FAILED: {simp.get('note', 'unknown')}; "
+            f"would have removed {simp.get('removed', 0)} wall(s) "
+            f"-> {simp.get('plot_dir')}",
+            flush=True,
+        )
+        return
+    walls_before = simp.get("walls_before", 0)
+    walls_after = simp.get("walls_after", 0)
+    n_black = simp.get("removed_black", 0)
+    n_orange = simp.get("removed_orange", 0)
+    pct = 100.0 * simp.get("removed", 0) / walls_before if walls_before else 0.0
+    breakdown = f"black={n_black}"
+    if n_orange:
+        breakdown += f", orange={n_orange}"
+    print(
+        f"         simplify -> switches={simp.get('new_switches')} (preserved), "
+        f"walls {walls_before} -> {walls_after} "
+        f"(-{simp.get('removed', 0)} {breakdown}, {pct:.1f}%) -> {simp.get('plot_dir')}",
+        flush=True,
+    )
+
+
+def run_all(remove_alternate_orange: bool):
     wall_start = time.time()
     classes = discover_test_cases()
 
@@ -116,12 +376,15 @@ def run_all():
     print("=" * 60)
 
     results = []
+    jobs = [(cls.__name__, remove_alternate_orange) for cls in classes]
     with mp.get_context("spawn").Pool(processes=min(8, mp.cpu_count())) as pool:
-        for r in pool.imap_unordered(run_one, [cls.__name__ for cls in classes]):
+        for r in pool.imap_unordered(run_one, jobs):
             results.append(r)
             print(r, flush=True)
             if r.plot_path:
                 print(f"         plot -> {r.plot_path}", flush=True)
+            if r.simplification:
+                _print_simplification(r.simplification)
 
     passed = [r for r in results if r.passed]
     failed = [r for r in results if not r.passed]
@@ -140,17 +403,34 @@ def run_all():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        name = sys.argv[1].lower()
+    parser = argparse.ArgumentParser(description="Run sliding-squares test cases.")
+    parser.add_argument(
+        "name",
+        nargs="?",
+        help="Substring filter — only run tests whose name contains this.",
+    )
+    parser.add_argument(
+        "--alternate",
+        action="store_true",
+        help="In addition to removing all black walls, also remove every "
+        "other orange wall (touched walls, alternating in row-major order). "
+        "Default: only black walls are removed.",
+    )
+    args = parser.parse_args()
+
+    if args.name:
+        name = args.name.lower()
         classes = discover_test_cases()
         matched = [cls for cls in classes if name in cls().name.lower()]
         if not matched:
-            print(f"No test case matching '{sys.argv[1]}'")
+            print(f"No test case matching '{args.name}'")
             sys.exit(1)
         for cls in matched:
-            r = run_one(cls.__name__)
+            r = run_one((cls.__name__, args.alternate))
             print(r)
             if r.plot_path:
                 print(f"         plot -> {r.plot_path}")
+            if r.simplification:
+                _print_simplification(r.simplification)
     else:
-        run_all()
+        run_all(args.alternate)

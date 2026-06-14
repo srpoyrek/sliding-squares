@@ -582,6 +582,56 @@ def draw_blocker_heatmap(grid, turns, save_path=None, robot_size=1):
         plt.show()
 
 
+def draw_summary(panels, stats, save_path, title=None):
+    """Render a side-by-side summary. `panels` is a list of
+    (grid, robots, panel_title) tuples — each becomes one workspace plot.
+    `stats` is an ordered list of (label, value) pairs shown to the right.
+    """
+    if not panels:
+        return
+
+    # cols_max = max(g.cols for g, _, _ in panels)
+    rows_max = max(g.rows for g, _, _ in panels)
+
+    fig_w = sum(g.cols * 0.45 for g, _, _ in panels) + 5.5
+    fig_h = max(rows_max * 0.5 + 1.5, 4.5)
+
+    width_ratios = [g.cols * 0.45 for g, _, _ in panels] + [5]
+    fig, axes = plt.subplots(
+        1,
+        len(panels) + 1,
+        figsize=(fig_w, fig_h),
+        gridspec_kw={"width_ratios": width_ratios},
+    )
+    if len(panels) + 1 == 1:
+        axes = [axes]
+
+    for ax, (grid, robots, panel_title) in zip(axes[:-1], panels):
+        draw(grid, robots=robots, title=panel_title, ax=ax, show=False)
+
+    ax_text = axes[-1]
+    ax_text.axis("off")
+    label_w = max(len(label) for label, _ in stats) if stats else 0
+    lines = [f"{label.ljust(label_w)} : {value}" for label, value in stats]
+    ax_text.text(
+        0.0,
+        0.98,
+        "\n".join(lines),
+        ha="left",
+        va="top",
+        fontsize=11,
+        family="monospace",
+        transform=ax_text.transAxes,
+    )
+
+    if title:
+        fig.suptitle(title, fontsize=13, fontweight="bold")
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.close()
+
+
 def draw_bfs_frontier(grid, frontier, switch_num, robot_size, save_dir=None):
     """
     Draw all states in a BFS frontier on a single plot.
