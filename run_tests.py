@@ -128,6 +128,46 @@ def _orange_peak_keepers(face_counts):
     return keepers
 
 
+def _orange_relative_keepers(face_counts, n):
+    """Like the peak keeper, but on each per-face edge also keep enough cells
+    that no gap exceeds n-1 (an n×n robot can't cross). Walk the edge keeping
+    every local peak, and force-keep a cell whenever n-1 have been dropped
+    since the last kept one (the counter resets on every kept cell).
+    """
+    edges: dict = {}
+    for (r, c, face), cnt in face_counts.items():
+        if face in ("E", "W"):
+            edges.setdefault((face, c), []).append((r, r, c, cnt))
+        else:
+            edges.setdefault((face, r), []).append((c, r, c, cnt))
+
+    def _keep_run(run, out):
+        counts = [it[3] for it in run]
+        since = 0
+        for i, it in enumerate(run):
+            is_peak = (i == 0 or counts[i - 1] <= counts[i]) and (
+                i == len(run) - 1 or counts[i + 1] <= counts[i]
+            )
+            if is_peak or since >= n - 1:
+                out.append((it[1], it[2]))
+                since = 0
+            else:
+                since += 1
+
+    keepers: list = []
+    for cells in edges.values():
+        cells.sort()
+        run = [cells[0]]
+        for prev, cur in zip(cells, cells[1:]):
+            if cur[0] == prev[0] + 1:
+                run.append(cur)
+            else:
+                _keep_run(run, keepers)
+                run = [cur]
+        _keep_run(run, keepers)
+    return keepers
+
+
 def _protected_walls(grid, ws, goal_a, goal_b):
     """Wall cells the robots rest against at their start and goal positions.
     These braces are always kept — thinning must not delete them.
@@ -184,6 +224,7 @@ def simplify_workspace(
     face_counts=None,
     remove_alternate_orange=False,
     keep_orange_peaks=False,
+    keep_relative_robot_size=False,
     protected=None,
 ):
     """Wall-removal simplification driven by the contact heatmap.
@@ -217,6 +258,9 @@ def simplify_workspace(
     removed_orange = []
     if keep_orange_peaks:
         keepers = set(_orange_peak_keepers(face_counts or {}))
+        removed_orange = [cell for cell in orange_cells if cell not in keepers]
+    elif keep_relative_robot_size:
+        keepers = set(_orange_relative_keepers(face_counts or {}, ws.robot_a.n))
         removed_orange = [cell for cell in orange_cells if cell not in keepers]
     elif remove_alternate_orange:
         orange_cells.sort()
@@ -259,6 +303,7 @@ def _run_simplification(
     test_name,
     remove_alternate_orange=False,
     keep_orange_peaks=False,
+    keep_relative_robot_size=False,
 ):
     """Run the simplification pass; save results into <plot_dir>/simplified/.
     Returns a status dict for the result summary.
@@ -273,6 +318,7 @@ def _run_simplification(
         face_counts=face_counts,
         remove_alternate_orange=remove_alternate_orange,
         keep_orange_peaks=keep_orange_peaks,
+        keep_relative_robot_size=keep_relative_robot_size,
         protected=protected,
     )
     goal_a = (goal_a[0] - off_r, goal_a[1] - off_c)
@@ -398,9 +444,10 @@ def discover_test_cases() -> list[type]:
 def run_one(args) -> TestResult:
     """Run a single test by class name.
 
-    `args` is (cls_name, simplified, remove_alternate_orange, keep_orange_peaks).
+    `args` is (cls_name, simplified, remove_alternate_orange, keep_orange_peaks,
+    keep_relative_robot_size).
     """
-    cls_name, simplified, remove_alternate_orange, keep_orange_peaks = args
+    cls_name, simplified, remove_alternate_orange, keep_orange_peaks, keep_relative = args
     sys.path.insert(0, BASE_DIR)
     sys.path.insert(0, get_testcases_dir())
 
@@ -473,6 +520,7 @@ def run_one(args) -> TestResult:
                     tc.name,
                     remove_alternate_orange=remove_alternate_orange,
                     keep_orange_peaks=keep_orange_peaks,
+                    keep_relative_robot_size=keep_relative,
                 )
             except Exception as e:
                 result.simplification = {"error": f"{type(e).__name__}: {e}"}  # type: ignore[attr-defined]
@@ -515,7 +563,7 @@ def _print_simplification(simp: dict) -> None:
     )
 
 
-def run_all(simplified: bool, remove_alternate_orange: bool, keep_orange_peaks: bool):
+def run_all(simplified, remove_alternate_orange, keep_orange_peaks, keep_relative):
     wall_start = time.time()
     classes = discover_test_cases()
 
@@ -528,7 +576,8 @@ def run_all(simplified: bool, remove_alternate_orange: bool, keep_orange_peaks: 
 
     results = []
     jobs = [
-        (cls.__name__, simplified, remove_alternate_orange, keep_orange_peaks) for cls in classes
+        (cls.__name__, simplified, remove_alternate_orange, keep_orange_peaks, keep_relative)
+        for cls in classes
     ]
     with mp.get_context("spawn").Pool(processes=min(8, mp.cpu_count())) as pool:
         for r in pool.imap_unordered(run_one, jobs):
@@ -589,6 +638,12 @@ if __name__ == "__main__":
         help="Keep every touched (orange) wall regardless of contact count; "
         "only black walls are removed (and the grid cropped).",
     )
+    orange_mode.add_argument(
+        "--keep-relative-robot-size",
+        action="store_true",
+        help="Thin orange but keep peaks plus enough cells that no gap exceeds "
+        "robot_size - 1, so the robot can't cross the boundary.",
+    )
     args = parser.parse_args()
 
     if args.name:
@@ -599,11 +654,19 @@ if __name__ == "__main__":
             print(f"No test case matching '{args.name}'")
             sys.exit(1)
         for cls in matched:
-            r = run_one((cls.__name__, args.simplified, args.alternate, args.keep_peaks))
+            r = run_one(
+                (
+                    cls.__name__,
+                    args.simplified,
+                    args.alternate,
+                    args.keep_peaks,
+                    args.keep_relative_robot_size,
+                )
+            )
             print(r)
             if r.plot_path:
                 print(f"         plot -> {r.plot_path}")
             if r.simplification:
                 _print_simplification(r.simplification)
     else:
-        run_all(args.simplified, args.alternate, args.keep_peaks)
+        run_all(args.simplified, args.alternate, args.keep_peaks, args.keep_relative_robot_size)
