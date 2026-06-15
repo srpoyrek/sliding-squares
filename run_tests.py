@@ -168,27 +168,6 @@ def _orange_relative_keepers(face_counts, n):
     return keepers
 
 
-def _protected_walls(grid, ws, goal_a, goal_b):
-    """Wall cells the robots rest against at their start and goal positions.
-    These braces are always kept — thinning must not delete them.
-    """
-    n = ws.robot_a.n
-    a_goal = Robot(ws.robot_a.label, n, *goal_a)
-    b_goal = Robot(ws.robot_b.label, n, *goal_b)
-    placements = [
-        (ws.robot_a, ws.robot_b),
-        (ws.robot_b, ws.robot_a),
-        (a_goal, b_goal),
-        (b_goal, a_goal),
-    ]
-    protected = set()
-    for robot, other in placements:
-        _, face_walls = _compute_contact_at(grid, robot.row, robot.col, robot.n, other)
-        for walls in face_walls.values():
-            protected.update(walls)
-    return protected
-
-
 def _crop_bounds(tiles):
     """Fully-wall rows/cols to peel from each side: (top, bottom, left, right).
     The grid edge bounds the robot like a wall, so an all-wall border is
@@ -310,7 +289,6 @@ def _run_simplification(
     """
     counts, face_counts = _aggregate_wall_counts(ws.grid, vr.snapshots)
     walls_before = _count_walls(ws.grid)
-    protected = _protected_walls(ws.grid, ws, goal_a, goal_b)
 
     simplified, removed_black, removed_orange, (off_r, off_c) = simplify_workspace(
         ws,
@@ -319,7 +297,6 @@ def _run_simplification(
         remove_alternate_orange=remove_alternate_orange,
         keep_orange_peaks=keep_orange_peaks,
         keep_relative_robot_size=keep_relative_robot_size,
-        protected=protected,
     )
     goal_a = (goal_a[0] - off_r, goal_a[1] - off_c)
     goal_b = (goal_b[0] - off_r, goal_b[1] - off_c)
