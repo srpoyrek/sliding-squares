@@ -731,6 +731,33 @@ def draw_bfs_frontier(grid, frontier, switch_num, robot_size, save_dir=None):
     plt.close()
 
 
+def plot_proof(ws_template, goals, save_dir):
+    """Solve `ws_template`, validate the path, and render the solution sequence
+    into save_dir. Returns (True, switches) on success, else (False, reason).
+
+    Solver / Validator / Workspace are imported lazily: this module is imported
+    by bfs (draw_bfs_frontier), so importing them at module top would cycle.
+    """
+    from src.solver import Solver
+    from src.validator import Validator
+    from src.workspace import Workspace
+
+    rows, cols, n = ws_template.grid.rows, ws_template.grid.cols, ws_template.robot_a.n
+    pos_a, pos_b = ws_template.robot_a.position(), ws_template.robot_b.position()
+    free = ws_template.free_cells()
+    ws = Workspace.from_free_cells(rows, cols, free, pos_a, pos_b, n)
+    res = Solver(ws, goals[0], goals[1]).solve()
+    if not res.solvable:
+        return False, "unsolvable on replay"
+    vr = Validator(ws, goals[0], goals[1]).run(res.path, plot=False)
+    if not vr.valid:
+        return False, f"validator failed: {vr.failed_reason}"
+    snapshots = [[a, b] for a, b in vr.snapshots]
+    os.makedirs(save_dir, exist_ok=True)
+    draw_sequence(ws.grid, snapshots, titles=vr.titles, save_dir=save_dir, robot_size=n)
+    return True, res.switches
+
+
 # ── Demo ────────────────────────────────────────────────
 
 if __name__ == "__main__":

@@ -47,6 +47,75 @@ class Workspace:
         self.robot_b = robot_b
         self._control = self.robot_a  # which robot is currently being controlled
 
+    # ── Construction from a free-cell set ───────────────
+
+    @classmethod
+    def from_free_cells(cls, rows, cols, free_cells, pos_a, pos_b, n, labels=("A", "B")):
+        """Build a wall-filled rows*cols workspace with only `free_cells` carved
+        free, robot A at pos_a and robot B at pos_b (both size n)."""
+        tiles = [[1] * cols for _ in range(rows)]
+        for r, c in free_cells:
+            tiles[r][c] = 0
+        ws = cls(Grid(tiles), Robot(labels[0], n, *pos_a), Robot(labels[1], n, *pos_b))
+        ws._free_key = sum(1 << (r * cols + c) for r, c in free_cells)
+        return ws
+
+    def free_cells(self):
+        """The set of free (non-obstacle) cells in this workspace's grid."""
+        return {
+            (r, c)
+            for r in range(self.grid.rows)
+            for c in range(self.grid.cols)
+            if self.grid.tiles[r][c] == 0
+        }
+
+    # ── Placement queries (n*n block validity over a free-cell set) ──────
+
+    @staticmethod
+    def valid_block_positions(rows, cols, free_cells, n):
+        """All top-left positions where an n*n block fits entirely in free_cells."""
+        valid = set()
+        for r in range(rows - n + 1):
+            for c in range(cols - n + 1):
+                ok = True
+                for ir in range(n):
+                    for ic in range(n):
+                        if (r + ir, c + ic) not in free_cells:
+                            ok = False
+                            break
+                    if not ok:
+                        break
+                if ok:
+                    valid.add((r, c))
+        return valid
+
+    @staticmethod
+    def extend_valid(valid, dug_cell, free_cells_after, rows, cols, n):
+        """Incrementally update valid block positions after one cell is dug free.
+        Only top-lefts whose n*n footprint contains the dug cell can change."""
+        r_star, c_star = dug_cell
+        r_lo = max(0, r_star - n + 1)
+        r_hi = min(rows - n, r_star)
+        c_lo = max(0, c_star - n + 1)
+        c_hi = min(cols - n, c_star)
+
+        new_valid = set(valid)
+        for r in range(r_lo, r_hi + 1):
+            for c in range(c_lo, c_hi + 1):
+                if (r, c) in new_valid:
+                    continue
+                ok = True
+                for ir in range(n):
+                    for ic in range(n):
+                        if (r + ir, c + ic) not in free_cells_after:
+                            ok = False
+                            break
+                    if not ok:
+                        break
+                if ok:
+                    new_valid.add((r, c))
+        return new_valid
+
     # ── Grid queries ────────────────────────────────────
 
     def robot_fits_at(self, robot: Robot, row: int, col: int) -> bool:

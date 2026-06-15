@@ -28,104 +28,20 @@ from src.canonical import (
     robot_block as _robot_block,
 )
 from src.directories import get_plots_dir
-from src.grid import Grid
+from src.frontier import extend_frontier as _extend_frontier
+from src.frontier import initial_frontier as _initial_frontier
 from src.lru import LRUCache
-from src.robot import Robot
 from src.solver import Solver
-from src.validator import Validator
-from src.visualizer import draw_sequence
+from src.visualizer import plot_proof as _plot_proof
 from src.workspace import Workspace
 
-
-def _build_workspace(rows, cols, free_cells, pos_a, pos_b, n):
-    tiles = [[1] * cols for _ in range(rows)]
-    for r, c in free_cells:
-        tiles[r][c] = 0
-    grid = Grid(tiles)
-    a = Robot("A", n, pos_a[0], pos_a[1])
-    b = Robot("B", n, pos_b[0], pos_b[1])
-    ws = Workspace(grid, a, b)
-    ws._free_key = pack_cells_mask(free_cells, cols)
-    return ws
-
-
-def _free_set(ws):
-    return {
-        (r, c) for r in range(ws.grid.rows) for c in range(ws.grid.cols) if ws.grid.tiles[r][c] == 0
-    }
-
-
-def _initial_frontier(rows, cols, free_cells):
-    front = set()
-    for r, c in free_cells:
-        for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-            nr, nc = r + dr, c + dc
-            if not (0 <= nr < rows and 0 <= nc < cols):
-                continue
-            cell = (nr, nc)
-            if cell in free_cells:
-                continue
-            front.add(cell)
-    return frozenset(front)
-
-
-def _extend_frontier(frontier, dug_cell, free_cells_after, rows, cols):
-    new_front = set(frontier)
-    new_front.discard(dug_cell)
-    r, c = dug_cell
-    for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-        nr, nc = r + dr, c + dc
-        if not (0 <= nr < rows and 0 <= nc < cols):
-            continue
-        cell = (nr, nc)
-        if cell in free_cells_after:
-            continue
-        new_front.add(cell)
-    return frozenset(new_front)
-
-
-def _valid_block_positions(rows, cols, free_cells, n):
-    valid = set()
-    for r in range(rows - n + 1):
-        for c in range(cols - n + 1):
-            ok = True
-            for ir in range(n):
-                for ic in range(n):
-                    if (r + ir, c + ic) not in free_cells:
-                        ok = False
-                        break
-                if not ok:
-                    break
-            if ok:
-                valid.add((r, c))
-    return valid
-
-
-def _extend_valid(valid, dug_cell, free_cells_after, rows, cols, n):
-    """Incrementally update valid-block-positions after digging one cell.
-    Only top-lefts whose n*n footprint contains the dug cell can change."""
-    r_star, c_star = dug_cell
-    r_lo = max(0, r_star - n + 1)
-    r_hi = min(rows - n, r_star)
-    c_lo = max(0, c_star - n + 1)
-    c_hi = min(cols - n, c_star)
-
-    new_valid = set(valid)
-    for r in range(r_lo, r_hi + 1):
-        for c in range(c_lo, c_hi + 1):
-            if (r, c) in new_valid:
-                continue
-            ok = True
-            for ir in range(n):
-                for ic in range(n):
-                    if (r + ir, c + ic) not in free_cells_after:
-                        ok = False
-                        break
-                if not ok:
-                    break
-            if ok:
-                new_valid.add((r, c))
-    return new_valid
+# The dig-search calls these helpers by their old private names; bind the moved
+# implementations (now on Workspace) so all call sites and the hot loop stay
+# unchanged.
+_build_workspace = Workspace.from_free_cells
+_free_set = Workspace.free_cells
+_valid_block_positions = Workspace.valid_block_positions
+_extend_valid = Workspace.extend_valid
 
 
 def robot_can_reach_goal_ignoring_other(valid, start, goal):
@@ -158,25 +74,18 @@ def _solve_payload(payload):
     return res.solvable, res.switches
 
 
-def _plot_proof(ws_template, goals, save_dir):
-    rows, cols, n = ws_template.grid.rows, ws_template.grid.cols, ws_template.robot_a.n
-    pos_a, pos_b = ws_template.robot_a.position(), ws_template.robot_b.position()
-    free = _free_set(ws_template)
-    ws = _build_workspace(rows, cols, free, pos_a, pos_b, n)
-    res = Solver(ws, goals[0], goals[1]).solve()
-    if not res.solvable:
-        return False, "unsolvable on replay"
-    vr = Validator(ws, goals[0], goals[1]).run(res.path, plot=False)
-    if not vr.valid:
-        return False, f"validator failed: {vr.failed_reason}"
-    snapshots = [[a, b] for a, b in vr.snapshots]
-    os.makedirs(save_dir, exist_ok=True)
-    draw_sequence(ws.grid, snapshots, titles=vr.titles, save_dir=save_dir, robot_size=n)
-    return True, res.switches
-
-
 # ---------------------------------------------------------------------------
-# Symmetry: transform tables and canonical keys
+# find_hardest-private transform-table glue (NOT the reusable API).
+#
+# The reusable canonical primitives live in src/canonical.py. What stays here is
+# the optimization layer the dig-BFS needs and cannot share:
+#   - the tables cached as module globals for hot-loop speed (no per-call attr
+#     lookups),
+#   - _set_transform_tables: seeds those globals into each worker process,
+#   - _build_cell_bits + _canonical_key: the O(n_kinds) incremental key called
+#     once per BFS expansion (Canonicalizer.key is O(n_kinds*|free|) — too slow
+#     for the hot loop),
+#   - _init_transform_tables also sizes the bfs LRU caches.
 # ---------------------------------------------------------------------------
 
 _N_KINDS = None
