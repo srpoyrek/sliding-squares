@@ -29,14 +29,17 @@ To skip the graph rebuild on a single commit (rare): `SKIP=graphify-build git co
 sliding-squares/
 ├── src/
 │   ├── bfs.py              # Layered BFS — both unidirectional and bidirectional
+│   ├── lru.py              # LRU cache backing the bfs memoization
 │   ├── grid.py             # Grid representation (free, boundary, hole tiles)
 │   ├── robot.py            # n×n square robot representation
 │   ├── state.py            # Immutable state snapshots for BFS
-│   ├── workspace.py        # Grid + robots + movement/collision rules
-│   ├── symmetry.py         # Spatial symmetries + canonical keys (used to prune redundant BFS halves)
+│   ├── workspace.py        # Grid + robots + movement rules; build-from-free-cells + placement queries
+│   ├── canonical.py        # Spatial symmetries, canonical keys, touching-placement enumeration, Canonicalizer
+│   ├── frontier.py         # Frontier helpers for grow/dig searches (initial_frontier, extend_frontier)
 │   ├── solver.py           # Solver wrapping bidirectional BFS
 │   ├── validator.py        # Step-by-step path execution and validation
-│   ├── visualizer.py       # Matplotlib visualization (grids, sequences, BFS frontiers)
+│   ├── simplify.py         # Workspace simplification — strip redundant walls, preserve switch count
+│   ├── visualizer.py       # Matplotlib visualization (grids, sequences, BFS frontiers, proof rendering)
 │   ├── path_resolver.py    # Compact path notation parser (e.g. "12R2US")
 │   ├── test_case.py        # Base class for test cases
 │   └── directories.py      # Path management utilities
@@ -67,7 +70,7 @@ The solver runs a **bidirectional layered breadth-first search** over the state 
 
 1. **Layered structure.** Each BFS layer represents states reachable with exactly *k* control switches. Within a layer, `flood_fill` explores all positions the controlled robot can reach without switching.
 2. **Bidirectional expansion.** A forward BFS from the start and a backward BFS from the goal are expanded in lockstep. Both initial controllers are seeded in forward layer 0 and both final controllers in backward layer 0, so the run finds the minimum-switch solution over any choice of first/last mover in a single pass.
-3. **Symmetry pruning.** [`src/symmetry.py`](src/symmetry.py) detects when a workspace is invariant under an A↔B label swap; in that case the dual-start expansion is collapsed to a single BFS half, halving the work.
+3. **Symmetry pruning.** [`src/canonical.py`](src/canonical.py) detects when a workspace is invariant under an A↔B label swap; in that case the dual-start expansion is collapsed to a single BFS half, halving the work.
 4. **Memoization.** Per-process LRU caches in `bfs.py` (`_USABLE_CACHE`, `_PARENT_MAP_CACHE`, `_VALID_POS_CACHE`) memoize flood-fill results and valid-position sets. Keys include a `free_key` (an int bitmask where bit `r*cols + c` is set iff cell `(r,c)` is free — ~300× smaller than a frozenset and O(1) to hash), so cached entries are pure functions of their inputs and safely reused across every solve call within a worker. Caps are **auto-sized to the grid**: `find_hardest_workspace.py` calls `configure_caches_for_grid(rows, cols, n, target_mb)` at startup so per-worker memory stays near the target (default 150 MB) regardless of grid area. Override with `--cache-mb`.
 5. **Optimality.** The goal is checked at each layer; the first match is optimal by construction. Path reconstruction backtracks through parent pointers to produce a command sequence.
 
@@ -75,17 +78,28 @@ Commands: `U` (up), `D` (down), `L` (left), `R` (right), `S` (switch control).
 
 ## Usage
 
-### Run all test cases
+### Run test cases
+
+[`run_tests.py`](run_tests.py) solves each test case, validates the resulting path, and writes the solved sequence to `plots/tests/<name>/`. With no arguments it runs every test case; pass a substring to filter.
 
 ```bash
-python run_tests.py
+python run_tests.py                       # run every test case
+python run_tests.py 3x3                    # only tests whose name contains "3x3"
+python run_tests.py 4x4_robot_holes --simplified --keep-relative-robot-size
 ```
 
-### Run a specific test case
+| Flag | Default | Purpose |
+|---|---|---|
+| `name` (positional) | all | Substring filter — run only tests whose name contains it |
+| `--simplified` | off | After solving, also run the wall-simplification pass (below). Without it, behaviour is unchanged: solve + plot only |
+| `--keep-all-orange` | (default mode) | Simplify: keep every *touched* wall; remove only never-touched walls + crop |
+| `--keep-relative-robot-size` | — | Simplify: keep contact peaks plus enough cells that no gap exceeds n−1 (an n×n robot still can't cross) |
+| `--keep-peaks` | — | Simplify: keep only the peak-contact cell per face-edge |
+| `--alternate` | — | Simplify: remove every other touched wall |
 
-```bash
-python run_tests.py 3x3_robot_no_holes
-```
+The four simplify modes are mutually exclusive and only take effect together with `--simplified`.
+
+**The simplification pass** removes walls that aren't load-bearing and crops all-wall borders, then **re-solves to verify the minimum switch count is unchanged.** A wall the robots never touch ("black") is always removed; touched ("orange") walls are thinned according to the chosen mode. Results — a before/after image, a solved sequence, and `simplification.txt` — land in `plots/tests/<name>/simplified/`. The report reads **PRESERVED** if the switch count held, or **FAILED** if a removed wall turned out to be load-bearing.
 
 ### Run demos
 
@@ -130,6 +144,15 @@ CACHE USAGE (aggregated across all placements)
   parent_map  peak_size=.../3400 (...) hits=... hit_rate=...  evictions=...
 ```
 If any line ends with `HIT LIMIT`, that cache had evictions — raise `--cache-mb` or tune the per-cache caps in [`src/bfs.py`](src/bfs.py).
+
+### Reusable building blocks
+
+Several pieces are factored into `src/` so other tools can import them:
+
+- [`src/canonical.py`](src/canonical.py) — touching-placement enumeration (`all_touching_placements` covers full-edge, partial-edge, and corner contacts; `all_adjacent_placements` is full-edge only), `pick_central_placements`, and the **`Canonicalizer`** class. `Canonicalizer(rows, cols, n)` turns a workspace (free cells + the two robot positions) into one key that is identical under D4 rotation/flip/mirror and the A↔B label swap; use `.dedup_placements(...)` or `.unique_touching(...)` to collapse symmetric duplicates.
+- [`src/frontier.py`](src/frontier.py) — `initial_frontier` / `extend_frontier` for growing or digging a free region cell by cell.
+- [`src/simplify.py`](src/simplify.py) — `run_simplification(...)`, the wall-removal pass behind `run_tests.py --simplified`.
+- [`src/workspace.py`](src/workspace.py) — `Workspace.from_free_cells(...)` builds a wall-filled grid with only the given cells carved free; `Workspace.valid_block_positions` / `Workspace.extend_valid` answer n×n placement queries over a free-cell set.
 
 ## Test Cases
 
