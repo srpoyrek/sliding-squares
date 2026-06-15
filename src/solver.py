@@ -34,14 +34,24 @@ class Solver:
         self.goal_a = goal_a
         self.goal_b = goal_b
 
-    def solve(self) -> SolverResult:
+    def solve(self, need_path: bool = True) -> SolverResult:
         result = SolverResult()
 
         # Bidirectional BFS: seeds BOTH initial controllers in forward layer 0
         # and BOTH final controllers in backward layer 0, so we get min-switches
         # over any choice of first/last mover in a single run.
-        out = bfs_bidirectional(self.ws, self.goal_a, self.goal_b)
+        #
+        # need_path=False is the fast path for callers that only need
+        # (solvable, switches) — it skips path reconstruction, the visited-dict
+        # copy, and the first-mover inference below. Used by find_hardest, which
+        # solves millions of candidates and discards the path.
+        out = bfs_bidirectional(self.ws, self.goal_a, self.goal_b, need_path=need_path)
         if out is None:
+            return result
+
+        if not need_path:
+            result.solvable = True
+            result.switches = out["switches"]
             return result
 
         # Derive which robot moved first from the returned path so the

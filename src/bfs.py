@@ -292,6 +292,37 @@ def _expand_one(workspace, sid, pack, unpack, n: int, direction: str):
             yield pack(pos_a, new_pos, new_ctrl), new_pos, mover
 
 
+def _successor_sids(workspace, sid, pack, unpack, n: int, direction: str):
+    """Lean successor generator for the switch-count-only path: yields just the
+    packed successor sid (no target_pos / mover). Lets the caller expand a layer
+    without building parent pointers — which exist only for path reconstruction.
+    Mirrors _expand_one minus the per-successor (pos, mover) tuple."""
+    pos_a, pos_b, ctrl = unpack(sid)
+    robot_a = workspace.robot_a
+    robot_b = workspace.robot_b
+    other_ctrl = robot_b if ctrl is robot_a else robot_a
+
+    if direction == "fwd":
+        mover = other_ctrl
+        new_ctrl = mover
+    else:
+        mover = ctrl
+        new_ctrl = other_ctrl
+
+    if mover is robot_a:
+        mover_pos, static_pos = pos_a, pos_b
+    else:
+        mover_pos, static_pos = pos_b, pos_a
+
+    pm = flood_fill(workspace, mover_pos, static_pos, n)
+    if mover is robot_a:
+        for new_pos in pm:
+            yield pack(new_pos, pos_b, new_ctrl)
+    else:
+        for new_pos in pm:
+            yield pack(pos_a, new_pos, new_ctrl)
+
+
 def _expand_layer(
     workspace,
     frontier,
@@ -302,24 +333,41 @@ def _expand_layer(
     direction: str,
     pack,
     unpack,
+    build_parent: bool = True,
 ):
-    """Expand one BFS layer. Mutates visited and parent; returns new frontier set of sids."""
+    """Expand one BFS layer. Mutates visited (and parent, when build_parent is
+    True); returns the new frontier set of sids.
+
+    build_parent=False is the switch-count-only fast path: it skips the parent
+    pointers — used only for path reconstruction — and the per-successor tuple,
+    saving two allocations and a dict insert on every expanded state."""
     new_frontier = set()
-    for sid in frontier:
-        for new_sid, target_pos, mover in _expand_one(workspace, sid, pack, unpack, n, direction):
-            if new_sid in visited:
-                continue
-            visited[new_sid] = layer
-            parent[new_sid] = (sid, target_pos, mover)
-            new_frontier.add(new_sid)
+    if build_parent:
+        for sid in frontier:
+            for new_sid, target_pos, mover in _expand_one(
+                workspace, sid, pack, unpack, n, direction
+            ):
+                if new_sid in visited:
+                    continue
+                visited[new_sid] = layer
+                parent[new_sid] = (sid, target_pos, mover)
+                new_frontier.add(new_sid)
+    else:
+        for sid in frontier:
+            for new_sid in _successor_sids(workspace, sid, pack, unpack, n, direction):
+                if new_sid in visited:
+                    continue
+                visited[new_sid] = layer
+                new_frontier.add(new_sid)
     return new_frontier
 
 
-def _seed_fwd(workspace, initial_ctrls, pack) -> dict:
+def _seed_fwd(workspace, initial_ctrls, pack, build_parent: bool = True) -> dict:
     """Build forward layer-0 frontier by flooding each initial controller from start.
 
     Returns {"visited", "parent", "frontier"} where keys are sids; parent tuples
-    use (None, target_pos, mover) for layer-0 states (no predecessor).
+    use (None, target_pos, mover) for layer-0 states (no predecessor). When
+    build_parent is False the parent map is left empty (switch-count-only path).
     """
     n = workspace.robot_a.n
     robot_a = workspace.robot_a
@@ -335,7 +383,8 @@ def _seed_fwd(workspace, initial_ctrls, pack) -> dict:
                 sid = pack(new_pa, start_b, robot_a)
                 if sid not in visited:
                     visited[sid] = 0
-                    parent[sid] = (None, new_pa, robot_a)
+                    if build_parent:
+                        parent[sid] = (None, new_pa, robot_a)
                     frontier.add(sid)
         else:
             pm = flood_fill(workspace, start_b, start_a, n)
@@ -343,12 +392,13 @@ def _seed_fwd(workspace, initial_ctrls, pack) -> dict:
                 sid = pack(start_a, new_pb, workspace.robot_b)
                 if sid not in visited:
                     visited[sid] = 0
-                    parent[sid] = (None, new_pb, workspace.robot_b)
+                    if build_parent:
+                        parent[sid] = (None, new_pb, workspace.robot_b)
                     frontier.add(sid)
     return {"visited": visited, "parent": parent, "frontier": frontier}
 
 
-def _seed_bwd(workspace, goal_a, goal_b, final_ctrls, pack) -> dict:
+def _seed_bwd(workspace, goal_a, goal_b, final_ctrls, pack, build_parent: bool = True) -> dict:
     """Build backward layer-0: the two goal sids (one per possible final ctrl)."""
     visited: dict = {}
     parent: dict = {}
@@ -357,7 +407,8 @@ def _seed_bwd(workspace, goal_a, goal_b, final_ctrls, pack) -> dict:
         sid = pack(goal_a, goal_b, fc)
         if sid not in visited:
             visited[sid] = 0
-            parent[sid] = None
+            if build_parent:
+                parent[sid] = None
             frontier.add(sid)
     return {"visited": visited, "parent": parent, "frontier": frontier}
 
@@ -486,7 +537,7 @@ def bfs(workspace, goal_a, goal_b, draw=False):
 # ---------------------------------------------------------------------------
 
 
-def bfs_bidirectional(workspace, goal_a, goal_b, draw=False):
+def bfs_bidirectional(workspace, goal_a, goal_b, draw=False, need_path=True):
     n = workspace.robot_a.n
     robot_a = workspace.robot_a
     robot_b = workspace.robot_b
@@ -494,8 +545,8 @@ def bfs_bidirectional(workspace, goal_a, goal_b, draw=False):
 
     # Seed both initial and final controllers to cover "either robot may be
     # first/last mover for free".
-    fwd = _seed_fwd(workspace, [robot_a, robot_b], pack)
-    bwd = _seed_bwd(workspace, goal_a, goal_b, [robot_a, robot_b], pack)
+    fwd = _seed_fwd(workspace, [robot_a, robot_b], pack, build_parent=need_path)
+    bwd = _seed_bwd(workspace, goal_a, goal_b, [robot_a, robot_b], pack, build_parent=need_path)
 
     fwd_visited, fwd_parent, fwd_frontier = fwd["visited"], fwd["parent"], fwd["frontier"]
     bwd_visited, bwd_parent, bwd_frontier = bwd["visited"], bwd["parent"], bwd["frontier"]
@@ -520,7 +571,16 @@ def bfs_bidirectional(workspace, goal_a, goal_b, draw=False):
         if expand_fwd:
             fwd_layer += 1
             fwd_frontier = _expand_layer(
-                workspace, fwd_frontier, fwd_visited, fwd_parent, fwd_layer, n, "fwd", pack, unpack
+                workspace,
+                fwd_frontier,
+                fwd_visited,
+                fwd_parent,
+                fwd_layer,
+                n,
+                "fwd",
+                pack,
+                unpack,
+                build_parent=need_path,
             )
             for s in fwd_frontier:
                 if s in bwd_visited:
@@ -530,7 +590,16 @@ def bfs_bidirectional(workspace, goal_a, goal_b, draw=False):
         else:
             bwd_layer += 1
             bwd_frontier = _expand_layer(
-                workspace, bwd_frontier, bwd_visited, bwd_parent, bwd_layer, n, "bwd", pack, unpack
+                workspace,
+                bwd_frontier,
+                bwd_visited,
+                bwd_parent,
+                bwd_layer,
+                n,
+                "bwd",
+                pack,
+                unpack,
+                build_parent=need_path,
             )
             for s in bwd_frontier:
                 if s in fwd_visited:
@@ -541,6 +610,13 @@ def bfs_bidirectional(workspace, goal_a, goal_b, draw=False):
     if best is None:
         return None
     meeting_sid, total = best
+
+    # Switch-count-only fast path: callers that just need (solvable, switches)
+    # — e.g. find_hardest's millions of solves — skip both the path
+    # reconstruction and the O(|states|) visited-dict copy, which they discard.
+    if not need_path:
+        return {"switches": total, "path": None, "visited": None}
+
     path = _reconstruct_fwd(fwd_parent, meeting_sid, workspace, unpack) + _reconstruct_bwd(
         bwd_parent, meeting_sid, workspace, unpack
     )

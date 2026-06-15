@@ -29,7 +29,7 @@ from src.canonical import (
 from src.directories import get_plots_dir
 from src.frontier import initial_frontier as _initial_frontier
 from src.lru import LRUCache
-from src.memory import MB, MemoryGuard, plan_budget, rss_bytes, tree_rss_bytes
+from src.memory import MB, MemoryGuard, SpillableSet, plan_budget, rss_bytes, tree_rss_bytes
 from src.solver import Solver
 from src.visualizer import plot_proof as _plot_proof
 from src.workspace import Workspace
@@ -39,6 +39,15 @@ from src.workspace import Workspace
 # _set_transform_tables, so each process keeps itself under its share of the
 # global --max-mb budget. None disables the guard.
 _MEM_BUDGET_BYTES = None
+
+# `visited` dedup-set RAM control. The in-RAM buffer holds up to `ram_cap`
+# canonical keys, then spills to disk. ram_cap = max(floor, budget_share / key
+# bytes): a fixed floor so tiny searches never spill (they fit in RAM and stay
+# fast), or a slice of the per-process budget for big searches. A search whose
+# total unique-key count never exceeds ram_cap never opens the disk file.
+_VISITED_KEY_BYTES = 200  # rough resident bytes per canonical key
+_VISITED_BUDGET_SHARE = 0.40  # fraction of the per-process budget for visited
+_VISITED_RAM_FLOOR = 100_000  # never spill below this many keys
 
 # The dig-search calls these helpers by their old private names; bind the moved
 # implementations (now on Workspace) so all call sites and the hot loop stay
@@ -51,12 +60,12 @@ _valid_block_positions = Workspace.valid_block_positions
 def _solve_payload(payload):
     """Worker function: rebuild workspace and run solver.
     Used by the batch-parallel solver pool in dig_search.
-    Payload: (rows, cols, n, free_cells_frozen, pos_a, pos_b, goal_a, goal_b)
+    Payload: (rows, cols, n, free_cells, pos_a, pos_b, goal_a, goal_b)
     Returns: (solvable, switches)
     """
     rows, cols, n, free_cells, pos_a, pos_b, goal_a, goal_b = payload
     ws = _build_workspace(rows, cols, set(free_cells), pos_a, pos_b, n)
-    res = Solver(ws, goal_a, goal_b).solve()
+    res = Solver(ws, goal_a, goal_b).solve(need_path=False)
     return res.solvable, res.switches
 
 
@@ -246,6 +255,12 @@ def dig_search(
 ):
     goal_a, goal_b = pos_b, pos_a
 
+    # `valid` (all n*n block positions) is consumed only by the strip strategy;
+    # the default single-cell strategy reads `frontier` instead. So recompute it
+    # per node only when the active strategy actually needs it.
+    need_valid = dig_options is _dig_options_n_strip
+    budget = mem_budget_bytes if mem_budget_bytes is not None else _MEM_BUDGET_BYTES
+
     block_a = _robot_block(pos_a, n)
     block_b = _robot_block(pos_b, n)
 
@@ -263,7 +278,17 @@ def dig_search(
         for k in range(_N_KINDS)  # type: ignore
     )
 
-    visited = set()
+    # Dedup set with a hard RAM ceiling: it spills to an on-disk sqlite table
+    # once its in-RAM buffer fills, so it cannot grow without bound on a large
+    # search. See the _VISITED_* constants. Unbounded fallback when no budget.
+    if budget:
+        visited_cap = max(
+            _VISITED_RAM_FLOOR, int(budget * _VISITED_BUDGET_SHARE / _VISITED_KEY_BYTES)
+        )
+    else:
+        visited_cap = 20_000_000
+    visited = SpillableSet(ram_cap=visited_cap)
+
     # Min-heap priority queue of (depth, seq, free_key) entries.
     #   depth    -> primary key; preserves layered-BFS ordering.
     #   seq      -> unique tie-break so Python never compares the int payloads.
@@ -295,9 +320,7 @@ def dig_search(
     first_solvable_depth = None
 
     t_canon = 0.0
-    t_sync = 0.0
     t_solver = 0.0
-    t_frontier = 0.0
     nodes_visited = 0
     solver_calls = 0
     expansions_total = 0
@@ -319,7 +342,6 @@ def dig_search(
     from src.bfs import _clear_caches
     from src.bfs import shrink_caches as _shrink_caches
 
-    budget = mem_budget_bytes if mem_budget_bytes is not None else _MEM_BUDGET_BYTES
     guard = MemoryGuard(budget, relief=(_clear_caches, _shrink_caches)) if budget else None
 
     while queue:
@@ -363,23 +385,25 @@ def dig_search(
                     )
                 # Rebuild the heavy per-node structures from the compact key;
                 # the queue stores only free_key_int to keep memory bounded.
+                # `valid` is skipped unless the active strategy needs it.
                 free_cells = _decode_free_key(free_key_int, cols)
                 frontier = _initial_frontier(rows, cols, free_cells)
-                valid = _valid_block_positions(rows, cols, free_cells, n)
+                valid = _valid_block_positions(rows, cols, free_cells, n) if need_valid else None
                 tf = _tf_from_cells(free_cells)
-                free_key = frozenset(free_cells)
 
                 # Every node is solved directly. (The old reach-ignoring-the-
                 # other-robot precheck was a no-op for edge-adjacent placements
                 # and only pruned trivially-unsolvable corner/partial nodes that
-                # the solver rejects anyway, so it was removed.)
-                need_solve_payloads.append((rows, cols, n, free_key, pos_a, pos_b, goal_a, goal_b))
+                # the solver rejects anyway, so it was removed.)  The solver
+                # accepts the plain free-cell set, so no frozenset copy is made.
+                need_solve_payloads.append(
+                    (rows, cols, n, free_cells, pos_a, pos_b, goal_a, goal_b)
+                )
                 need_solve_indices.append(len(layer_records))
 
                 layer_records.append(
                     {
                         "free_cells": free_cells,
-                        "free_key": free_key,
                         "frontier": frontier,
                         "valid": valid,
                         "tf": tf,
@@ -398,7 +422,7 @@ def dig_search(
                     for p in need_solve_payloads:
                         _rows, _cols, _n, fk, _pa, _pb, _ga, _gb = p
                         sync_tiles_to(set(fk))
-                        result = Solver(shared_ws, goal_a, goal_b).solve()
+                        result = Solver(shared_ws, goal_a, goal_b).solve(need_path=False)
                         batch_results.append((result.solvable, result.switches))
                 t_solver += time.perf_counter() - t0
                 solver_calls += len(need_solve_payloads)
@@ -410,7 +434,6 @@ def dig_search(
             for rec in layer_records:
                 depth = rec["depth"]
                 free_cells = rec["free_cells"]
-                free_key = rec["free_key"]
                 frontier = rec["frontier"]
                 valid = rec["valid"]
                 tf = rec["tf"]
@@ -423,8 +446,11 @@ def dig_search(
                             logs.append(f"    first solvable @ depth={depth}")
                         if res_switches is not None and res_switches > best_switches:
                             best_switches = res_switches
-                            best_free_max = free_key
-                            best_free_min = free_key
+                            # Immutable snapshot of the winning free set (built
+                            # only on the rare best-update, not every node).
+                            snapshot = frozenset(free_cells)
+                            best_free_max = snapshot
+                            best_free_min = snapshot
                             min_free_at_max = len(free_cells)
                             logs.append(
                                 f"    NEW MAX: {res_switches} (D:{depth}, F:{len(free_cells)})"
@@ -435,7 +461,7 @@ def dig_search(
                             and len(free_cells) < min_free_at_max
                         ):
                             min_free_at_max = len(free_cells)
-                            best_free_min = free_key
+                            best_free_min = frozenset(free_cells)
                             logs.append(
                                 f"    MIN-FREE witness: {len(free_cells)} (S:{res_switches})"
                             )
@@ -484,13 +510,14 @@ def dig_search(
     logs.append(
         f"    timings: total={t_total:.2f}s  solver={t_solver:.2f}s  "
         f"canon={t_canon:.2f}s  "
-        f"sync={t_sync:.2f}s  frontier={t_frontier:.2f}s  "
         f"nodes={nodes_visited}  solves={solver_calls}"
     )
     logs.append(
         f"    dedup:   expansions={expansions_total}  unique={unique_enqueued}  "
         f"symmetric_dropped={canon_dupes_skipped}  ({dedup_pct:.1f}% pruned)"
     )
+    disk_state = f"yes (spills={visited.spills})" if visited.disk_active else "no (fit in RAM)"
+    logs.append(f"    visited: ram_cap={visited_cap} keys  spilled_to_disk={disk_state}")
     logs.append(
         f"    prune:   solvable_nodes_pruned={solvable_prunes}  "
         f"immediate_children_skipped>={solvable_prune_children_skipped}"
@@ -508,6 +535,8 @@ def dig_search(
                 "relief_runs": guard.relief_runs,
                 "hard_breaches": guard.hard_breaches,
             }
+
+    visited.close()  # drop the on-disk dedup table (if one was created)
 
     if best_free_max is None or best_free_min is None:
         return None
@@ -1003,7 +1032,7 @@ if __name__ == "__main__":
     p.add_argument("--cols", type=int, default=3)
     p.add_argument("--n", type=int, default=1)
     p.add_argument("--depth", type=int, default=4)
-    p.add_argument("--processes", type=int, default=2)
+    p.add_argument("--processes", type=int, default=4)
     p.add_argument("--quiet", action="store_true")
     p.add_argument("--strategy", choices=list(DIG_STRATEGIES.keys()), default="single")
     p.add_argument(

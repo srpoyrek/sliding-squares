@@ -23,7 +23,9 @@ act on rather than a byte estimate.
 from __future__ import annotations
 
 import os
+import sqlite3
 import sys
+import tempfile
 
 MB = 1024 * 1024
 
@@ -229,3 +231,85 @@ class MemoryGuard:
             f"measures={self.measures} relief_runs={self.relief_runs} "
             f"hard_breaches={self.hard_breaches}"
         )
+
+
+# ── Disk-spilling set ────────────────────────────────────────────────────────
+
+
+class SpillableSet:
+    """A set whose resident memory is bounded: it keeps an in-RAM buffer and,
+    once that buffer exceeds `ram_cap` entries, flushes it to an on-disk sqlite
+    table and clears it. So no matter how many distinct elements are added, the
+    RAM it holds stays near `ram_cap` keys plus a small sqlite page cache.
+
+    Supports exactly the two operations the dig-search dedup needs:
+        key in s        # membership — checks the RAM buffer, then disk
+        s.add(key)      # insert (caller guarantees the key is new)
+
+    Membership is EXACT (complete dedup) — spilling only makes lookups slower,
+    never wrong. Keys must be repr-stable; tuples of ints qualify.
+
+    A search whose distinct-key count never exceeds `ram_cap` never opens the
+    database, so it is exactly as fast as a plain `set`. Call `close()` when done
+    to drop the temp file (it is reused across placements in one worker).
+    """
+
+    def __init__(self, ram_cap=1_000_000, tmp_dir=None):
+        self.ram_cap = max(1, int(ram_cap))
+        self._buf: set = set()
+        self._db = None
+        self._path = None
+        self._tmp_dir = tmp_dir
+        self.spills = 0
+        self.disk_active = False
+
+    def __contains__(self, key) -> bool:
+        if key in self._buf:
+            return True
+        if self._db is None:
+            return False
+        row = self._db.execute("SELECT 1 FROM seen WHERE k = ? LIMIT 1", (repr(key),)).fetchone()
+        return row is not None
+
+    def add(self, key) -> None:
+        self._buf.add(key)
+        if len(self._buf) >= self.ram_cap:
+            self._spill()
+
+    def _open(self) -> None:
+        fd, self._path = tempfile.mkstemp(suffix=".visited.sqlite", dir=self._tmp_dir)
+        os.close(fd)
+        self._db = sqlite3.connect(self._path)
+        # Durability is irrelevant — this is a scratch dedup table — so disable
+        # journaling/fsync for speed, and cap the page cache so the DB's own RAM
+        # use stays bounded too (~16 MB).
+        self._db.execute("PRAGMA journal_mode = OFF")
+        self._db.execute("PRAGMA synchronous = OFF")
+        self._db.execute("PRAGMA cache_size = -16384")
+        self._db.execute("CREATE TABLE IF NOT EXISTS seen (k TEXT PRIMARY KEY)")
+        self.disk_active = True
+
+    def _spill(self) -> None:
+        if self._db is None:
+            self._open()
+        self._db.executemany(
+            "INSERT OR IGNORE INTO seen(k) VALUES (?)", ((repr(k),) for k in self._buf)
+        )
+        self._db.commit()
+        self._buf.clear()
+        self.spills += 1
+
+    def close(self) -> None:
+        if self._db is not None:
+            try:
+                self._db.close()
+            except Exception:
+                pass
+            self._db = None
+            if self._path and os.path.exists(self._path):
+                try:
+                    os.remove(self._path)
+                except Exception:
+                    pass
+            self._path = None
+        self._buf.clear()
