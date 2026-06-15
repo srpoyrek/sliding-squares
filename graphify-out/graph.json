@@ -9,7 +9,7 @@
       "source_file": "demo_solver.py",
       "source_location": "L1",
       "id": "demo_solver_py",
-      "community": 14,
+      "community": 17,
       "norm_label": "demo_solver.py"
     },
     {
@@ -18,7 +18,7 @@
       "source_file": "demo_validator.py",
       "source_location": "L1",
       "id": "demo_validator_py",
-      "community": 10,
+      "community": 9,
       "norm_label": "demo_validator.py"
     },
     {
@@ -27,7 +27,7 @@
       "source_file": "demo_validator.py",
       "source_location": "L1",
       "id": "demo_validator_rationale_1",
-      "community": 10,
+      "community": 9,
       "norm_label": "demo_validator.py ----------------- manual demo for the validator."
     },
     {
@@ -918,7 +918,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L1",
       "id": "src_directories_py",
-      "community": 6,
+      "community": 4,
       "norm_label": "directories.py"
     },
     {
@@ -927,7 +927,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L24",
       "id": "directories_get_src_dir",
-      "community": 6,
+      "community": 4,
       "norm_label": "get_src_dir()"
     },
     {
@@ -936,7 +936,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L29",
       "id": "directories_get_project_root",
-      "community": 6,
+      "community": 4,
       "norm_label": "get_project_root()"
     },
     {
@@ -945,7 +945,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L37",
       "id": "directories_get_plots_dir",
-      "community": 6,
+      "community": 4,
       "norm_label": "get_plots_dir()"
     },
     {
@@ -954,7 +954,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L44",
       "id": "directories_get_data_dir",
-      "community": 6,
+      "community": 4,
       "norm_label": "get_data_dir()"
     },
     {
@@ -963,7 +963,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L51",
       "id": "directories_get_testcases_dir",
-      "community": 6,
+      "community": 4,
       "norm_label": "get_testcases_dir()"
     },
     {
@@ -972,7 +972,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L61",
       "id": "directories_plots_path",
-      "community": 6,
+      "community": 4,
       "norm_label": "plots_path()"
     },
     {
@@ -981,7 +981,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L66",
       "id": "directories_data_path",
-      "community": 6,
+      "community": 4,
       "norm_label": "data_path()"
     },
     {
@@ -990,7 +990,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L71",
       "id": "directories_testcases_path",
-      "community": 6,
+      "community": 4,
       "norm_label": "testcases_path()"
     },
     {
@@ -999,7 +999,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L1",
       "id": "directories_rationale_1",
-      "community": 6,
+      "community": 4,
       "norm_label": "directories.py -------- central place for all project directory paths.  ever"
     },
     {
@@ -1008,7 +1008,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L25",
       "id": "directories_rationale_25",
-      "community": 6,
+      "community": 4,
       "norm_label": "absolute path to src/ (where this file lives)."
     },
     {
@@ -1017,7 +1017,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L30",
       "id": "directories_rationale_30",
-      "community": 6,
+      "community": 4,
       "norm_label": "absolute path to the project root (one level above src/)."
     },
     {
@@ -1026,7 +1026,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L38",
       "id": "directories_rationale_38",
-      "community": 6,
+      "community": 4,
       "norm_label": "absolute path to plots/. created if it doesn't exist."
     },
     {
@@ -1035,7 +1035,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L45",
       "id": "directories_rationale_45",
-      "community": 6,
+      "community": 4,
       "norm_label": "absolute path to data/. created if it doesn't exist."
     },
     {
@@ -1044,7 +1044,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L52",
       "id": "directories_rationale_52",
-      "community": 6,
+      "community": 4,
       "norm_label": "absolute path to testcases/. created if it doesn't exist."
     },
     {
@@ -1053,7 +1053,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L62",
       "id": "directories_rationale_62",
-      "community": 6,
+      "community": 4,
       "norm_label": "full path for a file in plots/.  e.g. plots_path('start.png')"
     },
     {
@@ -1062,7 +1062,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L67",
       "id": "directories_rationale_67",
-      "community": 6,
+      "community": 4,
       "norm_label": "full path for a file in data/.  e.g. data_path('grid_01.json')"
     },
     {
@@ -1071,7 +1071,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L72",
       "id": "directories_rationale_72",
-      "community": 6,
+      "community": 4,
       "norm_label": "full path for a file in testcases/.  e.g. testcases_path('test.json')"
     },
     {
@@ -1080,7 +1080,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L1",
       "id": "src_grid_py",
-      "community": 7,
+      "community": 8,
       "norm_label": "grid.py"
     },
     {
@@ -1089,7 +1089,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L18",
       "id": "grid_grid",
-      "community": 7,
+      "community": 8,
       "norm_label": "grid"
     },
     {
@@ -1098,7 +1098,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L32",
       "id": "grid_grid_init",
-      "community": 7,
+      "community": 8,
       "norm_label": ".__init__()"
     },
     {
@@ -1107,7 +1107,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L61",
       "id": "grid_grid_add_hole",
-      "community": 9,
+      "community": 10,
       "norm_label": ".add_hole()"
     },
     {
@@ -1116,7 +1116,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L68",
       "id": "grid_grid_add_boundary",
-      "community": 9,
+      "community": 10,
       "norm_label": ".add_boundary()"
     },
     {
@@ -1125,7 +1125,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L75",
       "id": "grid_grid_add_rect_boundary",
-      "community": 9,
+      "community": 10,
       "norm_label": ".add_rect_boundary()"
     },
     {
@@ -1134,7 +1134,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L88",
       "id": "grid_grid_get_holes",
-      "community": 7,
+      "community": 8,
       "norm_label": ".get_holes()"
     },
     {
@@ -1143,7 +1143,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L92",
       "id": "grid_grid_get_boundaries",
-      "community": 7,
+      "community": 8,
       "norm_label": ".get_boundaries()"
     },
     {
@@ -1152,7 +1152,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L96",
       "id": "grid_grid_get_all_obstacles",
-      "community": 7,
+      "community": 8,
       "norm_label": ".get_all_obstacles()"
     },
     {
@@ -1161,7 +1161,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L102",
       "id": "grid_grid_in_bounds",
-      "community": 8,
+      "community": 6,
       "norm_label": ".in_bounds()"
     },
     {
@@ -1170,7 +1170,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L106",
       "id": "grid_grid_is_free",
-      "community": 8,
+      "community": 6,
       "norm_label": ".is_free()"
     },
     {
@@ -1179,7 +1179,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L110",
       "id": "grid_grid_is_boundary",
-      "community": 8,
+      "community": 6,
       "norm_label": ".is_boundary()"
     },
     {
@@ -1188,7 +1188,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L114",
       "id": "grid_grid_is_hole",
-      "community": 8,
+      "community": 6,
       "norm_label": ".is_hole()"
     },
     {
@@ -1197,7 +1197,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L118",
       "id": "grid_grid_is_obstacle",
-      "community": 8,
+      "community": 6,
       "norm_label": ".is_obstacle()"
     },
     {
@@ -1206,7 +1206,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L124",
       "id": "grid_grid_display",
-      "community": 7,
+      "community": 8,
       "norm_label": ".display()"
     },
     {
@@ -1215,7 +1215,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L134",
       "id": "grid_grid_repr",
-      "community": 7,
+      "community": 8,
       "norm_label": ".__repr__()"
     },
     {
@@ -1224,7 +1224,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L1",
       "id": "grid_rationale_1",
-      "community": 7,
+      "community": 8,
       "norm_label": "grid.py ------- the physical environment \u2014 a 2d map of free tiles and obstacle"
     },
     {
@@ -1233,7 +1233,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L19",
       "id": "grid_rationale_19",
-      "community": 7,
+      "community": 8,
       "norm_label": "2d grid of tiles.       0 = free       1 = boundary (perimeter wall)      -1"
     },
     {
@@ -1242,7 +1242,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L62",
       "id": "grid_rationale_62",
-      "community": 9,
+      "community": 10,
       "norm_label": "set a rectangle of cells as internal holes/islands."
     },
     {
@@ -1251,7 +1251,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L69",
       "id": "grid_rationale_69",
-      "community": 9,
+      "community": 10,
       "norm_label": "set a rectangle of cells as boundary \u2014 same as add_hole but marks as boundary."
     },
     {
@@ -1260,7 +1260,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L76",
       "id": "grid_rationale_76",
-      "community": 9,
+      "community": 10,
       "norm_label": "draw the full perimeter of the grid as boundary."
     },
     {
@@ -1269,7 +1269,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L89",
       "id": "grid_rationale_89",
-      "community": 7,
+      "community": 8,
       "norm_label": "return set of all hole cell positions (row, col)."
     },
     {
@@ -1278,7 +1278,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L93",
       "id": "grid_rationale_93",
-      "community": 7,
+      "community": 8,
       "norm_label": "return set of all boundary cell positions (row, col)."
     },
     {
@@ -1287,7 +1287,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L97",
       "id": "grid_rationale_97",
-      "community": 7,
+      "community": 8,
       "norm_label": "return set of all obstacle positions \u2014 both holes and boundaries."
     },
     {
@@ -1296,7 +1296,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L103",
       "id": "grid_rationale_103",
-      "community": 8,
+      "community": 6,
       "norm_label": "is (row, col) within the grid?"
     },
     {
@@ -1305,7 +1305,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L107",
       "id": "grid_rationale_107",
-      "community": 8,
+      "community": 6,
       "norm_label": "is (row, col) in bounds and not an obstacle?"
     },
     {
@@ -1314,7 +1314,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L111",
       "id": "grid_rationale_111",
-      "community": 8,
+      "community": 6,
       "norm_label": "is (row, col) a boundary wall?"
     },
     {
@@ -1323,7 +1323,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L115",
       "id": "grid_rationale_115",
-      "community": 8,
+      "community": 6,
       "norm_label": "is (row, col) an internal hole / island?"
     },
     {
@@ -1332,7 +1332,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L119",
       "id": "grid_rationale_119",
-      "community": 8,
+      "community": 6,
       "norm_label": "is (row, col) out of bounds or any kind of obstacle?"
     },
     {
@@ -1341,7 +1341,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L125",
       "id": "grid_rationale_125",
-      "community": 7,
+      "community": 8,
       "norm_label": "print the raw grid. '.' = free, '#' = boundary, 'o' = hole."
     },
     {
@@ -1467,7 +1467,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L1",
       "id": "src_path_resolver_py",
-      "community": 10,
+      "community": 9,
       "norm_label": "path_resolver.py"
     },
     {
@@ -1476,7 +1476,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L23",
       "id": "path_resolver_pathresolver",
-      "community": 10,
+      "community": 9,
       "norm_label": "pathresolver"
     },
     {
@@ -1485,7 +1485,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L24",
       "id": "path_resolver_pathresolver_init",
-      "community": 10,
+      "community": 9,
       "norm_label": ".__init__()"
     },
     {
@@ -1494,7 +1494,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L27",
       "id": "path_resolver_pathresolver_resolve",
-      "community": 10,
+      "community": 9,
       "norm_label": ".resolve()"
     },
     {
@@ -1503,7 +1503,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L55",
       "id": "path_resolver_pathresolver_parse_segment",
-      "community": 10,
+      "community": 9,
       "norm_label": "._parse_segment()"
     },
     {
@@ -1512,7 +1512,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L1",
       "id": "path_resolver_rationale_1",
-      "community": 10,
+      "community": 9,
       "norm_label": "path_resolver.py ---------------- converts compact path strings into flat comm"
     },
     {
@@ -1521,7 +1521,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L28",
       "id": "path_resolver_rationale_28",
-      "community": 10,
+      "community": 9,
       "norm_label": "convert compact path string(s) to flat command list.          accepts:"
     },
     {
@@ -1530,7 +1530,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L56",
       "id": "path_resolver_rationale_56",
-      "community": 10,
+      "community": 9,
       "norm_label": "parse a single segment like '12r2us'."
     },
     {
@@ -1917,7 +1917,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L33",
       "id": "test_case_testcase",
-      "community": 4,
+      "community": 7,
       "norm_label": "testcase"
     },
     {
@@ -1926,7 +1926,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L53",
       "id": "test_case_testcase_setup",
-      "community": 4,
+      "community": 7,
       "norm_label": ".setup()"
     },
     {
@@ -1944,7 +1944,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L34",
       "id": "test_case_rationale_34",
-      "community": 4,
+      "community": 7,
       "norm_label": "subclass this and implement setup().      minimal example:          class my"
     },
     {
@@ -2286,7 +2286,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L52",
       "id": "workspace_workspace_robot_fits_at",
-      "community": 8,
+      "community": 6,
       "norm_label": ".robot_fits_at()"
     },
     {
@@ -2295,7 +2295,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L65",
       "id": "workspace_workspace_robots_overlap",
-      "community": 8,
+      "community": 6,
       "norm_label": ".robots_overlap()"
     },
     {
@@ -2304,7 +2304,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L81",
       "id": "workspace_workspace_can_move",
-      "community": 8,
+      "community": 6,
       "norm_label": ".can_move()"
     },
     {
@@ -2313,7 +2313,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L104",
       "id": "workspace_workspace_do_move",
-      "community": 8,
+      "community": 6,
       "norm_label": ".do_move()"
     },
     {
@@ -2331,7 +2331,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L130",
       "id": "workspace_workspace_load_state",
-      "community": 5,
+      "community": 8,
       "norm_label": ".load_state()"
     },
     {
@@ -2367,7 +2367,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L53",
       "id": "workspace_rationale_53",
-      "community": 8,
+      "community": 6,
       "norm_label": "would robot fit at (row, col) without hitting any obstacle or wall?         doe"
     },
     {
@@ -2376,7 +2376,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L68",
       "id": "workspace_rationale_68",
-      "community": 8,
+      "community": 6,
       "norm_label": "would two robots overlap?         each robot has its own size (n_a, n_b) \u2014 they"
     },
     {
@@ -2385,7 +2385,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L82",
       "id": "workspace_rationale_82",
-      "community": 8,
+      "community": 6,
       "norm_label": "can `robot` move one step in `direction`?         checks: grid fit + no collisi"
     },
     {
@@ -2394,7 +2394,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L105",
       "id": "workspace_rationale_105",
-      "community": 8,
+      "community": 6,
       "norm_label": "move `robot` one step in `direction` if valid.         returns true if move was"
     },
     {
@@ -2412,7 +2412,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L131",
       "id": "workspace_rationale_131",
-      "community": 5,
+      "community": 8,
       "norm_label": "restore robot positions from a state snapshot.         bfs uses this to backtra"
     },
     {
@@ -2421,7 +2421,7 @@
       "source_file": "src\\__init__.py",
       "source_location": "L1",
       "id": "src_init_py",
-      "community": 15,
+      "community": 18,
       "norm_label": "__init__.py"
     },
     {
@@ -2430,7 +2430,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_1x1_robot_no_holes_py",
-      "community": 13,
+      "community": 14,
       "norm_label": "1x1_robot_no_holes.py"
     },
     {
@@ -2439,7 +2439,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L20",
       "id": "1x1_robot_no_holes_onebyonenoholes",
-      "community": 13,
+      "community": 14,
       "norm_label": "onebyonenoholes"
     },
     {
@@ -2448,7 +2448,7 @@
       "source_file": "",
       "source_location": "",
       "id": "testcase",
-      "community": 4,
+      "community": 7,
       "norm_label": "testcase"
     },
     {
@@ -2457,7 +2457,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L23",
       "id": "1x1_robot_no_holes_onebyonenoholes_setup",
-      "community": 13,
+      "community": 14,
       "norm_label": ".setup()"
     },
     {
@@ -2466,7 +2466,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L1",
       "id": "1x1_robot_no_holes_rationale_1",
-      "community": 13,
+      "community": 14,
       "norm_label": "1x1_robot_no_holes.py ------------------- trivial 1x1 swap with a pocket."
     },
     {
@@ -2475,7 +2475,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_2x2_robot_holes_py",
-      "community": 9,
+      "community": 7,
       "norm_label": "2x2_robot_holes.py"
     },
     {
@@ -2484,7 +2484,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L21",
       "id": "2x2_robot_holes_twobytwoholes",
-      "community": 9,
+      "community": 7,
       "norm_label": "twobytwoholes"
     },
     {
@@ -2493,7 +2493,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L24",
       "id": "2x2_robot_holes_twobytwoholes_setup",
-      "community": 9,
+      "community": 10,
       "norm_label": ".setup()"
     },
     {
@@ -2502,7 +2502,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L1",
       "id": "2x2_robot_holes_rationale_1",
-      "community": 9,
+      "community": 7,
       "norm_label": "2x2_robot_holes.py ------------------- test case for a 2x2 robot scenario with"
     },
     {
@@ -2511,7 +2511,7 @@
       "source_file": "testcases\\2x2_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_2x2_robot_no_holes_py",
-      "community": 4,
+      "community": 15,
       "norm_label": "2x2_robot_no_holes.py"
     },
     {
@@ -2520,7 +2520,7 @@
       "source_file": "testcases\\2x2_robot_no_holes.py",
       "source_location": "L21",
       "id": "2x2_robot_no_holes_twobytwonoholes",
-      "community": 4,
+      "community": 15,
       "norm_label": "twobytwonoholes"
     },
     {
@@ -2529,7 +2529,7 @@
       "source_file": "testcases\\2x2_robot_no_holes.py",
       "source_location": "L24",
       "id": "2x2_robot_no_holes_twobytwonoholes_setup",
-      "community": 9,
+      "community": 15,
       "norm_label": ".setup()"
     },
     {
@@ -2538,7 +2538,7 @@
       "source_file": "testcases\\2x2_robot_no_holes.py",
       "source_location": "L1",
       "id": "2x2_robot_no_holes_rationale_1",
-      "community": 4,
+      "community": 15,
       "norm_label": "2x2_robot_no_holes.py ------------------- test case for a 2x2 robot scenario w"
     },
     {
@@ -2547,7 +2547,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_3x3_robot_holes_py",
-      "community": 4,
+      "community": 7,
       "norm_label": "3x3_robot_holes.py"
     },
     {
@@ -2556,7 +2556,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L21",
       "id": "3x3_robot_holes_threebythreeholes",
-      "community": 4,
+      "community": 7,
       "norm_label": "threebythreeholes"
     },
     {
@@ -2565,7 +2565,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L24",
       "id": "3x3_robot_holes_threebythreeholes_setup",
-      "community": 9,
+      "community": 10,
       "norm_label": ".setup()"
     },
     {
@@ -2574,7 +2574,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L1",
       "id": "3x3_robot_holes_rationale_1",
-      "community": 4,
+      "community": 7,
       "norm_label": "3x3_robot_holes.py ------------------- test case for a 3x3 robot scenario with"
     },
     {
@@ -2583,7 +2583,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_3x3_robot_no_holes_py",
-      "community": 4,
+      "community": 7,
       "norm_label": "3x3_robot_no_holes.py"
     },
     {
@@ -2592,7 +2592,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L21",
       "id": "3x3_robot_no_holes_threebythreenoholes",
-      "community": 4,
+      "community": 7,
       "norm_label": "threebythreenoholes"
     },
     {
@@ -2601,7 +2601,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L24",
       "id": "3x3_robot_no_holes_threebythreenoholes_setup",
-      "community": 4,
+      "community": 7,
       "norm_label": ".setup()"
     },
     {
@@ -2610,7 +2610,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L1",
       "id": "3x3_robot_no_holes_rationale_1",
-      "community": 4,
+      "community": 7,
       "norm_label": "3x3_robot_no_holes.py ------------------- test case for a 3x3 robot scenario w"
     },
     {
@@ -2619,7 +2619,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_4x4_robot_holes_py",
-      "community": 4,
+      "community": 7,
       "norm_label": "4x4_robot_holes.py"
     },
     {
@@ -2628,7 +2628,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L21",
       "id": "4x4_robot_holes_fourbyfourholes",
-      "community": 4,
+      "community": 7,
       "norm_label": "fourbyfourholes"
     },
     {
@@ -2637,7 +2637,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L24",
       "id": "4x4_robot_holes_fourbyfourholes_setup",
-      "community": 9,
+      "community": 10,
       "norm_label": ".setup()"
     },
     {
@@ -2646,7 +2646,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L1",
       "id": "4x4_robot_holes_rationale_1",
-      "community": 4,
+      "community": 7,
       "norm_label": "4x4_robot_holes.py ------------------- test case for a 4x4 robot scenario with"
     },
     {
@@ -2655,7 +2655,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_4x4_robot_no_holes_py",
-      "community": 4,
+      "community": 13,
       "norm_label": "4x4_robot_no_holes.py"
     },
     {
@@ -2664,7 +2664,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L21",
       "id": "4x4_robot_no_holes_fourbyfournoholes",
-      "community": 4,
+      "community": 13,
       "norm_label": "fourbyfournoholes"
     },
     {
@@ -2673,7 +2673,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L24",
       "id": "4x4_robot_no_holes_fourbyfournoholes_setup",
-      "community": 4,
+      "community": 13,
       "norm_label": ".setup()"
     },
     {
@@ -2682,7 +2682,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L1",
       "id": "4x4_robot_no_holes_rationale_1",
-      "community": 4,
+      "community": 13,
       "norm_label": "4x4_robot_no_holes.py ------------------- test case for a 4x4 robot scenario w"
     },
     {
@@ -2691,7 +2691,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_5x5_robot_no_holes_py",
-      "community": 7,
+      "community": 16,
       "norm_label": "5x5_robot_no_holes.py"
     },
     {
@@ -2700,7 +2700,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L21",
       "id": "5x5_robot_no_holes_fivebyfivenoholes",
-      "community": 7,
+      "community": 16,
       "norm_label": "fivebyfivenoholes"
     },
     {
@@ -2709,7 +2709,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L24",
       "id": "5x5_robot_no_holes_fivebyfivenoholes_setup",
-      "community": 7,
+      "community": 16,
       "norm_label": ".setup()"
     },
     {
@@ -2718,7 +2718,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L1",
       "id": "5x5_robot_no_holes_rationale_1",
-      "community": 7,
+      "community": 16,
       "norm_label": "5x5_robot_no_holes.py ------------------- test case for a 5x5 robot scenario w"
     }
   ],

@@ -583,6 +583,12 @@ if __name__ == "__main__":
         "edge down to its peak cell(s) — the cells tied for that edge's highest "
         "per-face contact count — removing the rest.",
     )
+    orange_mode.add_argument(
+        "--keep-all-orange",
+        action="store_true",
+        help="Keep every touched (orange) wall regardless of contact count; "
+        "only black walls are removed (and the grid cropped).",
+    )
     args = parser.parse_args()
 
     if args.name:
