@@ -344,6 +344,21 @@ def dig_search(
 
     guard = MemoryGuard(budget, relief=(_clear_caches, _shrink_caches)) if budget else None
 
+    # Hot-loop local bindings: in CPython a local variable is faster to access
+    # than a module global or an attribute lookup, and the names below are hit
+    # ~millions of times in the layer loops, so we bind them once here.
+    cell_bits = _CELL_BITS
+    n_kinds = _N_KINDS
+    decode_free = _decode_free_key
+    init_frontier = _initial_frontier
+    valid_positions_of = _valid_block_positions
+    tf_from_cells = _tf_from_cells
+    pack_mask = pack_cells_mask
+    heappush = heapq.heappush
+    perf = time.perf_counter
+    vis_add = visited.add
+    vis_has = visited.__contains__
+
     while queue:
         current_depth = queue[0][0]
         if (
@@ -385,11 +400,12 @@ def dig_search(
                     )
                 # Rebuild the heavy per-node structures from the compact key;
                 # the queue stores only free_key_int to keep memory bounded.
-                # `valid` is skipped unless the active strategy needs it.
-                free_cells = _decode_free_key(free_key_int, cols)
-                frontier = _initial_frontier(rows, cols, free_cells)
-                valid = _valid_block_positions(rows, cols, free_cells, n) if need_valid else None
-                tf = _tf_from_cells(free_cells)
+                # `valid` is skipped unless the active strategy needs it; `tf` is
+                # deferred to Phase 3 so it is built only for nodes that expand
+                # (solvable / depth-capped nodes never use it).
+                free_cells = decode_free(free_key_int, cols)
+                frontier = init_frontier(rows, cols, free_cells)
+                valid = valid_positions_of(rows, cols, free_cells, n) if need_valid else None
 
                 # Every node is solved directly. (The old reach-ignoring-the-
                 # other-robot precheck was a no-op for edge-adjacent placements
@@ -406,7 +422,6 @@ def dig_search(
                         "free_cells": free_cells,
                         "frontier": frontier,
                         "valid": valid,
-                        "tf": tf,
                         "depth": depth,
                         "solve": None,
                     }
@@ -436,7 +451,6 @@ def dig_search(
                 free_cells = rec["free_cells"]
                 frontier = rec["frontier"]
                 valid = rec["valid"]
-                tf = rec["tf"]
 
                 if rec["solve"] is not None:
                     solvable, res_switches = rec["solve"]
@@ -477,31 +491,40 @@ def dig_search(
                 ):
                     continue
 
+                # tf is needed only here (this node will expand); building it now
+                # instead of in Phase 1 skips it for solvable / depth-capped nodes.
+                tf = tf_from_cells(free_cells)
                 for cells_to_dig in dig_options(free_cells, frontier, valid, rows, cols, n):
                     expansions_total += 1
                     if guard is not None:
                         guard.tick()
                     new_free_set = free_cells | cells_to_dig
 
-                    t0 = time.perf_counter()
+                    t0 = perf()
                     new_tf_list = list(tf)
                     for c in cells_to_dig:
-                        bits = _CELL_BITS[c]  # type: ignore
-                        for k in range(_N_KINDS):  # type: ignore
+                        bits = cell_bits[c]
+                        for k in range(n_kinds):
                             new_tf_list[k] |= bits[k]
                     new_tf = tuple(new_tf_list)
-                    new_canon = _canonical_key(new_tf, seconds, thirds)
-                    t_canon += time.perf_counter() - t0
+                    # Inlined _canonical_key (saves ~one call per expansion):
+                    # the lexicographic min of (tf, second, third) over transforms.
+                    new_canon = (new_tf[0], seconds[0], thirds[0])
+                    for k in range(1, n_kinds):
+                        cand = (new_tf[k], seconds[k], thirds[k])
+                        if cand < new_canon:
+                            new_canon = cand
+                    t_canon += perf() - t0
 
-                    if new_canon in visited:
+                    if vis_has(new_canon):
                         canon_dupes_skipped += 1
                         continue
-                    visited.add(new_canon)
+                    vis_add(new_canon)
 
                     # Enqueue only the compact free-cell bitmask; frontier / valid
                     # / tf are rebuilt when this node is popped. This is what keeps
                     # the queue ~100x smaller and the whole search memory-bounded.
-                    heapq.heappush(queue, (depth + 1, seq, pack_cells_mask(new_free_set, cols)))
+                    heappush(queue, (depth + 1, seq, pack_mask(new_free_set, cols)))
                     seq += 1
 
     t_total = time.perf_counter() - t_start
@@ -648,13 +671,19 @@ class _MemoryMonitor:
     sees itself plus every worker child — exactly the total that must stay under
     --max-mb. Runs in a daemon thread; `stop()` returns the observed peak."""
 
-    def __init__(self, budget_mb, interval=2.0, verbose=True):
+    def __init__(self, budget_mb, interval=2.0, verbose=True, change_pct=0.05):
         self.budget_mb = float(budget_mb)
         self.interval = float(interval)
         self.verbose = verbose
+        # Only reprint once RSS moves by at least this fraction of the budget
+        # since the last printed line (so a steady run doesn't spam identical
+        # lines). Crossing the budget line always prints.
+        self.change_pct = float(change_pct)
         self.peak_mb = 0.0
         self._stop = threading.Event()
         self._thread = None
+        self._last_print_mb = None
+        self._last_over = False
 
     def _sample(self):
         cur = tree_rss_bytes() / MB
@@ -663,16 +692,25 @@ class _MemoryMonitor:
         return cur
 
     def _run(self):
+        threshold = max(1.0, self.change_pct * self.budget_mb)
         while not self._stop.wait(self.interval):
             cur = self._sample()
-            if self.verbose:
-                pct = (100.0 * cur / self.budget_mb) if self.budget_mb else 0.0
-                flag = "  <-- OVER BUDGET" if cur > self.budget_mb else ""
-                print(
-                    f"  [mem] tree RSS {cur:7.1f} MB / {self.budget_mb:.0f} MB "
-                    f"({pct:3.0f}%)  peak {self.peak_mb:7.1f} MB{flag}",
-                    flush=True,
-                )
+            if not self.verbose:
+                continue
+            over = cur > self.budget_mb
+            moved = self._last_print_mb is None or abs(cur - self._last_print_mb) >= threshold
+            crossed = over != self._last_over
+            if not (moved or crossed):
+                continue
+            pct = (100.0 * cur / self.budget_mb) if self.budget_mb else 0.0
+            flag = "  <-- OVER BUDGET" if over else ""
+            print(
+                f"  [mem] tree RSS {cur:7.1f} MB / {self.budget_mb:.0f} MB "
+                f"({pct:3.0f}%)  peak {self.peak_mb:7.1f} MB{flag}",
+                flush=True,
+            )
+            self._last_print_mb = cur
+            self._last_over = over
 
     def start(self):
         self._sample()  # prime an initial reading before workers ramp up
