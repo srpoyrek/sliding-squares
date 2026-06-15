@@ -5,9 +5,9 @@ Discovers all test cases in testcases/ and runs them.
 
 After each test passes we run a batch simplification pass:
   1. Aggregate the blocker heatmap from the validated solution.
-  2. Remove all black walls (zero contact). With --alternate, also remove
-     every other orange wall (nonzero contact, alternating in row-major
-     order).
+  2. Remove all black walls (zero contact). Optionally also thin the touched
+     "orange" walls: --alternate strips every other one (row-major), while
+     --keep-peaks keeps only each wall segment's highest-contact cell.
   3. Run the solver once on the simplified grid.
   4. If switches are preserved, save the simplified workspace into
      <plot_dir>/simplified/ alongside a comparison summary image.
@@ -17,7 +17,7 @@ Usage:
     python run_tests.py                       # run every test
     python run_tests.py <name>                # filter by substring
     python run_tests.py --alternate           # also strip every-other orange
-    python run_tests.py <name> --alternate
+    python run_tests.py --keep-peaks          # thin orange to per-segment peaks
 """
 
 from __future__ import annotations
@@ -37,8 +37,7 @@ from src.solver import Solver
 from src.test_case import TestCase, TestResult
 from src.validator import Validator
 from src.visualizer import (
-    _contact_along_turn,
-    _extract_turns,
+    _compute_contact_at,
     draw_sequence,
     draw_summary,
 )
@@ -51,16 +50,32 @@ sys.path.insert(0, BASE_DIR)
 # ── Batch simplification (black + every-other-orange wall removal) ─────
 
 
-def _aggregate_wall_counts(grid, snapshots, titles):
-    """Sum robot-face contact per wall cell across every turn."""
-    pairs = [[a, b] for a, b in snapshots]
-    turns = _extract_turns(pairs, titles)
+def _aggregate_wall_counts(grid, snapshots):
+    """Count wall contact at every step, for both robots — including the
+    initial placement and the stationary robot's bracing at each step.
+
+    Returns (counts, face_counts):
+      counts      : (row, col) -> total contacts (the heatmap number)
+      face_counts : (row, col, wall_face) -> contacts on that single face
+    """
+    opposite = {"N": "S", "S": "N", "E": "W", "W": "E"}
     counts: dict = {}
-    for turn in turns:
-        turn_walls, _ = _contact_along_turn(grid, turn)
-        for cell, hits in turn_walls.items():
-            counts[cell] = counts.get(cell, 0) + hits
-    return counts
+    face_counts: dict = {}
+
+    def _tally(robot, other):
+        _, face_walls = _compute_contact_at(grid, robot.row, robot.col, robot.n, other)
+        for robot_side, walls in face_walls.items():
+            wall_side = opposite[robot_side]
+            for wc in walls:
+                counts[wc] = counts.get(wc, 0) + 1
+                fkey = (wc[0], wc[1], wall_side)
+                face_counts[fkey] = face_counts.get(fkey, 0) + 1
+
+    for a, b in snapshots:
+        _tally(a, b)
+        _tally(b, a)
+
+    return counts, face_counts
 
 
 def _count_walls(grid):
@@ -76,41 +91,162 @@ def _build_workspace_from_tiles(tiles, ref_ws):
     return Workspace(grid, a, b)
 
 
-def simplify_workspace(ws, contact_counts, remove_alternate_orange=False):
-    """Wall-removal simplification driven by the contact heatmap:
+def _orange_peak_keepers(face_counts):
+    """Touched-wall cells to KEEP when thinning each side down to its peak.
 
-      - Always: remove every black wall (contact count == 0).
-      - If `remove_alternate_orange` is True: also remove every other
-        orange wall (contact count > 0), in row-major order — start
-        with the first orange cell and skip every second.
+    Split the touched walls into per-face straight edges: a cell pressed on
+    its E/W face belongs to a vertical edge (group by column, consecutive
+    rows); on its N/S face, a horizontal edge (group by row, consecutive
+    cols). On each edge keep the cell(s) tied for the highest per-face contact
+    count and drop the rest. A cell touched on two faces belongs to two edges
+    and survives if it is a peak of either.
+
+    `face_counts` maps (row, col, wall_face) -> contacts on that one face.
+    """
+    edges: dict = {}
+    for (r, c, face), cnt in face_counts.items():
+        if face in ("E", "W"):  # vertical wall: cells share a column
+            edges.setdefault((face, c), []).append((r, r, c, cnt))
+        else:  # "N"/"S" horizontal wall: cells share a row
+            edges.setdefault((face, r), []).append((c, r, c, cnt))
+
+    def _keep_run(run, out):
+        peak = max(item[3] for item in run)
+        out.extend((item[1], item[2]) for item in run if item[3] == peak)
+
+    keepers: list = []
+    for cells in edges.values():
+        cells.sort()
+        run = [cells[0]]
+        for prev, cur in zip(cells, cells[1:]):
+            if cur[0] == prev[0] + 1:
+                run.append(cur)
+            else:
+                _keep_run(run, keepers)
+                run = [cur]
+        _keep_run(run, keepers)
+    return keepers
+
+
+def _protected_walls(grid, ws, goal_a, goal_b):
+    """Wall cells the robots rest against at their start and goal positions.
+    These braces are always kept — thinning must not delete them.
+    """
+    n = ws.robot_a.n
+    a_goal = Robot(ws.robot_a.label, n, *goal_a)
+    b_goal = Robot(ws.robot_b.label, n, *goal_b)
+    placements = [
+        (ws.robot_a, ws.robot_b),
+        (ws.robot_b, ws.robot_a),
+        (a_goal, b_goal),
+        (b_goal, a_goal),
+    ]
+    protected = set()
+    for robot, other in placements:
+        _, face_walls = _compute_contact_at(grid, robot.row, robot.col, robot.n, other)
+        for walls in face_walls.values():
+            protected.update(walls)
+    return protected
+
+
+def _crop_bounds(tiles):
+    """Fully-wall rows/cols to peel from each side: (top, bottom, left, right).
+    The grid edge bounds the robot like a wall, so an all-wall border is
+    redundant and can be cropped away losslessly.
+    """
+    rows, cols = len(tiles), len(tiles[0])
+    top = bottom = left = right = 0
+    changed = True
+    while changed:
+        changed = False
+        if top < rows - bottom and all(tiles[top][c] != 0 for c in range(left, cols - right)):
+            top += 1
+            changed = True
+        if bottom < rows - top and all(
+            tiles[rows - 1 - bottom][c] != 0 for c in range(left, cols - right)
+        ):
+            bottom += 1
+            changed = True
+        if left < cols - right and all(tiles[r][left] != 0 for r in range(top, rows - bottom)):
+            left += 1
+            changed = True
+        if right < cols - left and all(
+            tiles[r][cols - 1 - right] != 0 for r in range(top, rows - bottom)
+        ):
+            right += 1
+            changed = True
+    return top, bottom, left, right
+
+
+def simplify_workspace(
+    ws,
+    contact_counts,
+    face_counts=None,
+    remove_alternate_orange=False,
+    keep_orange_peaks=False,
+    protected=None,
+):
+    """Wall-removal simplification driven by the contact heatmap.
+
+    All black walls (contact count == 0) are removed. Touched "orange" walls
+    (contact count > 0) are thinned, by at most one strategy:
+
+      - `keep_orange_peaks`: split the touched walls into per-face straight
+        edges and, on each, keep only the peak cell(s) — every cell tied for
+        that edge's highest per-face contact count — removing the rest
+        (needs `face_counts`).
+      - `remove_alternate_orange`: remove every other orange wall in
+        row-major order (the first cell, then skip every second).
+
+    If both are set, `keep_orange_peaks` wins; with neither, orange is kept.
+    Cells in `protected` are exempt from all removal (e.g. walls the robots
+    rest against at their start/goal positions).
 
     Returns (simplified_workspace, removed_black, removed_orange).
     """
     rows, cols = ws.grid.rows, ws.grid.cols
     new_tiles = [row[:] for row in ws.grid.tiles]
 
-    black_cells = []
-    orange_cells = []
-    for r in range(rows):
-        for c in range(cols):
-            if new_tiles[r][c] == 0:
-                continue
-            if contact_counts.get((r, c), 0) == 0:
-                black_cells.append((r, c))
-            else:
-                orange_cells.append((r, c))
+    orange_cells = [
+        (r, c)
+        for r in range(rows)
+        for c in range(cols)
+        if new_tiles[r][c] != 0 and contact_counts.get((r, c), 0) > 0
+    ]
 
     removed_orange = []
-    if remove_alternate_orange:
+    if keep_orange_peaks:
+        keepers = set(_orange_peak_keepers(face_counts or {}))
+        removed_orange = [cell for cell in orange_cells if cell not in keepers]
+    elif remove_alternate_orange:
         orange_cells.sort()
         removed_orange = orange_cells[::2]
 
-    for r, c in black_cells:
+    # Remove ALL black (zero-contact) walls, plus the thinned orange.
+    protected = protected or set()
+    removed_black = [
+        (r, c)
+        for r in range(rows)
+        for c in range(cols)
+        if new_tiles[r][c] != 0 and contact_counts.get((r, c), 0) == 0 and (r, c) not in protected
+    ]
+    removed_orange = [cell for cell in removed_orange if cell not in protected]
+
+    for r, c in removed_black:
         new_tiles[r][c] = 0
     for r, c in removed_orange:
         new_tiles[r][c] = 0
 
-    return _build_workspace_from_tiles(new_tiles, ws), black_cells, removed_orange
+    # Crop fully-wall outer borders, shifting the robots into the smaller grid.
+    top, bottom, left, right = _crop_bounds(ws.grid.tiles)
+    cropped = [row[left : cols - right] for row in new_tiles[top : rows - bottom]]
+    n = ws.robot_a.n
+    cropped_ws = Workspace(
+        Grid(cropped),
+        Robot(ws.robot_a.label, n, ws.robot_a.row - top, ws.robot_a.col - left),
+        Robot(ws.robot_b.label, n, ws.robot_b.row - top, ws.robot_b.col - left),
+    )
+    return cropped_ws, removed_black, removed_orange, (top, left)
 
 
 def _run_simplification(
@@ -122,16 +258,25 @@ def _run_simplification(
     target_switches,
     test_name,
     remove_alternate_orange=False,
+    keep_orange_peaks=False,
 ):
     """Run the simplification pass; save results into <plot_dir>/simplified/.
     Returns a status dict for the result summary.
     """
-    counts = _aggregate_wall_counts(ws.grid, vr.snapshots, vr.titles)
+    counts, face_counts = _aggregate_wall_counts(ws.grid, vr.snapshots)
     walls_before = _count_walls(ws.grid)
+    protected = _protected_walls(ws.grid, ws, goal_a, goal_b)
 
-    simplified, removed_black, removed_orange = simplify_workspace(
-        ws, counts, remove_alternate_orange=remove_alternate_orange
+    simplified, removed_black, removed_orange, (off_r, off_c) = simplify_workspace(
+        ws,
+        counts,
+        face_counts=face_counts,
+        remove_alternate_orange=remove_alternate_orange,
+        keep_orange_peaks=keep_orange_peaks,
+        protected=protected,
     )
+    goal_a = (goal_a[0] - off_r, goal_a[1] - off_c)
+    goal_b = (goal_b[0] - off_r, goal_b[1] - off_c)
     walls_after = _count_walls(simplified.grid)
     removed_total = len(removed_black) + len(removed_orange)
 
@@ -251,8 +396,11 @@ def discover_test_cases() -> list[type]:
 
 
 def run_one(args) -> TestResult:
-    """Run a single test by class name. `args` is (cls_name, alternate_flag)."""
-    cls_name, remove_alternate_orange = args
+    """Run a single test by class name.
+
+    `args` is (cls_name, simplified, remove_alternate_orange, keep_orange_peaks).
+    """
+    cls_name, simplified, remove_alternate_orange, keep_orange_peaks = args
     sys.path.insert(0, BASE_DIR)
     sys.path.insert(0, get_testcases_dir())
 
@@ -309,22 +457,25 @@ def run_one(args) -> TestResult:
         result.plot_path = plot_dir
         result.passed = True
 
-        # Simplification pass. Validator mutated `ws.robot_a/b`, so rebuild
-        # from the test case to get fresh starting positions.
-        try:
-            ws2, goal_a2, goal_b2 = tc.setup()
-            result.simplification = _run_simplification(  # type: ignore[attr-defined]
-                ws2,
-                goal_a2,
-                goal_b2,
-                vr,
-                plot_dir,
-                solver_result.switches,
-                tc.name,
-                remove_alternate_orange=remove_alternate_orange,
-            )
-        except Exception as e:
-            result.simplification = {"error": f"{type(e).__name__}: {e}"}  # type: ignore[attr-defined]
+        # Simplification pass — only when explicitly requested via --simplified.
+        # Validator mutated `ws.robot_a/b`, so rebuild from the test case to get
+        # fresh starting positions.
+        if simplified:
+            try:
+                ws2, goal_a2, goal_b2 = tc.setup()
+                result.simplification = _run_simplification(  # type: ignore[attr-defined]
+                    ws2,
+                    goal_a2,
+                    goal_b2,
+                    vr,
+                    plot_dir,
+                    solver_result.switches,
+                    tc.name,
+                    remove_alternate_orange=remove_alternate_orange,
+                    keep_orange_peaks=keep_orange_peaks,
+                )
+            except Exception as e:
+                result.simplification = {"error": f"{type(e).__name__}: {e}"}  # type: ignore[attr-defined]
 
     except Exception as e:
         result.error = f"{type(e).__name__}: {e}"
@@ -364,7 +515,7 @@ def _print_simplification(simp: dict) -> None:
     )
 
 
-def run_all(remove_alternate_orange: bool):
+def run_all(simplified: bool, remove_alternate_orange: bool, keep_orange_peaks: bool):
     wall_start = time.time()
     classes = discover_test_cases()
 
@@ -376,7 +527,9 @@ def run_all(remove_alternate_orange: bool):
     print("=" * 60)
 
     results = []
-    jobs = [(cls.__name__, remove_alternate_orange) for cls in classes]
+    jobs = [
+        (cls.__name__, simplified, remove_alternate_orange, keep_orange_peaks) for cls in classes
+    ]
     with mp.get_context("spawn").Pool(processes=min(8, mp.cpu_count())) as pool:
         for r in pool.imap_unordered(run_one, jobs):
             results.append(r)
@@ -410,11 +563,25 @@ if __name__ == "__main__":
         help="Substring filter — only run tests whose name contains this.",
     )
     parser.add_argument(
+        "--simplified",
+        action="store_true",
+        help="Run the wall-simplification pass after each test. Without this "
+        "flag, run_tests.py only solves and plots (its original behaviour).",
+    )
+    orange_mode = parser.add_mutually_exclusive_group()
+    orange_mode.add_argument(
         "--alternate",
         action="store_true",
         help="In addition to removing all black walls, also remove every "
         "other orange wall (touched walls, alternating in row-major order). "
         "Default: only black walls are removed.",
+    )
+    orange_mode.add_argument(
+        "--keep-peaks",
+        action="store_true",
+        help="In addition to removing all black walls, thin each touched wall "
+        "edge down to its peak cell(s) — the cells tied for that edge's highest "
+        "per-face contact count — removing the rest.",
     )
     args = parser.parse_args()
 
@@ -426,11 +593,11 @@ if __name__ == "__main__":
             print(f"No test case matching '{args.name}'")
             sys.exit(1)
         for cls in matched:
-            r = run_one((cls.__name__, args.alternate))
+            r = run_one((cls.__name__, args.simplified, args.alternate, args.keep_peaks))
             print(r)
             if r.plot_path:
                 print(f"         plot -> {r.plot_path}")
             if r.simplification:
                 _print_simplification(r.simplification)
     else:
-        run_all(args.alternate)
+        run_all(args.simplified, args.alternate, args.keep_peaks)

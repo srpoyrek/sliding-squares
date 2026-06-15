@@ -1,5 +1,5 @@
-Switches preserved: 3
-Walls before:       11
-Walls after:        7
+Status: PRESERVED — switches stayed at 3
+Walls before: 11
+Walls after:  2
 Black walls removed (4): [(0, 0), (0, 4), (2, 0), (2, 4)]
-Orange walls removed (0): []
+Orange walls removed (1): [(2, 3)]
