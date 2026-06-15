@@ -9,7 +9,7 @@
       "source_file": "demo_solver.py",
       "source_location": "L1",
       "id": "demo_solver_py",
-      "community": 17,
+      "community": 16,
       "norm_label": "demo_solver.py"
     },
     {
@@ -18,7 +18,7 @@
       "source_file": "demo_validator.py",
       "source_location": "L1",
       "id": "demo_validator_py",
-      "community": 9,
+      "community": 11,
       "norm_label": "demo_validator.py"
     },
     {
@@ -27,7 +27,7 @@
       "source_file": "demo_validator.py",
       "source_location": "L1",
       "id": "demo_validator_rationale_1",
-      "community": 9,
+      "community": 11,
       "norm_label": "demo_validator.py ----------------- manual demo for the validator."
     },
     {
@@ -373,82 +373,19 @@
       "norm_label": "run_tests.py"
     },
     {
-      "label": "_aggregate_wall_counts()",
-      "file_type": "code",
-      "source_file": "run_tests.py",
-      "source_location": "L53",
-      "id": "run_tests_aggregate_wall_counts",
-      "community": 3,
-      "norm_label": "_aggregate_wall_counts()"
-    },
-    {
-      "label": "_count_walls()",
-      "file_type": "code",
-      "source_file": "run_tests.py",
-      "source_location": "L81",
-      "id": "run_tests_count_walls",
-      "community": 3,
-      "norm_label": "_count_walls()"
-    },
-    {
       "label": "_build_workspace_from_tiles()",
       "file_type": "code",
       "source_file": "run_tests.py",
-      "source_location": "L85",
+      "source_location": "L47",
       "id": "run_tests_build_workspace_from_tiles",
-      "community": 8,
+      "community": 9,
       "norm_label": "_build_workspace_from_tiles()"
-    },
-    {
-      "label": "_orange_peak_keepers()",
-      "file_type": "code",
-      "source_file": "run_tests.py",
-      "source_location": "L94",
-      "id": "run_tests_orange_peak_keepers",
-      "community": 3,
-      "norm_label": "_orange_peak_keepers()"
-    },
-    {
-      "label": "_orange_relative_keepers()",
-      "file_type": "code",
-      "source_file": "run_tests.py",
-      "source_location": "L131",
-      "id": "run_tests_orange_relative_keepers",
-      "community": 3,
-      "norm_label": "_orange_relative_keepers()"
-    },
-    {
-      "label": "_crop_bounds()",
-      "file_type": "code",
-      "source_file": "run_tests.py",
-      "source_location": "L171",
-      "id": "run_tests_crop_bounds",
-      "community": 3,
-      "norm_label": "_crop_bounds()"
-    },
-    {
-      "label": "simplify_workspace()",
-      "file_type": "code",
-      "source_file": "run_tests.py",
-      "source_location": "L200",
-      "id": "run_tests_simplify_workspace",
-      "community": 3,
-      "norm_label": "simplify_workspace()"
-    },
-    {
-      "label": "_run_simplification()",
-      "file_type": "code",
-      "source_file": "run_tests.py",
-      "source_location": "L275",
-      "id": "run_tests_run_simplification",
-      "community": 3,
-      "norm_label": "_run_simplification()"
     },
     {
       "label": "discover_test_cases()",
       "file_type": "code",
       "source_file": "run_tests.py",
-      "source_location": "L407",
+      "source_location": "L59",
       "id": "run_tests_discover_test_cases",
       "community": 3,
       "norm_label": "discover_test_cases()"
@@ -457,7 +394,7 @@
       "label": "run_one()",
       "file_type": "code",
       "source_file": "run_tests.py",
-      "source_location": "L421",
+      "source_location": "L73",
       "id": "run_tests_run_one",
       "community": 3,
       "norm_label": "run_one()"
@@ -466,7 +403,7 @@
       "label": "_print_simplification()",
       "file_type": "code",
       "source_file": "run_tests.py",
-      "source_location": "L512",
+      "source_location": "L164",
       "id": "run_tests_print_simplification",
       "community": 3,
       "norm_label": "_print_simplification()"
@@ -475,7 +412,7 @@
       "label": "run_all()",
       "file_type": "code",
       "source_file": "run_tests.py",
-      "source_location": "L543",
+      "source_location": "L195",
       "id": "run_tests_run_all",
       "community": 3,
       "norm_label": "run_all()"
@@ -490,74 +427,20 @@
       "norm_label": "run_tests.py ------------ discovers all test cases in testcases/ and runs them."
     },
     {
-      "label": "Count wall contact at every step, for both robots \u2014 including the     initial pl",
-      "file_type": "rationale",
-      "source_file": "run_tests.py",
-      "source_location": "L54",
-      "id": "run_tests_rationale_54",
-      "community": 3,
-      "norm_label": "count wall contact at every step, for both robots \u2014 including the     initial pl"
-    },
-    {
       "label": "Fresh Workspace with the given tile layout, robots at ref_ws's start.",
       "file_type": "rationale",
       "source_file": "run_tests.py",
-      "source_location": "L86",
-      "id": "run_tests_rationale_86",
-      "community": 8,
+      "source_location": "L48",
+      "id": "run_tests_rationale_48",
+      "community": 9,
       "norm_label": "fresh workspace with the given tile layout, robots at ref_ws's start."
-    },
-    {
-      "label": "Touched-wall cells to KEEP when thinning each side down to its peak.      Split",
-      "file_type": "rationale",
-      "source_file": "run_tests.py",
-      "source_location": "L95",
-      "id": "run_tests_rationale_95",
-      "community": 3,
-      "norm_label": "touched-wall cells to keep when thinning each side down to its peak.      split"
-    },
-    {
-      "label": "Like the peak keeper, but on each per-face edge also keep enough cells     that",
-      "file_type": "rationale",
-      "source_file": "run_tests.py",
-      "source_location": "L132",
-      "id": "run_tests_rationale_132",
-      "community": 3,
-      "norm_label": "like the peak keeper, but on each per-face edge also keep enough cells     that"
-    },
-    {
-      "label": "Fully-wall rows/cols to peel from each side: (top, bottom, left, right).     The",
-      "file_type": "rationale",
-      "source_file": "run_tests.py",
-      "source_location": "L172",
-      "id": "run_tests_rationale_172",
-      "community": 3,
-      "norm_label": "fully-wall rows/cols to peel from each side: (top, bottom, left, right).     the"
-    },
-    {
-      "label": "Wall-removal simplification driven by the contact heatmap.      All black walls",
-      "file_type": "rationale",
-      "source_file": "run_tests.py",
-      "source_location": "L209",
-      "id": "run_tests_rationale_209",
-      "community": 3,
-      "norm_label": "wall-removal simplification driven by the contact heatmap.      all black walls"
-    },
-    {
-      "label": "Run the simplification pass; save results into <plot_dir>/simplified/.     Retur",
-      "file_type": "rationale",
-      "source_file": "run_tests.py",
-      "source_location": "L287",
-      "id": "run_tests_rationale_287",
-      "community": 3,
-      "norm_label": "run the simplification pass; save results into <plot_dir>/simplified/.     retur"
     },
     {
       "label": "Run a single test by class name.      `args` is (cls_name, simplified, remove_al",
       "file_type": "rationale",
       "source_file": "run_tests.py",
-      "source_location": "L422",
-      "id": "run_tests_rationale_422",
+      "source_location": "L74",
+      "id": "run_tests_rationale_74",
       "community": 3,
       "norm_label": "run a single test by class name.      `args` is (cls_name, simplified, remove_al"
     },
@@ -567,7 +450,7 @@
       "source_file": "scripts\\graphify\\build_graph.py",
       "source_location": "L1",
       "id": "scripts_graphify_build_graph_py",
-      "community": 11,
+      "community": 2,
       "norm_label": "build_graph.py"
     },
     {
@@ -576,7 +459,7 @@
       "source_file": "scripts\\graphify\\build_graph.py",
       "source_location": "L49",
       "id": "build_graph_filter_excluded",
-      "community": 11,
+      "community": 2,
       "norm_label": "filter_excluded()"
     },
     {
@@ -585,7 +468,7 @@
       "source_file": "scripts\\graphify\\build_graph.py",
       "source_location": "L73",
       "id": "build_graph_main",
-      "community": 11,
+      "community": 2,
       "norm_label": "main()"
     },
     {
@@ -594,7 +477,7 @@
       "source_file": "scripts\\graphify\\build_graph.py",
       "source_location": "L50",
       "id": "build_graph_rationale_50",
-      "community": 11,
+      "community": 2,
       "norm_label": "drop any file whose path contains one of the exclude folder names."
     },
     {
@@ -603,7 +486,7 @@
       "source_file": "scripts\\graphify\\list_communities.py",
       "source_location": "L1",
       "id": "scripts_graphify_list_communities_py",
-      "community": 11,
+      "community": 2,
       "norm_label": "list_communities.py"
     },
     {
@@ -612,7 +495,7 @@
       "source_file": "scripts\\graphify\\list_communities.py",
       "source_location": "L32",
       "id": "list_communities_main",
-      "community": 11,
+      "community": 2,
       "norm_label": "main()"
     },
     {
@@ -621,7 +504,7 @@
       "source_file": "scripts\\graphify\\precommit_hook.py",
       "source_location": "L1",
       "id": "scripts_graphify_precommit_hook_py",
-      "community": 3,
+      "community": 6,
       "norm_label": "precommit_hook.py"
     },
     {
@@ -630,7 +513,7 @@
       "source_file": "scripts\\graphify\\precommit_hook.py",
       "source_location": "L34",
       "id": "precommit_hook_staged_python_files",
-      "community": 3,
+      "community": 6,
       "norm_label": "staged_python_files()"
     },
     {
@@ -639,7 +522,7 @@
       "source_file": "scripts\\graphify\\precommit_hook.py",
       "source_location": "L45",
       "id": "precommit_hook_main",
-      "community": 3,
+      "community": 6,
       "norm_label": "main()"
     },
     {
@@ -648,7 +531,7 @@
       "source_file": "scripts\\graphify\\precommit_hook.py",
       "source_location": "L35",
       "id": "precommit_hook_rationale_35",
-      "community": 3,
+      "community": 6,
       "norm_label": "return paths of .py files staged for commit (any status)."
     },
     {
@@ -918,7 +801,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L1",
       "id": "src_directories_py",
-      "community": 5,
+      "community": 3,
       "norm_label": "directories.py"
     },
     {
@@ -927,7 +810,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L24",
       "id": "directories_get_src_dir",
-      "community": 5,
+      "community": 3,
       "norm_label": "get_src_dir()"
     },
     {
@@ -936,7 +819,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L29",
       "id": "directories_get_project_root",
-      "community": 5,
+      "community": 3,
       "norm_label": "get_project_root()"
     },
     {
@@ -945,7 +828,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L37",
       "id": "directories_get_plots_dir",
-      "community": 5,
+      "community": 3,
       "norm_label": "get_plots_dir()"
     },
     {
@@ -954,7 +837,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L44",
       "id": "directories_get_data_dir",
-      "community": 5,
+      "community": 3,
       "norm_label": "get_data_dir()"
     },
     {
@@ -963,7 +846,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L51",
       "id": "directories_get_testcases_dir",
-      "community": 5,
+      "community": 3,
       "norm_label": "get_testcases_dir()"
     },
     {
@@ -972,7 +855,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L61",
       "id": "directories_plots_path",
-      "community": 5,
+      "community": 3,
       "norm_label": "plots_path()"
     },
     {
@@ -981,7 +864,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L66",
       "id": "directories_data_path",
-      "community": 5,
+      "community": 3,
       "norm_label": "data_path()"
     },
     {
@@ -990,7 +873,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L71",
       "id": "directories_testcases_path",
-      "community": 5,
+      "community": 3,
       "norm_label": "testcases_path()"
     },
     {
@@ -999,7 +882,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L1",
       "id": "directories_rationale_1",
-      "community": 5,
+      "community": 3,
       "norm_label": "directories.py -------- central place for all project directory paths.  ever"
     },
     {
@@ -1008,7 +891,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L25",
       "id": "directories_rationale_25",
-      "community": 5,
+      "community": 3,
       "norm_label": "absolute path to src/ (where this file lives)."
     },
     {
@@ -1017,7 +900,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L30",
       "id": "directories_rationale_30",
-      "community": 5,
+      "community": 3,
       "norm_label": "absolute path to the project root (one level above src/)."
     },
     {
@@ -1026,7 +909,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L38",
       "id": "directories_rationale_38",
-      "community": 5,
+      "community": 3,
       "norm_label": "absolute path to plots/. created if it doesn't exist."
     },
     {
@@ -1035,7 +918,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L45",
       "id": "directories_rationale_45",
-      "community": 5,
+      "community": 3,
       "norm_label": "absolute path to data/. created if it doesn't exist."
     },
     {
@@ -1044,7 +927,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L52",
       "id": "directories_rationale_52",
-      "community": 5,
+      "community": 3,
       "norm_label": "absolute path to testcases/. created if it doesn't exist."
     },
     {
@@ -1053,7 +936,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L62",
       "id": "directories_rationale_62",
-      "community": 5,
+      "community": 3,
       "norm_label": "full path for a file in plots/.  e.g. plots_path('start.png')"
     },
     {
@@ -1062,7 +945,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L67",
       "id": "directories_rationale_67",
-      "community": 5,
+      "community": 3,
       "norm_label": "full path for a file in data/.  e.g. data_path('grid_01.json')"
     },
     {
@@ -1071,7 +954,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L72",
       "id": "directories_rationale_72",
-      "community": 5,
+      "community": 3,
       "norm_label": "full path for a file in testcases/.  e.g. testcases_path('test.json')"
     },
     {
@@ -1080,7 +963,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L1",
       "id": "src_grid_py",
-      "community": 8,
+      "community": 4,
       "norm_label": "grid.py"
     },
     {
@@ -1089,7 +972,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L18",
       "id": "grid_grid",
-      "community": 8,
+      "community": 4,
       "norm_label": "grid"
     },
     {
@@ -1098,7 +981,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L32",
       "id": "grid_grid_init",
-      "community": 8,
+      "community": 4,
       "norm_label": ".__init__()"
     },
     {
@@ -1107,7 +990,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L61",
       "id": "grid_grid_add_hole",
-      "community": 10,
+      "community": 4,
       "norm_label": ".add_hole()"
     },
     {
@@ -1116,7 +999,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L68",
       "id": "grid_grid_add_boundary",
-      "community": 10,
+      "community": 4,
       "norm_label": ".add_boundary()"
     },
     {
@@ -1125,7 +1008,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L75",
       "id": "grid_grid_add_rect_boundary",
-      "community": 10,
+      "community": 4,
       "norm_label": ".add_rect_boundary()"
     },
     {
@@ -1134,7 +1017,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L88",
       "id": "grid_grid_get_holes",
-      "community": 8,
+      "community": 4,
       "norm_label": ".get_holes()"
     },
     {
@@ -1143,7 +1026,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L92",
       "id": "grid_grid_get_boundaries",
-      "community": 8,
+      "community": 4,
       "norm_label": ".get_boundaries()"
     },
     {
@@ -1152,7 +1035,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L96",
       "id": "grid_grid_get_all_obstacles",
-      "community": 8,
+      "community": 4,
       "norm_label": ".get_all_obstacles()"
     },
     {
@@ -1161,7 +1044,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L102",
       "id": "grid_grid_in_bounds",
-      "community": 6,
+      "community": 10,
       "norm_label": ".in_bounds()"
     },
     {
@@ -1170,7 +1053,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L106",
       "id": "grid_grid_is_free",
-      "community": 6,
+      "community": 10,
       "norm_label": ".is_free()"
     },
     {
@@ -1179,7 +1062,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L110",
       "id": "grid_grid_is_boundary",
-      "community": 6,
+      "community": 10,
       "norm_label": ".is_boundary()"
     },
     {
@@ -1188,7 +1071,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L114",
       "id": "grid_grid_is_hole",
-      "community": 6,
+      "community": 10,
       "norm_label": ".is_hole()"
     },
     {
@@ -1197,7 +1080,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L118",
       "id": "grid_grid_is_obstacle",
-      "community": 6,
+      "community": 10,
       "norm_label": ".is_obstacle()"
     },
     {
@@ -1206,7 +1089,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L124",
       "id": "grid_grid_display",
-      "community": 8,
+      "community": 4,
       "norm_label": ".display()"
     },
     {
@@ -1215,7 +1098,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L134",
       "id": "grid_grid_repr",
-      "community": 8,
+      "community": 4,
       "norm_label": ".__repr__()"
     },
     {
@@ -1224,7 +1107,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L1",
       "id": "grid_rationale_1",
-      "community": 8,
+      "community": 4,
       "norm_label": "grid.py ------- the physical environment \u2014 a 2d map of free tiles and obstacle"
     },
     {
@@ -1233,7 +1116,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L19",
       "id": "grid_rationale_19",
-      "community": 8,
+      "community": 4,
       "norm_label": "2d grid of tiles.       0 = free       1 = boundary (perimeter wall)      -1"
     },
     {
@@ -1242,7 +1125,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L62",
       "id": "grid_rationale_62",
-      "community": 10,
+      "community": 4,
       "norm_label": "set a rectangle of cells as internal holes/islands."
     },
     {
@@ -1251,7 +1134,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L69",
       "id": "grid_rationale_69",
-      "community": 10,
+      "community": 4,
       "norm_label": "set a rectangle of cells as boundary \u2014 same as add_hole but marks as boundary."
     },
     {
@@ -1260,7 +1143,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L76",
       "id": "grid_rationale_76",
-      "community": 10,
+      "community": 4,
       "norm_label": "draw the full perimeter of the grid as boundary."
     },
     {
@@ -1269,7 +1152,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L89",
       "id": "grid_rationale_89",
-      "community": 8,
+      "community": 4,
       "norm_label": "return set of all hole cell positions (row, col)."
     },
     {
@@ -1278,7 +1161,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L93",
       "id": "grid_rationale_93",
-      "community": 8,
+      "community": 4,
       "norm_label": "return set of all boundary cell positions (row, col)."
     },
     {
@@ -1287,7 +1170,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L97",
       "id": "grid_rationale_97",
-      "community": 8,
+      "community": 4,
       "norm_label": "return set of all obstacle positions \u2014 both holes and boundaries."
     },
     {
@@ -1296,7 +1179,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L103",
       "id": "grid_rationale_103",
-      "community": 6,
+      "community": 10,
       "norm_label": "is (row, col) within the grid?"
     },
     {
@@ -1305,7 +1188,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L107",
       "id": "grid_rationale_107",
-      "community": 6,
+      "community": 10,
       "norm_label": "is (row, col) in bounds and not an obstacle?"
     },
     {
@@ -1314,7 +1197,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L111",
       "id": "grid_rationale_111",
-      "community": 6,
+      "community": 10,
       "norm_label": "is (row, col) a boundary wall?"
     },
     {
@@ -1323,7 +1206,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L115",
       "id": "grid_rationale_115",
-      "community": 6,
+      "community": 10,
       "norm_label": "is (row, col) an internal hole / island?"
     },
     {
@@ -1332,7 +1215,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L119",
       "id": "grid_rationale_119",
-      "community": 6,
+      "community": 10,
       "norm_label": "is (row, col) out of bounds or any kind of obstacle?"
     },
     {
@@ -1341,7 +1224,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L125",
       "id": "grid_rationale_125",
-      "community": 8,
+      "community": 4,
       "norm_label": "print the raw grid. '.' = free, '#' = boundary, 'o' = hole."
     },
     {
@@ -1377,7 +1260,7 @@
       "source_file": "src\\lru.py",
       "source_location": "L21",
       "id": "lru_lrucache_get",
-      "community": 11,
+      "community": 2,
       "norm_label": ".get()"
     },
     {
@@ -1467,7 +1350,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L1",
       "id": "src_path_resolver_py",
-      "community": 9,
+      "community": 11,
       "norm_label": "path_resolver.py"
     },
     {
@@ -1476,7 +1359,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L23",
       "id": "path_resolver_pathresolver",
-      "community": 9,
+      "community": 11,
       "norm_label": "pathresolver"
     },
     {
@@ -1485,7 +1368,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L24",
       "id": "path_resolver_pathresolver_init",
-      "community": 9,
+      "community": 11,
       "norm_label": ".__init__()"
     },
     {
@@ -1494,7 +1377,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L27",
       "id": "path_resolver_pathresolver_resolve",
-      "community": 9,
+      "community": 11,
       "norm_label": ".resolve()"
     },
     {
@@ -1503,7 +1386,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L55",
       "id": "path_resolver_pathresolver_parse_segment",
-      "community": 9,
+      "community": 11,
       "norm_label": "._parse_segment()"
     },
     {
@@ -1512,7 +1395,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L1",
       "id": "path_resolver_rationale_1",
-      "community": 9,
+      "community": 11,
       "norm_label": "path_resolver.py ---------------- converts compact path strings into flat comm"
     },
     {
@@ -1521,7 +1404,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L28",
       "id": "path_resolver_rationale_28",
-      "community": 9,
+      "community": 11,
       "norm_label": "convert compact path string(s) to flat command list.          accepts:"
     },
     {
@@ -1530,7 +1413,7 @@
       "source_file": "src\\path_resolver.py",
       "source_location": "L56",
       "id": "path_resolver_rationale_56",
-      "community": 9,
+      "community": 11,
       "norm_label": "parse a single segment like '12r2us'."
     },
     {
@@ -1539,7 +1422,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L1",
       "id": "src_robot_py",
-      "community": 4,
+      "community": 8,
       "norm_label": "robot.py"
     },
     {
@@ -1548,7 +1431,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L20",
       "id": "robot_robot",
-      "community": 4,
+      "community": 8,
       "norm_label": "robot"
     },
     {
@@ -1557,7 +1440,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L26",
       "id": "robot_robot_init",
-      "community": 4,
+      "community": 8,
       "norm_label": ".__init__()"
     },
     {
@@ -1575,7 +1458,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L44",
       "id": "robot_robot_cells",
-      "community": 4,
+      "community": 8,
       "norm_label": ".cells()"
     },
     {
@@ -1584,7 +1467,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L50",
       "id": "robot_robot_clone",
-      "community": 4,
+      "community": 8,
       "norm_label": ".clone()"
     },
     {
@@ -1593,7 +1476,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L56",
       "id": "robot_robot_repr",
-      "community": 4,
+      "community": 8,
       "norm_label": ".__repr__()"
     },
     {
@@ -1602,7 +1485,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L59",
       "id": "robot_robot_eq",
-      "community": 4,
+      "community": 8,
       "norm_label": ".__eq__()"
     },
     {
@@ -1611,7 +1494,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L62",
       "id": "robot_robot_hash",
-      "community": 4,
+      "community": 8,
       "norm_label": ".__hash__()"
     },
     {
@@ -1620,7 +1503,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L1",
       "id": "robot_rationale_1",
-      "community": 4,
+      "community": 8,
       "norm_label": "robot.py -------- a single n\u00d7n square robot.  knows only:   - its label"
     },
     {
@@ -1629,7 +1512,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L21",
       "id": "robot_rationale_21",
-      "community": 4,
+      "community": 8,
       "norm_label": "an n\u00d7n square robot on a grid.     position is the (row, col) of its top-left c"
     },
     {
@@ -1638,7 +1521,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L27",
       "id": "robot_rationale_27",
-      "community": 4,
+      "community": 8,
       "norm_label": "label : name, e.g. 'a' or 'b'         n     : edge length in tiles         row"
     },
     {
@@ -1656,7 +1539,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L45",
       "id": "robot_rationale_45",
-      "community": 4,
+      "community": 8,
       "norm_label": "all (row, col) tiles this robot occupies."
     },
     {
@@ -1665,8 +1548,143 @@
       "source_file": "src\\robot.py",
       "source_location": "L51",
       "id": "robot_rationale_51",
-      "community": 4,
+      "community": 8,
       "norm_label": "return an independent copy of this robot."
+    },
+    {
+      "label": "simplify.py",
+      "file_type": "code",
+      "source_file": "src\\simplify.py",
+      "source_location": "L1",
+      "id": "src_simplify_py",
+      "community": 7,
+      "norm_label": "simplify.py"
+    },
+    {
+      "label": "_aggregate_wall_counts()",
+      "file_type": "code",
+      "source_file": "src\\simplify.py",
+      "source_location": "L32",
+      "id": "simplify_aggregate_wall_counts",
+      "community": 7,
+      "norm_label": "_aggregate_wall_counts()"
+    },
+    {
+      "label": "_count_walls()",
+      "file_type": "code",
+      "source_file": "src\\simplify.py",
+      "source_location": "L60",
+      "id": "simplify_count_walls",
+      "community": 7,
+      "norm_label": "_count_walls()"
+    },
+    {
+      "label": "_orange_peak_keepers()",
+      "file_type": "code",
+      "source_file": "src\\simplify.py",
+      "source_location": "L64",
+      "id": "simplify_orange_peak_keepers",
+      "community": 7,
+      "norm_label": "_orange_peak_keepers()"
+    },
+    {
+      "label": "_orange_relative_keepers()",
+      "file_type": "code",
+      "source_file": "src\\simplify.py",
+      "source_location": "L101",
+      "id": "simplify_orange_relative_keepers",
+      "community": 7,
+      "norm_label": "_orange_relative_keepers()"
+    },
+    {
+      "label": "_crop_bounds()",
+      "file_type": "code",
+      "source_file": "src\\simplify.py",
+      "source_location": "L141",
+      "id": "simplify_crop_bounds",
+      "community": 7,
+      "norm_label": "_crop_bounds()"
+    },
+    {
+      "label": "simplify_workspace()",
+      "file_type": "code",
+      "source_file": "src\\simplify.py",
+      "source_location": "L170",
+      "id": "simplify_simplify_workspace",
+      "community": 7,
+      "norm_label": "simplify_workspace()"
+    },
+    {
+      "label": "run_simplification()",
+      "file_type": "code",
+      "source_file": "src\\simplify.py",
+      "source_location": "L255",
+      "id": "simplify_run_simplification",
+      "community": 7,
+      "norm_label": "run_simplification()"
+    },
+    {
+      "label": "simplify.py ----------- Reusable workspace-simplification pass.  Given a solved",
+      "file_type": "rationale",
+      "source_file": "src\\simplify.py",
+      "source_location": "L1",
+      "id": "simplify_rationale_1",
+      "community": 7,
+      "norm_label": "simplify.py ----------- reusable workspace-simplification pass.  given a solved"
+    },
+    {
+      "label": "Count wall contact at every step, for both robots \u2014 including the     initial pl",
+      "file_type": "rationale",
+      "source_file": "src\\simplify.py",
+      "source_location": "L33",
+      "id": "simplify_rationale_33",
+      "community": 7,
+      "norm_label": "count wall contact at every step, for both robots \u2014 including the     initial pl"
+    },
+    {
+      "label": "Touched-wall cells to KEEP when thinning each side down to its peak.      Split",
+      "file_type": "rationale",
+      "source_file": "src\\simplify.py",
+      "source_location": "L65",
+      "id": "simplify_rationale_65",
+      "community": 7,
+      "norm_label": "touched-wall cells to keep when thinning each side down to its peak.      split"
+    },
+    {
+      "label": "Like the peak keeper, but on each per-face edge also keep enough cells     that",
+      "file_type": "rationale",
+      "source_file": "src\\simplify.py",
+      "source_location": "L102",
+      "id": "simplify_rationale_102",
+      "community": 7,
+      "norm_label": "like the peak keeper, but on each per-face edge also keep enough cells     that"
+    },
+    {
+      "label": "Fully-wall rows/cols to peel from each side: (top, bottom, left, right).     The",
+      "file_type": "rationale",
+      "source_file": "src\\simplify.py",
+      "source_location": "L142",
+      "id": "simplify_rationale_142",
+      "community": 7,
+      "norm_label": "fully-wall rows/cols to peel from each side: (top, bottom, left, right).     the"
+    },
+    {
+      "label": "Wall-removal simplification driven by the contact heatmap.      All black walls",
+      "file_type": "rationale",
+      "source_file": "src\\simplify.py",
+      "source_location": "L180",
+      "id": "simplify_rationale_180",
+      "community": 7,
+      "norm_label": "wall-removal simplification driven by the contact heatmap.      all black walls"
+    },
+    {
+      "label": "Run the simplification pass; save results into <plot_dir>/simplified/.     Retur",
+      "file_type": "rationale",
+      "source_file": "src\\simplify.py",
+      "source_location": "L268",
+      "id": "simplify_rationale_268",
+      "community": 7,
+      "norm_label": "run the simplification pass; save results into <plot_dir>/simplified/.     retur"
     },
     {
       "label": "solver.py",
@@ -1746,7 +1764,7 @@
       "source_file": "src\\state.py",
       "source_location": "L1",
       "id": "src_state_py",
-      "community": 4,
+      "community": 0,
       "norm_label": "state.py"
     },
     {
@@ -1800,7 +1818,7 @@
       "source_file": "src\\state.py",
       "source_location": "L1",
       "id": "state_rationale_1",
-      "community": 4,
+      "community": 0,
       "norm_label": "state.py -------- a frozen snapshot of the entire system at one moment.  use"
     },
     {
@@ -1917,7 +1935,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L33",
       "id": "test_case_testcase",
-      "community": 7,
+      "community": 5,
       "norm_label": "testcase"
     },
     {
@@ -1926,7 +1944,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L53",
       "id": "test_case_testcase_setup",
-      "community": 7,
+      "community": 5,
       "norm_label": ".setup()"
     },
     {
@@ -1944,7 +1962,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L34",
       "id": "test_case_rationale_34",
-      "community": 7,
+      "community": 5,
       "norm_label": "subclass this and implement setup().      minimal example:          class my"
     },
     {
@@ -1953,7 +1971,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L1",
       "id": "src_validator_py",
-      "community": 2,
+      "community": 6,
       "norm_label": "validator.py"
     },
     {
@@ -1962,7 +1980,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L18",
       "id": "validator_validationresult",
-      "community": 2,
+      "community": 6,
       "norm_label": "validationresult"
     },
     {
@@ -1971,7 +1989,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L19",
       "id": "validator_validationresult_init",
-      "community": 2,
+      "community": 6,
       "norm_label": ".__init__()"
     },
     {
@@ -1980,7 +1998,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L28",
       "id": "validator_validationresult_repr",
-      "community": 2,
+      "community": 6,
       "norm_label": ".__repr__()"
     },
     {
@@ -2007,7 +2025,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L43",
       "id": "validator_validator_run",
-      "community": 3,
+      "community": 6,
       "norm_label": ".run()"
     },
     {
@@ -2025,7 +2043,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L1",
       "id": "validator_rationale_1",
-      "community": 2,
+      "community": 6,
       "norm_label": "validator.py ------------ given a workspace, a path, and goal positions: vali"
     },
     {
@@ -2142,7 +2160,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L635",
       "id": "visualizer_draw_bfs_frontier",
-      "community": 2,
+      "community": 8,
       "norm_label": "draw_bfs_frontier()"
     },
     {
@@ -2250,7 +2268,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L636",
       "id": "visualizer_rationale_636",
-      "community": 2,
+      "community": 8,
       "norm_label": "draw all states in a bfs frontier on a single plot.     each state = one panel"
     },
     {
@@ -2259,7 +2277,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L1",
       "id": "src_workspace_py",
-      "community": 4,
+      "community": 9,
       "norm_label": "workspace.py"
     },
     {
@@ -2268,7 +2286,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L39",
       "id": "workspace_workspace",
-      "community": 2,
+      "community": 9,
       "norm_label": "workspace"
     },
     {
@@ -2277,7 +2295,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L44",
       "id": "workspace_workspace_init",
-      "community": 2,
+      "community": 9,
       "norm_label": ".__init__()"
     },
     {
@@ -2286,7 +2304,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L52",
       "id": "workspace_workspace_robot_fits_at",
-      "community": 6,
+      "community": 10,
       "norm_label": ".robot_fits_at()"
     },
     {
@@ -2331,7 +2349,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L130",
       "id": "workspace_workspace_load_state",
-      "community": 4,
+      "community": 9,
       "norm_label": ".load_state()"
     },
     {
@@ -2340,7 +2358,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L141",
       "id": "workspace_workspace_repr",
-      "community": 0,
+      "community": 9,
       "norm_label": ".__repr__()"
     },
     {
@@ -2349,7 +2367,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L1",
       "id": "workspace_rationale_1",
-      "community": 4,
+      "community": 9,
       "norm_label": "workspace.py ------------ the grid + both robots + all movement rules.  owns"
     },
     {
@@ -2358,7 +2376,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L40",
       "id": "workspace_rationale_40",
-      "community": 4,
+      "community": 9,
       "norm_label": "combines a grid with two robots and enforces movement rules."
     },
     {
@@ -2367,7 +2385,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L53",
       "id": "workspace_rationale_53",
-      "community": 6,
+      "community": 10,
       "norm_label": "would robot fit at (row, col) without hitting any obstacle or wall?         doe"
     },
     {
@@ -2412,7 +2430,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L131",
       "id": "workspace_rationale_131",
-      "community": 4,
+      "community": 9,
       "norm_label": "restore robot positions from a state snapshot.         bfs uses this to backtra"
     },
     {
@@ -2421,7 +2439,7 @@
       "source_file": "src\\__init__.py",
       "source_location": "L1",
       "id": "src_init_py",
-      "community": 18,
+      "community": 17,
       "norm_label": "__init__.py"
     },
     {
@@ -2448,7 +2466,7 @@
       "source_file": "",
       "source_location": "",
       "id": "testcase",
-      "community": 7,
+      "community": 5,
       "norm_label": "testcase"
     },
     {
@@ -2475,7 +2493,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_2x2_robot_holes_py",
-      "community": 7,
+      "community": 5,
       "norm_label": "2x2_robot_holes.py"
     },
     {
@@ -2484,7 +2502,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L21",
       "id": "2x2_robot_holes_twobytwoholes",
-      "community": 7,
+      "community": 5,
       "norm_label": "twobytwoholes"
     },
     {
@@ -2493,7 +2511,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L24",
       "id": "2x2_robot_holes_twobytwoholes_setup",
-      "community": 10,
+      "community": 4,
       "norm_label": ".setup()"
     },
     {
@@ -2502,7 +2520,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L1",
       "id": "2x2_robot_holes_rationale_1",
-      "community": 7,
+      "community": 5,
       "norm_label": "2x2_robot_holes.py ------------------- test case for a 2x2 robot scenario with"
     },
     {
@@ -2547,7 +2565,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_3x3_robot_holes_py",
-      "community": 7,
+      "community": 5,
       "norm_label": "3x3_robot_holes.py"
     },
     {
@@ -2556,7 +2574,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L21",
       "id": "3x3_robot_holes_threebythreeholes",
-      "community": 7,
+      "community": 5,
       "norm_label": "threebythreeholes"
     },
     {
@@ -2565,7 +2583,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L24",
       "id": "3x3_robot_holes_threebythreeholes_setup",
-      "community": 10,
+      "community": 4,
       "norm_label": ".setup()"
     },
     {
@@ -2574,7 +2592,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L1",
       "id": "3x3_robot_holes_rationale_1",
-      "community": 7,
+      "community": 5,
       "norm_label": "3x3_robot_holes.py ------------------- test case for a 3x3 robot scenario with"
     },
     {
@@ -2583,7 +2601,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_3x3_robot_no_holes_py",
-      "community": 7,
+      "community": 5,
       "norm_label": "3x3_robot_no_holes.py"
     },
     {
@@ -2592,7 +2610,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L21",
       "id": "3x3_robot_no_holes_threebythreenoholes",
-      "community": 7,
+      "community": 5,
       "norm_label": "threebythreenoholes"
     },
     {
@@ -2601,7 +2619,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L24",
       "id": "3x3_robot_no_holes_threebythreenoholes_setup",
-      "community": 7,
+      "community": 5,
       "norm_label": ".setup()"
     },
     {
@@ -2610,7 +2628,7 @@
       "source_file": "testcases\\3x3_robot_no_holes.py",
       "source_location": "L1",
       "id": "3x3_robot_no_holes_rationale_1",
-      "community": 7,
+      "community": 5,
       "norm_label": "3x3_robot_no_holes.py ------------------- test case for a 3x3 robot scenario w"
     },
     {
@@ -2619,7 +2637,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_4x4_robot_holes_py",
-      "community": 7,
+      "community": 5,
       "norm_label": "4x4_robot_holes.py"
     },
     {
@@ -2628,7 +2646,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L21",
       "id": "4x4_robot_holes_fourbyfourholes",
-      "community": 7,
+      "community": 5,
       "norm_label": "fourbyfourholes"
     },
     {
@@ -2637,7 +2655,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L24",
       "id": "4x4_robot_holes_fourbyfourholes_setup",
-      "community": 10,
+      "community": 4,
       "norm_label": ".setup()"
     },
     {
@@ -2646,7 +2664,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L1",
       "id": "4x4_robot_holes_rationale_1",
-      "community": 7,
+      "community": 5,
       "norm_label": "4x4_robot_holes.py ------------------- test case for a 4x4 robot scenario with"
     },
     {
@@ -2655,7 +2673,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_4x4_robot_no_holes_py",
-      "community": 16,
+      "community": 13,
       "norm_label": "4x4_robot_no_holes.py"
     },
     {
@@ -2664,7 +2682,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L21",
       "id": "4x4_robot_no_holes_fourbyfournoholes",
-      "community": 16,
+      "community": 13,
       "norm_label": "fourbyfournoholes"
     },
     {
@@ -2673,7 +2691,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L24",
       "id": "4x4_robot_no_holes_fourbyfournoholes_setup",
-      "community": 16,
+      "community": 13,
       "norm_label": ".setup()"
     },
     {
@@ -2682,7 +2700,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L1",
       "id": "4x4_robot_no_holes_rationale_1",
-      "community": 16,
+      "community": 13,
       "norm_label": "4x4_robot_no_holes.py ------------------- test case for a 4x4 robot scenario w"
     },
     {
@@ -2691,7 +2709,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_5x5_robot_no_holes_py",
-      "community": 13,
+      "community": 9,
       "norm_label": "5x5_robot_no_holes.py"
     },
     {
@@ -2700,7 +2718,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L21",
       "id": "5x5_robot_no_holes_fivebyfivenoholes",
-      "community": 13,
+      "community": 9,
       "norm_label": "fivebyfivenoholes"
     },
     {
@@ -2709,7 +2727,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L24",
       "id": "5x5_robot_no_holes_fivebyfivenoholes_setup",
-      "community": 13,
+      "community": 9,
       "norm_label": ".setup()"
     },
     {
@@ -2718,7 +2736,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L1",
       "id": "5x5_robot_no_holes_rationale_1",
-      "community": 13,
+      "community": 9,
       "norm_label": "5x5_robot_no_holes.py ------------------- test case for a 5x5 robot scenario w"
     }
   ],
@@ -4575,31 +4593,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L53",
-      "weight": 1.0,
-      "_src": "run_tests_py",
-      "_tgt": "run_tests_aggregate_wall_counts",
-      "source": "run_tests_py",
-      "target": "run_tests_aggregate_wall_counts",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L81",
-      "weight": 1.0,
-      "_src": "run_tests_py",
-      "_tgt": "run_tests_count_walls",
-      "source": "run_tests_py",
-      "target": "run_tests_count_walls",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L85",
+      "source_location": "L47",
       "weight": 1.0,
       "_src": "run_tests_py",
       "_tgt": "run_tests_build_workspace_from_tiles",
@@ -4611,67 +4605,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L94",
-      "weight": 1.0,
-      "_src": "run_tests_py",
-      "_tgt": "run_tests_orange_peak_keepers",
-      "source": "run_tests_py",
-      "target": "run_tests_orange_peak_keepers",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L131",
-      "weight": 1.0,
-      "_src": "run_tests_py",
-      "_tgt": "run_tests_orange_relative_keepers",
-      "source": "run_tests_py",
-      "target": "run_tests_orange_relative_keepers",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L171",
-      "weight": 1.0,
-      "_src": "run_tests_py",
-      "_tgt": "run_tests_crop_bounds",
-      "source": "run_tests_py",
-      "target": "run_tests_crop_bounds",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L200",
-      "weight": 1.0,
-      "_src": "run_tests_py",
-      "_tgt": "run_tests_simplify_workspace",
-      "source": "run_tests_py",
-      "target": "run_tests_simplify_workspace",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L275",
-      "weight": 1.0,
-      "_src": "run_tests_py",
-      "_tgt": "run_tests_run_simplification",
-      "source": "run_tests_py",
-      "target": "run_tests_run_simplification",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L407",
+      "source_location": "L59",
       "weight": 1.0,
       "_src": "run_tests_py",
       "_tgt": "run_tests_discover_test_cases",
@@ -4683,7 +4617,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L421",
+      "source_location": "L73",
       "weight": 1.0,
       "_src": "run_tests_py",
       "_tgt": "run_tests_run_one",
@@ -4695,7 +4629,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L512",
+      "source_location": "L164",
       "weight": 1.0,
       "_src": "run_tests_py",
       "_tgt": "run_tests_print_simplification",
@@ -4707,7 +4641,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L543",
+      "source_location": "L195",
       "weight": 1.0,
       "_src": "run_tests_py",
       "_tgt": "run_tests_run_all",
@@ -4728,51 +4662,15 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L290",
-      "weight": 1.0,
-      "_src": "run_tests_run_simplification",
-      "_tgt": "run_tests_aggregate_wall_counts",
-      "source": "run_tests_aggregate_wall_counts",
-      "target": "run_tests_run_simplification",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L54",
+      "source_location": "L48",
       "weight": 1.0,
-      "_src": "run_tests_rationale_54",
-      "_tgt": "run_tests_aggregate_wall_counts",
-      "source": "run_tests_aggregate_wall_counts",
-      "target": "run_tests_rationale_54",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L291",
-      "weight": 1.0,
-      "_src": "run_tests_run_simplification",
-      "_tgt": "run_tests_count_walls",
-      "source": "run_tests_count_walls",
-      "target": "run_tests_run_simplification",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L86",
-      "weight": 1.0,
-      "_src": "run_tests_rationale_86",
+      "_src": "run_tests_rationale_48",
       "_tgt": "run_tests_build_workspace_from_tiles",
       "source": "run_tests_build_workspace_from_tiles",
-      "target": "run_tests_rationale_86",
+      "target": "run_tests_rationale_48",
       "confidence_score": 1.0
     },
     {
@@ -4780,7 +4678,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L88",
+      "source_location": "L50",
       "weight": 1.0,
       "_src": "run_tests_build_workspace_from_tiles",
       "_tgt": "grid_grid",
@@ -4792,7 +4690,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L89",
+      "source_location": "L51",
       "weight": 1.0,
       "_src": "run_tests_build_workspace_from_tiles",
       "_tgt": "robot_robot",
@@ -4804,7 +4702,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L91",
+      "source_location": "L53",
       "weight": 1.0,
       "_src": "run_tests_build_workspace_from_tiles",
       "_tgt": "workspace_workspace",
@@ -4815,259 +4713,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L239",
-      "weight": 1.0,
-      "_src": "run_tests_simplify_workspace",
-      "_tgt": "run_tests_orange_peak_keepers",
-      "source": "run_tests_orange_peak_keepers",
-      "target": "run_tests_simplify_workspace",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L95",
-      "weight": 1.0,
-      "_src": "run_tests_rationale_95",
-      "_tgt": "run_tests_orange_peak_keepers",
-      "source": "run_tests_orange_peak_keepers",
-      "target": "run_tests_rationale_95",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L242",
-      "weight": 1.0,
-      "_src": "run_tests_simplify_workspace",
-      "_tgt": "run_tests_orange_relative_keepers",
-      "source": "run_tests_orange_relative_keepers",
-      "target": "run_tests_simplify_workspace",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L132",
-      "weight": 1.0,
-      "_src": "run_tests_rationale_132",
-      "_tgt": "run_tests_orange_relative_keepers",
-      "source": "run_tests_orange_relative_keepers",
-      "target": "run_tests_rationale_132",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L264",
-      "weight": 1.0,
-      "_src": "run_tests_simplify_workspace",
-      "_tgt": "run_tests_crop_bounds",
-      "source": "run_tests_crop_bounds",
-      "target": "run_tests_simplify_workspace",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L172",
-      "weight": 1.0,
-      "_src": "run_tests_rationale_172",
-      "_tgt": "run_tests_crop_bounds",
-      "source": "run_tests_crop_bounds",
-      "target": "run_tests_rationale_172",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L293",
-      "weight": 1.0,
-      "_src": "run_tests_run_simplification",
-      "_tgt": "run_tests_simplify_workspace",
-      "source": "run_tests_simplify_workspace",
-      "target": "run_tests_run_simplification",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L209",
-      "weight": 1.0,
-      "_src": "run_tests_rationale_209",
-      "_tgt": "run_tests_simplify_workspace",
-      "source": "run_tests_simplify_workspace",
-      "target": "run_tests_rationale_209",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "run_tests.py",
-      "source_location": "L234",
-      "weight": 1.0,
-      "_src": "run_tests_simplify_workspace",
-      "_tgt": "lru_lrucache_get",
-      "source": "run_tests_simplify_workspace",
-      "target": "lru_lrucache_get"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "run_tests.py",
-      "source_location": "L267",
-      "weight": 1.0,
-      "_src": "run_tests_simplify_workspace",
-      "_tgt": "workspace_workspace",
-      "source": "run_tests_simplify_workspace",
-      "target": "workspace_workspace"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "run_tests.py",
-      "source_location": "L268",
-      "weight": 1.0,
-      "_src": "run_tests_simplify_workspace",
-      "_tgt": "grid_grid",
-      "source": "run_tests_simplify_workspace",
-      "target": "grid_grid"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "run_tests.py",
-      "source_location": "L269",
-      "weight": 1.0,
-      "_src": "run_tests_simplify_workspace",
-      "_tgt": "robot_robot",
-      "source": "run_tests_simplify_workspace",
-      "target": "robot_robot"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L490",
-      "weight": 1.0,
-      "_src": "run_tests_run_one",
-      "_tgt": "run_tests_run_simplification",
-      "source": "run_tests_run_simplification",
-      "target": "run_tests_run_one",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L287",
-      "weight": 1.0,
-      "_src": "run_tests_rationale_287",
-      "_tgt": "run_tests_run_simplification",
-      "source": "run_tests_run_simplification",
-      "target": "run_tests_rationale_287",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "run_tests.py",
-      "source_location": "L322",
-      "weight": 1.0,
-      "_src": "run_tests_run_simplification",
-      "_tgt": "solver_solver_solve",
-      "source": "run_tests_run_simplification",
-      "target": "solver_solver_solve"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "run_tests.py",
-      "source_location": "L322",
-      "weight": 1.0,
-      "_src": "run_tests_run_simplification",
-      "_tgt": "solver_solver",
-      "source": "run_tests_run_simplification",
-      "target": "solver_solver"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "run_tests.py",
-      "source_location": "L343",
-      "weight": 1.0,
-      "_src": "run_tests_run_simplification",
-      "_tgt": "validator_validator_run",
-      "source": "run_tests_run_simplification",
-      "target": "validator_validator_run"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "run_tests.py",
-      "source_location": "L343",
-      "weight": 1.0,
-      "_src": "run_tests_run_simplification",
-      "_tgt": "validator_validator",
-      "source": "run_tests_run_simplification",
-      "target": "validator_validator"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "run_tests.py",
-      "source_location": "L345",
-      "weight": 1.0,
-      "_src": "run_tests_run_simplification",
-      "_tgt": "visualizer_draw_sequence",
-      "source": "run_tests_run_simplification",
-      "target": "visualizer_draw_sequence"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "run_tests.py",
-      "source_location": "L387",
-      "weight": 1.0,
-      "_src": "run_tests_run_simplification",
-      "_tgt": "robot_robot",
-      "source": "run_tests_run_simplification",
-      "target": "robot_robot"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "run_tests.py",
-      "source_location": "L393",
-      "weight": 1.0,
-      "_src": "run_tests_run_simplification",
-      "_tgt": "visualizer_draw_summary",
-      "source": "run_tests_run_simplification",
-      "target": "visualizer_draw_summary"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "run_tests.py",
-      "source_location": "L545",
+      "source_location": "L197",
       "weight": 1.0,
       "_src": "run_tests_run_all",
       "_tgt": "run_tests_discover_test_cases",
@@ -5080,7 +4726,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L408",
+      "source_location": "L60",
       "weight": 1.0,
       "_src": "run_tests_discover_test_cases",
       "_tgt": "directories_get_testcases_dir",
@@ -5091,12 +4737,12 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L422",
+      "source_location": "L74",
       "weight": 1.0,
-      "_src": "run_tests_rationale_422",
+      "_src": "run_tests_rationale_74",
       "_tgt": "run_tests_run_one",
       "source": "run_tests_run_one",
-      "target": "run_tests_rationale_422",
+      "target": "run_tests_rationale_74",
       "confidence_score": 1.0
     },
     {
@@ -5104,7 +4750,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L429",
+      "source_location": "L81",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "directories_get_testcases_dir",
@@ -5116,7 +4762,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L447",
+      "source_location": "L99",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "test_case_testresult",
@@ -5128,7 +4774,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L450",
+      "source_location": "L102",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "5x5_robot_no_holes_fivebyfivenoholes_setup",
@@ -5140,7 +4786,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L453",
+      "source_location": "L105",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "solver_solver_solve",
@@ -5152,7 +4798,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L453",
+      "source_location": "L105",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "solver_solver",
@@ -5164,7 +4810,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L465",
+      "source_location": "L117",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "validator_validator_run",
@@ -5176,7 +4822,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L465",
+      "source_location": "L117",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "validator_validator",
@@ -5188,7 +4834,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L470",
+      "source_location": "L122",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "directories_get_plots_dir",
@@ -5200,7 +4846,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L474",
+      "source_location": "L126",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "visualizer_draw_sequence",
@@ -5209,9 +4855,21 @@
     },
     {
       "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "run_tests.py",
+      "source_location": "L142",
+      "weight": 1.0,
+      "_src": "run_tests_run_one",
+      "_tgt": "simplify_run_simplification",
+      "source": "run_tests_run_one",
+      "target": "simplify_run_simplification"
+    },
+    {
+      "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L566",
+      "source_location": "L218",
       "weight": 1.0,
       "_src": "run_tests_run_all",
       "_tgt": "run_tests_print_simplification",
@@ -5224,7 +4882,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L516",
+      "source_location": "L168",
       "weight": 1.0,
       "_src": "run_tests_print_simplification",
       "_tgt": "lru_lrucache_get",
@@ -5259,7 +4917,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 0.8,
       "_src": "run_tests_rationale_1",
       "_tgt": "solver_solver",
@@ -5271,7 +4929,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L432",
+      "source_location": "L84",
       "weight": 0.8,
       "_src": "run_tests_rationale_1",
       "_tgt": "test_case_testcase",
@@ -5283,7 +4941,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L432",
+      "source_location": "L84",
       "weight": 0.8,
       "_src": "run_tests_rationale_1",
       "_tgt": "test_case_testresult",
@@ -5295,7 +4953,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L38",
+      "source_location": "L39",
       "weight": 0.8,
       "_src": "run_tests_rationale_1",
       "_tgt": "validator_validator",
@@ -5307,7 +4965,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L44",
+      "source_location": "L41",
       "weight": 0.8,
       "_src": "run_tests_rationale_1",
       "_tgt": "workspace_workspace",
@@ -5321,9 +4979,9 @@
       "source_file": "run_tests.py",
       "source_location": "L34",
       "weight": 0.8,
-      "_src": "run_tests_rationale_54",
+      "_src": "run_tests_rationale_48",
       "_tgt": "grid_grid",
-      "source": "run_tests_rationale_54",
+      "source": "run_tests_rationale_48",
       "target": "grid_grid",
       "confidence_score": 0.5
     },
@@ -5333,9 +4991,9 @@
       "source_file": "run_tests.py",
       "source_location": "L35",
       "weight": 0.8,
-      "_src": "run_tests_rationale_54",
+      "_src": "run_tests_rationale_48",
       "_tgt": "robot_robot",
-      "source": "run_tests_rationale_54",
+      "source": "run_tests_rationale_48",
       "target": "robot_robot",
       "confidence_score": 0.5
     },
@@ -5343,11 +5001,11 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 0.8,
-      "_src": "run_tests_rationale_54",
+      "_src": "run_tests_rationale_48",
       "_tgt": "solver_solver",
-      "source": "run_tests_rationale_54",
+      "source": "run_tests_rationale_48",
       "target": "solver_solver",
       "confidence_score": 0.5
     },
@@ -5355,11 +5013,11 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L432",
+      "source_location": "L84",
       "weight": 0.8,
-      "_src": "run_tests_rationale_54",
+      "_src": "run_tests_rationale_48",
       "_tgt": "test_case_testcase",
-      "source": "run_tests_rationale_54",
+      "source": "run_tests_rationale_48",
       "target": "test_case_testcase",
       "confidence_score": 0.5
     },
@@ -5367,11 +5025,11 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L432",
+      "source_location": "L84",
       "weight": 0.8,
-      "_src": "run_tests_rationale_54",
+      "_src": "run_tests_rationale_48",
       "_tgt": "test_case_testresult",
-      "source": "run_tests_rationale_54",
+      "source": "run_tests_rationale_48",
       "target": "test_case_testresult",
       "confidence_score": 0.5
     },
@@ -5379,11 +5037,11 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L38",
+      "source_location": "L39",
       "weight": 0.8,
-      "_src": "run_tests_rationale_54",
+      "_src": "run_tests_rationale_48",
       "_tgt": "validator_validator",
-      "source": "run_tests_rationale_54",
+      "source": "run_tests_rationale_48",
       "target": "validator_validator",
       "confidence_score": 0.5
     },
@@ -5391,11 +5049,11 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L44",
+      "source_location": "L41",
       "weight": 0.8,
-      "_src": "run_tests_rationale_54",
+      "_src": "run_tests_rationale_48",
       "_tgt": "workspace_workspace",
-      "source": "run_tests_rationale_54",
+      "source": "run_tests_rationale_48",
       "target": "workspace_workspace",
       "confidence_score": 0.5
     },
@@ -5405,9 +5063,9 @@
       "source_file": "run_tests.py",
       "source_location": "L34",
       "weight": 0.8,
-      "_src": "run_tests_rationale_86",
+      "_src": "run_tests_rationale_74",
       "_tgt": "grid_grid",
-      "source": "run_tests_rationale_86",
+      "source": "run_tests_rationale_74",
       "target": "grid_grid",
       "confidence_score": 0.5
     },
@@ -5417,9 +5075,9 @@
       "source_file": "run_tests.py",
       "source_location": "L35",
       "weight": 0.8,
-      "_src": "run_tests_rationale_86",
+      "_src": "run_tests_rationale_74",
       "_tgt": "robot_robot",
-      "source": "run_tests_rationale_86",
+      "source": "run_tests_rationale_74",
       "target": "robot_robot",
       "confidence_score": 0.5
     },
@@ -5427,11 +5085,11 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 0.8,
-      "_src": "run_tests_rationale_86",
+      "_src": "run_tests_rationale_74",
       "_tgt": "solver_solver",
-      "source": "run_tests_rationale_86",
+      "source": "run_tests_rationale_74",
       "target": "solver_solver",
       "confidence_score": 0.5
     },
@@ -5439,11 +5097,11 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L432",
+      "source_location": "L84",
       "weight": 0.8,
-      "_src": "run_tests_rationale_86",
+      "_src": "run_tests_rationale_74",
       "_tgt": "test_case_testcase",
-      "source": "run_tests_rationale_86",
+      "source": "run_tests_rationale_74",
       "target": "test_case_testcase",
       "confidence_score": 0.5
     },
@@ -5451,11 +5109,11 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L432",
+      "source_location": "L84",
       "weight": 0.8,
-      "_src": "run_tests_rationale_86",
+      "_src": "run_tests_rationale_74",
       "_tgt": "test_case_testresult",
-      "source": "run_tests_rationale_86",
+      "source": "run_tests_rationale_74",
       "target": "test_case_testresult",
       "confidence_score": 0.5
     },
@@ -5463,11 +5121,11 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L38",
+      "source_location": "L39",
       "weight": 0.8,
-      "_src": "run_tests_rationale_86",
+      "_src": "run_tests_rationale_74",
       "_tgt": "validator_validator",
-      "source": "run_tests_rationale_86",
+      "source": "run_tests_rationale_74",
       "target": "validator_validator",
       "confidence_score": 0.5
     },
@@ -5475,515 +5133,11 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L44",
+      "source_location": "L41",
       "weight": 0.8,
-      "_src": "run_tests_rationale_86",
+      "_src": "run_tests_rationale_74",
       "_tgt": "workspace_workspace",
-      "source": "run_tests_rationale_86",
-      "target": "workspace_workspace",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L34",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_95",
-      "_tgt": "grid_grid",
-      "source": "run_tests_rationale_95",
-      "target": "grid_grid",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L35",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_95",
-      "_tgt": "robot_robot",
-      "source": "run_tests_rationale_95",
-      "target": "robot_robot",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L36",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_95",
-      "_tgt": "solver_solver",
-      "source": "run_tests_rationale_95",
-      "target": "solver_solver",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L432",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_95",
-      "_tgt": "test_case_testcase",
-      "source": "run_tests_rationale_95",
-      "target": "test_case_testcase",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L432",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_95",
-      "_tgt": "test_case_testresult",
-      "source": "run_tests_rationale_95",
-      "target": "test_case_testresult",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L38",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_95",
-      "_tgt": "validator_validator",
-      "source": "run_tests_rationale_95",
-      "target": "validator_validator",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L44",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_95",
-      "_tgt": "workspace_workspace",
-      "source": "run_tests_rationale_95",
-      "target": "workspace_workspace",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L34",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_132",
-      "_tgt": "grid_grid",
-      "source": "run_tests_rationale_132",
-      "target": "grid_grid",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L35",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_132",
-      "_tgt": "robot_robot",
-      "source": "run_tests_rationale_132",
-      "target": "robot_robot",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L36",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_132",
-      "_tgt": "solver_solver",
-      "source": "run_tests_rationale_132",
-      "target": "solver_solver",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L432",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_132",
-      "_tgt": "test_case_testcase",
-      "source": "run_tests_rationale_132",
-      "target": "test_case_testcase",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L432",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_132",
-      "_tgt": "test_case_testresult",
-      "source": "run_tests_rationale_132",
-      "target": "test_case_testresult",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L38",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_132",
-      "_tgt": "validator_validator",
-      "source": "run_tests_rationale_132",
-      "target": "validator_validator",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L44",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_132",
-      "_tgt": "workspace_workspace",
-      "source": "run_tests_rationale_132",
-      "target": "workspace_workspace",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L34",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_172",
-      "_tgt": "grid_grid",
-      "source": "run_tests_rationale_172",
-      "target": "grid_grid",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L35",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_172",
-      "_tgt": "robot_robot",
-      "source": "run_tests_rationale_172",
-      "target": "robot_robot",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L36",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_172",
-      "_tgt": "solver_solver",
-      "source": "run_tests_rationale_172",
-      "target": "solver_solver",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L432",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_172",
-      "_tgt": "test_case_testcase",
-      "source": "run_tests_rationale_172",
-      "target": "test_case_testcase",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L432",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_172",
-      "_tgt": "test_case_testresult",
-      "source": "run_tests_rationale_172",
-      "target": "test_case_testresult",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L38",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_172",
-      "_tgt": "validator_validator",
-      "source": "run_tests_rationale_172",
-      "target": "validator_validator",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L44",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_172",
-      "_tgt": "workspace_workspace",
-      "source": "run_tests_rationale_172",
-      "target": "workspace_workspace",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L34",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_209",
-      "_tgt": "grid_grid",
-      "source": "run_tests_rationale_209",
-      "target": "grid_grid",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L35",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_209",
-      "_tgt": "robot_robot",
-      "source": "run_tests_rationale_209",
-      "target": "robot_robot",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L36",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_209",
-      "_tgt": "solver_solver",
-      "source": "run_tests_rationale_209",
-      "target": "solver_solver",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L432",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_209",
-      "_tgt": "test_case_testcase",
-      "source": "run_tests_rationale_209",
-      "target": "test_case_testcase",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L432",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_209",
-      "_tgt": "test_case_testresult",
-      "source": "run_tests_rationale_209",
-      "target": "test_case_testresult",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L38",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_209",
-      "_tgt": "validator_validator",
-      "source": "run_tests_rationale_209",
-      "target": "validator_validator",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L44",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_209",
-      "_tgt": "workspace_workspace",
-      "source": "run_tests_rationale_209",
-      "target": "workspace_workspace",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L34",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_287",
-      "_tgt": "grid_grid",
-      "source": "run_tests_rationale_287",
-      "target": "grid_grid",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L35",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_287",
-      "_tgt": "robot_robot",
-      "source": "run_tests_rationale_287",
-      "target": "robot_robot",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L36",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_287",
-      "_tgt": "solver_solver",
-      "source": "run_tests_rationale_287",
-      "target": "solver_solver",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L432",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_287",
-      "_tgt": "test_case_testcase",
-      "source": "run_tests_rationale_287",
-      "target": "test_case_testcase",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L432",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_287",
-      "_tgt": "test_case_testresult",
-      "source": "run_tests_rationale_287",
-      "target": "test_case_testresult",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L38",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_287",
-      "_tgt": "validator_validator",
-      "source": "run_tests_rationale_287",
-      "target": "validator_validator",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L44",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_287",
-      "_tgt": "workspace_workspace",
-      "source": "run_tests_rationale_287",
-      "target": "workspace_workspace",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L34",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_422",
-      "_tgt": "grid_grid",
-      "source": "run_tests_rationale_422",
-      "target": "grid_grid",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L35",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_422",
-      "_tgt": "robot_robot",
-      "source": "run_tests_rationale_422",
-      "target": "robot_robot",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L36",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_422",
-      "_tgt": "solver_solver",
-      "source": "run_tests_rationale_422",
-      "target": "solver_solver",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L432",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_422",
-      "_tgt": "test_case_testcase",
-      "source": "run_tests_rationale_422",
-      "target": "test_case_testcase",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L432",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_422",
-      "_tgt": "test_case_testresult",
-      "source": "run_tests_rationale_422",
-      "target": "test_case_testresult",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L38",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_422",
-      "_tgt": "validator_validator",
-      "source": "run_tests_rationale_422",
-      "target": "validator_validator",
-      "confidence_score": 0.5
-    },
-    {
-      "relation": "uses",
-      "confidence": "INFERRED",
-      "source_file": "run_tests.py",
-      "source_location": "L44",
-      "weight": 0.8,
-      "_src": "run_tests_rationale_422",
-      "_tgt": "workspace_workspace",
-      "source": "run_tests_rationale_422",
+      "source": "run_tests_rationale_74",
       "target": "workspace_workspace",
       "confidence_score": 0.5
     },
@@ -7646,6 +6800,90 @@
     {
       "relation": "uses",
       "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L20",
+      "weight": 0.8,
+      "_src": "simplify_rationale_1",
+      "_tgt": "grid_grid",
+      "source": "grid_grid",
+      "target": "simplify_rationale_1",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L20",
+      "weight": 0.8,
+      "_src": "simplify_rationale_33",
+      "_tgt": "grid_grid",
+      "source": "grid_grid",
+      "target": "simplify_rationale_33",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L20",
+      "weight": 0.8,
+      "_src": "simplify_rationale_65",
+      "_tgt": "grid_grid",
+      "source": "grid_grid",
+      "target": "simplify_rationale_65",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L20",
+      "weight": 0.8,
+      "_src": "simplify_rationale_102",
+      "_tgt": "grid_grid",
+      "source": "grid_grid",
+      "target": "simplify_rationale_102",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L20",
+      "weight": 0.8,
+      "_src": "simplify_rationale_142",
+      "_tgt": "grid_grid",
+      "source": "grid_grid",
+      "target": "simplify_rationale_142",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L20",
+      "weight": 0.8,
+      "_src": "simplify_rationale_180",
+      "_tgt": "grid_grid",
+      "source": "grid_grid",
+      "target": "simplify_rationale_180",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L20",
+      "weight": 0.8,
+      "_src": "simplify_rationale_268",
+      "_tgt": "grid_grid",
+      "source": "grid_grid",
+      "target": "simplify_rationale_268",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
       "source_file": "src\\visualizer.py",
       "source_location": "L741",
       "weight": 0.8,
@@ -8086,6 +7324,18 @@
       "source": "grid_grid",
       "target": "5x5_robot_no_holes_rationale_1",
       "confidence_score": 0.5
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src\\simplify.py",
+      "source_location": "L248",
+      "weight": 1.0,
+      "_src": "simplify_simplify_workspace",
+      "_tgt": "grid_grid",
+      "source": "grid_grid",
+      "target": "simplify_simplify_workspace"
     },
     {
       "relation": "calls",
@@ -8667,6 +7917,18 @@
       "relation": "calls",
       "confidence": "INFERRED",
       "confidence_score": 0.8,
+      "source_file": "src\\simplify.py",
+      "source_location": "L205",
+      "weight": 1.0,
+      "_src": "simplify_simplify_workspace",
+      "_tgt": "lru_lrucache_get",
+      "source": "lru_lrucache_get",
+      "target": "simplify_simplify_workspace"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
       "source_file": "src\\visualizer.py",
       "source_location": "L73",
       "weight": 1.0,
@@ -8938,6 +8200,90 @@
       "source": "robot_robot",
       "target": "robot_rationale_21",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L21",
+      "weight": 0.8,
+      "_src": "simplify_rationale_1",
+      "_tgt": "robot_robot",
+      "source": "robot_robot",
+      "target": "simplify_rationale_1",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L21",
+      "weight": 0.8,
+      "_src": "simplify_rationale_33",
+      "_tgt": "robot_robot",
+      "source": "robot_robot",
+      "target": "simplify_rationale_33",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L21",
+      "weight": 0.8,
+      "_src": "simplify_rationale_65",
+      "_tgt": "robot_robot",
+      "source": "robot_robot",
+      "target": "simplify_rationale_65",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L21",
+      "weight": 0.8,
+      "_src": "simplify_rationale_102",
+      "_tgt": "robot_robot",
+      "source": "robot_robot",
+      "target": "simplify_rationale_102",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L21",
+      "weight": 0.8,
+      "_src": "simplify_rationale_142",
+      "_tgt": "robot_robot",
+      "source": "robot_robot",
+      "target": "simplify_rationale_142",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L21",
+      "weight": 0.8,
+      "_src": "simplify_rationale_180",
+      "_tgt": "robot_robot",
+      "source": "robot_robot",
+      "target": "simplify_rationale_180",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L21",
+      "weight": 0.8,
+      "_src": "simplify_rationale_268",
+      "_tgt": "robot_robot",
+      "source": "robot_robot",
+      "target": "simplify_rationale_268",
+      "confidence_score": 0.5
     },
     {
       "relation": "uses",
@@ -9423,6 +8769,30 @@
       "relation": "calls",
       "confidence": "INFERRED",
       "confidence_score": 0.8,
+      "source_file": "src\\simplify.py",
+      "source_location": "L249",
+      "weight": 1.0,
+      "_src": "simplify_simplify_workspace",
+      "_tgt": "robot_robot",
+      "source": "robot_robot",
+      "target": "simplify_simplify_workspace"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src\\simplify.py",
+      "source_location": "L372",
+      "weight": 1.0,
+      "_src": "simplify_run_simplification",
+      "_tgt": "robot_robot",
+      "source": "robot_robot",
+      "target": "simplify_run_simplification"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
       "source_file": "src\\visualizer.py",
       "source_location": "L668",
       "weight": 1.0,
@@ -9610,6 +8980,582 @@
       "source": "robot_robot_clone",
       "target": "robot_rationale_51",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L32",
+      "weight": 1.0,
+      "_src": "src_simplify_py",
+      "_tgt": "simplify_aggregate_wall_counts",
+      "source": "src_simplify_py",
+      "target": "simplify_aggregate_wall_counts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L60",
+      "weight": 1.0,
+      "_src": "src_simplify_py",
+      "_tgt": "simplify_count_walls",
+      "source": "src_simplify_py",
+      "target": "simplify_count_walls",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L64",
+      "weight": 1.0,
+      "_src": "src_simplify_py",
+      "_tgt": "simplify_orange_peak_keepers",
+      "source": "src_simplify_py",
+      "target": "simplify_orange_peak_keepers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L101",
+      "weight": 1.0,
+      "_src": "src_simplify_py",
+      "_tgt": "simplify_orange_relative_keepers",
+      "source": "src_simplify_py",
+      "target": "simplify_orange_relative_keepers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L141",
+      "weight": 1.0,
+      "_src": "src_simplify_py",
+      "_tgt": "simplify_crop_bounds",
+      "source": "src_simplify_py",
+      "target": "simplify_crop_bounds",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L170",
+      "weight": 1.0,
+      "_src": "src_simplify_py",
+      "_tgt": "simplify_simplify_workspace",
+      "source": "src_simplify_py",
+      "target": "simplify_simplify_workspace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L255",
+      "weight": 1.0,
+      "_src": "src_simplify_py",
+      "_tgt": "simplify_run_simplification",
+      "source": "src_simplify_py",
+      "target": "simplify_run_simplification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_src": "simplify_rationale_1",
+      "_tgt": "src_simplify_py",
+      "source": "src_simplify_py",
+      "target": "simplify_rationale_1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L271",
+      "weight": 1.0,
+      "_src": "simplify_run_simplification",
+      "_tgt": "simplify_aggregate_wall_counts",
+      "source": "simplify_aggregate_wall_counts",
+      "target": "simplify_run_simplification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L33",
+      "weight": 1.0,
+      "_src": "simplify_rationale_33",
+      "_tgt": "simplify_aggregate_wall_counts",
+      "source": "simplify_aggregate_wall_counts",
+      "target": "simplify_rationale_33",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L272",
+      "weight": 1.0,
+      "_src": "simplify_run_simplification",
+      "_tgt": "simplify_count_walls",
+      "source": "simplify_count_walls",
+      "target": "simplify_run_simplification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L210",
+      "weight": 1.0,
+      "_src": "simplify_simplify_workspace",
+      "_tgt": "simplify_orange_peak_keepers",
+      "source": "simplify_orange_peak_keepers",
+      "target": "simplify_simplify_workspace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L65",
+      "weight": 1.0,
+      "_src": "simplify_rationale_65",
+      "_tgt": "simplify_orange_peak_keepers",
+      "source": "simplify_orange_peak_keepers",
+      "target": "simplify_rationale_65",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L213",
+      "weight": 1.0,
+      "_src": "simplify_simplify_workspace",
+      "_tgt": "simplify_orange_relative_keepers",
+      "source": "simplify_orange_relative_keepers",
+      "target": "simplify_simplify_workspace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L102",
+      "weight": 1.0,
+      "_src": "simplify_rationale_102",
+      "_tgt": "simplify_orange_relative_keepers",
+      "source": "simplify_orange_relative_keepers",
+      "target": "simplify_rationale_102",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L244",
+      "weight": 1.0,
+      "_src": "simplify_simplify_workspace",
+      "_tgt": "simplify_crop_bounds",
+      "source": "simplify_crop_bounds",
+      "target": "simplify_simplify_workspace",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L142",
+      "weight": 1.0,
+      "_src": "simplify_rationale_142",
+      "_tgt": "simplify_crop_bounds",
+      "source": "simplify_crop_bounds",
+      "target": "simplify_rationale_142",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L274",
+      "weight": 1.0,
+      "_src": "simplify_run_simplification",
+      "_tgt": "simplify_simplify_workspace",
+      "source": "simplify_simplify_workspace",
+      "target": "simplify_run_simplification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L180",
+      "weight": 1.0,
+      "_src": "simplify_rationale_180",
+      "_tgt": "simplify_simplify_workspace",
+      "source": "simplify_simplify_workspace",
+      "target": "simplify_rationale_180",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src\\simplify.py",
+      "source_location": "L247",
+      "weight": 1.0,
+      "_src": "simplify_simplify_workspace",
+      "_tgt": "workspace_workspace",
+      "source": "simplify_simplify_workspace",
+      "target": "workspace_workspace"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L268",
+      "weight": 1.0,
+      "_src": "simplify_rationale_268",
+      "_tgt": "simplify_run_simplification",
+      "source": "simplify_run_simplification",
+      "target": "simplify_rationale_268",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src\\simplify.py",
+      "source_location": "L307",
+      "weight": 1.0,
+      "_src": "simplify_run_simplification",
+      "_tgt": "solver_solver_solve",
+      "source": "simplify_run_simplification",
+      "target": "solver_solver_solve"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src\\simplify.py",
+      "source_location": "L307",
+      "weight": 1.0,
+      "_src": "simplify_run_simplification",
+      "_tgt": "solver_solver",
+      "source": "simplify_run_simplification",
+      "target": "solver_solver"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src\\simplify.py",
+      "source_location": "L328",
+      "weight": 1.0,
+      "_src": "simplify_run_simplification",
+      "_tgt": "validator_validator_run",
+      "source": "simplify_run_simplification",
+      "target": "validator_validator_run"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src\\simplify.py",
+      "source_location": "L328",
+      "weight": 1.0,
+      "_src": "simplify_run_simplification",
+      "_tgt": "validator_validator",
+      "source": "simplify_run_simplification",
+      "target": "validator_validator"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src\\simplify.py",
+      "source_location": "L330",
+      "weight": 1.0,
+      "_src": "simplify_run_simplification",
+      "_tgt": "visualizer_draw_sequence",
+      "source": "simplify_run_simplification",
+      "target": "visualizer_draw_sequence"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src\\simplify.py",
+      "source_location": "L378",
+      "weight": 1.0,
+      "_src": "simplify_run_simplification",
+      "_tgt": "visualizer_draw_summary",
+      "source": "simplify_run_simplification",
+      "target": "visualizer_draw_summary"
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L22",
+      "weight": 0.8,
+      "_src": "simplify_rationale_1",
+      "_tgt": "solver_solver",
+      "source": "simplify_rationale_1",
+      "target": "solver_solver",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L23",
+      "weight": 0.8,
+      "_src": "simplify_rationale_1",
+      "_tgt": "validator_validator",
+      "source": "simplify_rationale_1",
+      "target": "validator_validator",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L29",
+      "weight": 0.8,
+      "_src": "simplify_rationale_1",
+      "_tgt": "workspace_workspace",
+      "source": "simplify_rationale_1",
+      "target": "workspace_workspace",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L22",
+      "weight": 0.8,
+      "_src": "simplify_rationale_33",
+      "_tgt": "solver_solver",
+      "source": "simplify_rationale_33",
+      "target": "solver_solver",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L23",
+      "weight": 0.8,
+      "_src": "simplify_rationale_33",
+      "_tgt": "validator_validator",
+      "source": "simplify_rationale_33",
+      "target": "validator_validator",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L29",
+      "weight": 0.8,
+      "_src": "simplify_rationale_33",
+      "_tgt": "workspace_workspace",
+      "source": "simplify_rationale_33",
+      "target": "workspace_workspace",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L22",
+      "weight": 0.8,
+      "_src": "simplify_rationale_65",
+      "_tgt": "solver_solver",
+      "source": "simplify_rationale_65",
+      "target": "solver_solver",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L23",
+      "weight": 0.8,
+      "_src": "simplify_rationale_65",
+      "_tgt": "validator_validator",
+      "source": "simplify_rationale_65",
+      "target": "validator_validator",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L29",
+      "weight": 0.8,
+      "_src": "simplify_rationale_65",
+      "_tgt": "workspace_workspace",
+      "source": "simplify_rationale_65",
+      "target": "workspace_workspace",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L22",
+      "weight": 0.8,
+      "_src": "simplify_rationale_102",
+      "_tgt": "solver_solver",
+      "source": "simplify_rationale_102",
+      "target": "solver_solver",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L23",
+      "weight": 0.8,
+      "_src": "simplify_rationale_102",
+      "_tgt": "validator_validator",
+      "source": "simplify_rationale_102",
+      "target": "validator_validator",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L29",
+      "weight": 0.8,
+      "_src": "simplify_rationale_102",
+      "_tgt": "workspace_workspace",
+      "source": "simplify_rationale_102",
+      "target": "workspace_workspace",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L22",
+      "weight": 0.8,
+      "_src": "simplify_rationale_142",
+      "_tgt": "solver_solver",
+      "source": "simplify_rationale_142",
+      "target": "solver_solver",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L23",
+      "weight": 0.8,
+      "_src": "simplify_rationale_142",
+      "_tgt": "validator_validator",
+      "source": "simplify_rationale_142",
+      "target": "validator_validator",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L29",
+      "weight": 0.8,
+      "_src": "simplify_rationale_142",
+      "_tgt": "workspace_workspace",
+      "source": "simplify_rationale_142",
+      "target": "workspace_workspace",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L22",
+      "weight": 0.8,
+      "_src": "simplify_rationale_180",
+      "_tgt": "solver_solver",
+      "source": "simplify_rationale_180",
+      "target": "solver_solver",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L23",
+      "weight": 0.8,
+      "_src": "simplify_rationale_180",
+      "_tgt": "validator_validator",
+      "source": "simplify_rationale_180",
+      "target": "validator_validator",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L29",
+      "weight": 0.8,
+      "_src": "simplify_rationale_180",
+      "_tgt": "workspace_workspace",
+      "source": "simplify_rationale_180",
+      "target": "workspace_workspace",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L22",
+      "weight": 0.8,
+      "_src": "simplify_rationale_268",
+      "_tgt": "solver_solver",
+      "source": "simplify_rationale_268",
+      "target": "solver_solver",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L23",
+      "weight": 0.8,
+      "_src": "simplify_rationale_268",
+      "_tgt": "validator_validator",
+      "source": "simplify_rationale_268",
+      "target": "validator_validator",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L29",
+      "weight": 0.8,
+      "_src": "simplify_rationale_268",
+      "_tgt": "workspace_workspace",
+      "source": "simplify_rationale_268",
+      "target": "workspace_workspace",
+      "confidence_score": 0.5
     },
     {
       "relation": "contains",
