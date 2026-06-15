@@ -10,10 +10,26 @@ from __future__ import annotations
 import os
 from copy import deepcopy
 
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
-
 from src.directories import plots_path
+
+# matplotlib is imported lazily (see `_load_mpl`) so that importing this module
+# — which happens transitively via `src.bfs` in every solver worker — does NOT
+# pay matplotlib's ~25 MB resident cost. Workers that only solve never draw, so
+# they never load it; only the plotting entry points below trigger the import.
+plt = None
+patches = None
+
+
+def _load_mpl():
+    """Import matplotlib on first use and bind module-level `plt` / `patches`."""
+    global plt, patches
+    if plt is None:
+        import matplotlib.patches as _patches
+        import matplotlib.pyplot as _plt
+
+        plt = _plt
+        patches = _patches
+
 
 COLOR_OBSTACLE = "#000000"
 COLOR_FREE = "#f5f5f0"
@@ -45,6 +61,7 @@ def draw(grid, robots=None, title="Workspace", ax=None, show=True):
     ax     : matplotlib Axes to draw on (creates new figure if None)
     show   : call plt.show() if True
     """
+    _load_mpl()
     rows = grid.rows
     cols = grid.cols
 
@@ -427,6 +444,7 @@ def draw_sequence(
     cols_per_row: panels per row
     save_path   : save to this path if given, else show interactively
     """
+    _load_mpl()
     titles = titles or [f"step {i}" for i in range(len(snapshots))]
     turns = _extract_turns(snapshots, titles)
 
@@ -532,6 +550,7 @@ def draw_blocker_heatmap(grid, turns, save_path=None, robot_size=1):
     it was in contact with a robot face. Shows which walls are "load-bearing"
     in the puzzle vs. scenery.
     """
+    _load_mpl()
     counts = {}
     face_counts = {}  # (row, col, side) -> count, for the side of the wall touching the robot
     for turn in turns:
@@ -590,6 +609,7 @@ def draw_summary(panels, stats, save_path, title=None):
     if not panels:
         return
 
+    _load_mpl()
     # cols_max = max(g.cols for g, _, _ in panels)
     rows_max = max(g.rows for g, _, _ in panels)
 
@@ -644,6 +664,7 @@ def draw_bfs_frontier(grid, frontier, switch_num, robot_size, save_dir=None):
     if n == 0:
         return
 
+    _load_mpl()
     cols = min(n, 5)
     rows = (n + cols - 1) // cols
 

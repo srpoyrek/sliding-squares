@@ -43,6 +43,31 @@ _VALID_POS_CACHE: LRUCache = LRUCache(maxsize=1024)
 _USABLE_CACHE: LRUCache = LRUCache(maxsize=4096)
 _PARENT_MAP_CACHE: LRUCache = LRUCache(maxsize=8192)
 
+# ── Cache-sizing model (used by configure_caches_for_grid) ──────────────────
+# Every cache entry holds O(valid block positions) cells, so its byte cost is
+# modelled as  slope * valid_positions + base.  A parent_map entry is a dict
+# (hash node + key tuple + value tuple per cell), so its slope is far larger
+# than the usable/valid sets (one cell tuple per element). Numbers are coarse
+# RAM estimates from observed entry sizes; they only need to be the right order
+# of magnitude — the runtime MemoryGuard is the actual safety net, not these.
+_PM_ENTRY_BYTES_PER_CELL = 160
+_SET_ENTRY_BYTES_PER_CELL = 60
+_ENTRY_BYTES_OVERHEAD = 200
+
+# How the per-worker byte budget is split across the three caches. parent_map
+# dominates lookups, so it gets the lion's share.
+_PM_BUDGET_SHARE = 0.70
+_USABLE_BUDGET_SHARE = 0.25
+_VALID_BUDGET_SHARE = 0.05
+
+# Smallest cap allowed per cache. Kept tiny on purpose: under a tight per-worker
+# budget on a large grid a single parent_map entry is big, so a generous floor
+# would itself overrun the budget. Caching is pure memoization, so a small cap
+# only means more recomputation — never a wrong answer.
+_PM_MIN_ENTRIES = 16
+_USABLE_MIN_ENTRIES = 16
+_VALID_MIN_ENTRIES = 8
+
 
 def configure_caches_for_grid(rows: int, cols: int, n: int, target_mb: int = 150) -> None:
     """Resize module-level LRU caches so total memory scales with grid area.
@@ -54,20 +79,30 @@ def configure_caches_for_grid(rows: int, cols: int, n: int, target_mb: int = 150
     """
     global _VALID_POS_CACHE, _USABLE_CACHE, _PARENT_MAP_CACHE
     valid_positions = max(1, (rows - n + 1) * (cols - n + 1))
-    pm_bytes_per_entry = valid_positions * 160 + 200
-    usable_bytes_per_entry = valid_positions * 60 + 200
-    valid_bytes_per_entry = valid_positions * 60 + 200
+    pm_bytes_per_entry = valid_positions * _PM_ENTRY_BYTES_PER_CELL + _ENTRY_BYTES_OVERHEAD
+    set_bytes_per_entry = valid_positions * _SET_ENTRY_BYTES_PER_CELL + _ENTRY_BYTES_OVERHEAD
 
     budget_bytes = target_mb * 1024 * 1024
-    pm_share, usable_share, valid_share = 0.70, 0.25, 0.05
 
-    pm_cap = max(256, int(budget_bytes * pm_share / pm_bytes_per_entry))
-    usable_cap = max(128, int(budget_bytes * usable_share / usable_bytes_per_entry))
-    valid_cap = max(64, int(budget_bytes * valid_share / valid_bytes_per_entry))
+    pm_cap = max(_PM_MIN_ENTRIES, int(budget_bytes * _PM_BUDGET_SHARE / pm_bytes_per_entry))
+    usable_cap = max(
+        _USABLE_MIN_ENTRIES, int(budget_bytes * _USABLE_BUDGET_SHARE / set_bytes_per_entry)
+    )
+    valid_cap = max(
+        _VALID_MIN_ENTRIES, int(budget_bytes * _VALID_BUDGET_SHARE / set_bytes_per_entry)
+    )
 
     _VALID_POS_CACHE = LRUCache(maxsize=valid_cap)
     _USABLE_CACHE = LRUCache(maxsize=usable_cap)
     _PARENT_MAP_CACHE = LRUCache(maxsize=pm_cap)
+
+
+def shrink_caches(factor: float = 0.5) -> None:
+    """Escalating lossless relief: scale every LRU cap by `factor` and evict
+    down. Entries are pure memoization, so this only forces recomputation."""
+    _VALID_POS_CACHE.set_maxsize(int(_VALID_POS_CACHE.maxsize * factor))
+    _USABLE_CACHE.set_maxsize(int(_USABLE_CACHE.maxsize * factor))
+    _PARENT_MAP_CACHE.set_maxsize(int(_PARENT_MAP_CACHE.maxsize * factor))
 
 
 _INVERSE_CMD = {"U": "D", "D": "U", "L": "R", "R": "L"}

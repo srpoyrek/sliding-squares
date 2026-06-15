@@ -14,7 +14,6 @@ import os
 import shutil
 import threading
 import time
-from collections import deque
 
 from src.bfs import pack_cells_mask
 from src.canonical import (
@@ -28,12 +27,18 @@ from src.canonical import (
     robot_block as _robot_block,
 )
 from src.directories import get_plots_dir
-from src.frontier import extend_frontier as _extend_frontier
 from src.frontier import initial_frontier as _initial_frontier
 from src.lru import LRUCache
+from src.memory import MB, MemoryGuard, plan_budget, rss_bytes, tree_rss_bytes
 from src.solver import Solver
 from src.visualizer import plot_proof as _plot_proof
 from src.workspace import Workspace
+
+# Per-process absolute RSS ceiling (bytes) for the memory guard. Set in the main
+# process by _init_transform_tables and seeded into every worker by
+# _set_transform_tables, so each process keeps itself under its share of the
+# global --max-mb budget. None disables the guard.
+_MEM_BUDGET_BYTES = None
 
 # The dig-search calls these helpers by their old private names; bind the moved
 # implementations (now on Workspace) so all call sites and the hot loop stay
@@ -41,25 +46,6 @@ from src.workspace import Workspace
 _build_workspace = Workspace.from_free_cells
 _free_set = Workspace.free_cells
 _valid_block_positions = Workspace.valid_block_positions
-_extend_valid = Workspace.extend_valid
-
-
-def robot_can_reach_goal_ignoring_other(valid, start, goal):
-    if goal not in valid:
-        return False
-    queue = deque([start])
-    visited = {start}
-    while queue:
-        curr = queue.popleft()
-        if curr == goal:
-            return True
-        r, c = curr
-        for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-            nbr = (r + dr, c + dc)
-            if nbr in valid and nbr not in visited:
-                visited.add(nbr)
-                queue.append(nbr)
-    return False
 
 
 def _solve_payload(payload):
@@ -103,18 +89,20 @@ def _build_cell_bits(cell_table, bit_stride):
     return cb
 
 
-def _init_transform_tables(rows, cols, n, cache_mb=150):
+def _init_transform_tables(rows, cols, n, cache_mb=150, mem_budget_mb=None):
     """Build and set module-level transform tables. Called once in main process."""
-    global _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE, _CELL_BITS
+    global _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE, _CELL_BITS, _MEM_BUDGET_BYTES
     _N_KINDS, _CELL_TABLE, _POS_TABLE = build_transform_tables(rows, cols, n)
     _BIT_STRIDE = cols
     _CELL_BITS = _build_cell_bits(_CELL_TABLE, _BIT_STRIDE)
+    if mem_budget_mb is not None:
+        _MEM_BUDGET_BYTES = int(mem_budget_mb * MB)
 
     from src import bfs as _bfs
 
     _bfs.configure_caches_for_grid(rows, cols, n, target_mb=cache_mb)
     print(
-        f"Cache sizing (budget={cache_mb} MB/worker): "
+        f"Cache sizing (budget={cache_mb:.0f} MB/worker): "
         f"parent_map={_bfs._PARENT_MAP_CACHE.maxsize}  "
         f"usable={_bfs._USABLE_CACHE.maxsize}  "
         f"valid_pos={_bfs._VALID_POS_CACHE.maxsize}"
@@ -130,16 +118,20 @@ def _set_transform_tables(
     grid_cols=None,
     grid_n=None,
     cache_mb=150,
+    mem_budget_mb=None,
 ):
     """Assign pre-built transform tables in worker processes (no recomputation).
     Also sizes the per-worker bfs caches for the current grid dimensions so
-    per-entry memory scales sanely from 4x4 to 30x30+."""
-    global _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE, _CELL_BITS
+    per-entry memory scales sanely from 4x4 to 30x30+, and seeds the per-process
+    memory-guard ceiling so each worker keeps itself under its budget share."""
+    global _N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE, _CELL_BITS, _MEM_BUDGET_BYTES
     _N_KINDS = n_kinds
     _CELL_TABLE = cell_table
     _POS_TABLE = pos_table
     _BIT_STRIDE = bit_stride
     _CELL_BITS = _build_cell_bits(cell_table, bit_stride)
+    if mem_budget_mb is not None:
+        _MEM_BUDGET_BYTES = int(mem_budget_mb * MB)
     if grid_rows is not None and grid_cols is not None and grid_n is not None:
         from src.bfs import configure_caches_for_grid
 
@@ -215,6 +207,30 @@ def _dig_options_n_strip(free_cells, frontier, valid, rows, cols, n):
 # ---------------------------------------------------------------------------
 
 
+def _decode_free_key(mask, cols):
+    """Decode a free-cell bitmask (bit r*cols+c set iff (r, c) is free) back to a
+    set of (r, c) cells. O(number of free cells) via lowest-set-bit iteration."""
+    cells = set()
+    while mask:
+        lsb = mask & -mask
+        idx = lsb.bit_length() - 1
+        cells.add((idx // cols, idx % cols))
+        mask ^= lsb
+    return cells
+
+
+def _tf_from_cells(free_cells):
+    """Rebuild the per-transform free-cell bitmaps (one int per symmetry) from a
+    free-cell set. The dig queue stores only the compact free_key and rebuilds
+    this on pop — trading a little CPU for ~100x smaller queue entries."""
+    tf_list = [0] * _N_KINDS  # type: ignore
+    for cell in free_cells:
+        bits = _CELL_BITS[cell]  # type: ignore
+        for k in range(_N_KINDS):  # type: ignore
+            tf_list[k] |= bits[k]
+    return tuple(tf_list)
+
+
 def dig_search(
     rows,
     cols,
@@ -226,6 +242,7 @@ def dig_search(
     dig_options=_dig_options_single_cell,
     solver_pool=None,
     cache_stats_out=None,
+    mem_budget_bytes=None,
 ):
     goal_a, goal_b = pos_b, pos_a
 
@@ -233,17 +250,6 @@ def dig_search(
     block_b = _robot_block(pos_b, n)
 
     init_free = block_a | block_b
-    init_frontier = _initial_frontier(rows, cols, init_free)
-    init_valid = _valid_block_positions(rows, cols, init_free, n)
-    init_key = frozenset(init_free)
-
-    # Monotonicity shortcut: if both robots can already reach their goals at
-    # init_free (e.g. edge-adjacent placements), they can reach them at every
-    # future state (valid set only grows as cells are dug). We can skip the
-    # reach-check inside the hot loop entirely.
-    reach_always_ok = robot_can_reach_goal_ignoring_other(
-        init_valid, pos_a, goal_a
-    ) and robot_can_reach_goal_ignoring_other(init_valid, pos_b, goal_b)
 
     # Per-placement tiebreakers: pos_a and pos_b don't change within one
     # dig_search call, so the (a_t, b_t) / (b_t, a_t) tiebreaker pairs are
@@ -257,26 +263,17 @@ def dig_search(
         for k in range(_N_KINDS)  # type: ignore
     )
 
-    # Initial transforms_free tuple (one bitmap per transform).
-    init_tf_list = [0] * _N_KINDS  # type: ignore
-    for c in init_free:
-        bits = _CELL_BITS[c]  # type: ignore
-        for k in range(_N_KINDS):  # type: ignore
-            init_tf_list[k] |= bits[k]
-    init_tf = tuple(init_tf_list)
-
     visited = set()
-    # Min-heap priority queue: (depth, |valid|, seq, state_payload).
-    # Primary key depth  -> preserves layered-BFS ordering.
-    # Secondary |valid| -> within a layer, explore tighter puzzles (fewer
-    #                       robot positions) first.
-    # seq counter       -> breaks ties so Python never compares payloads.
+    # Min-heap priority queue of (depth, seq, free_key) entries.
+    #   depth    -> primary key; preserves layered-BFS ordering.
+    #   seq      -> unique tie-break so Python never compares the int payloads.
+    #   free_key -> compact free-cell bitmask (bit r*cols+c set iff free). Only
+    #               this int is stored per node; frontier / valid / tf are
+    #               rebuilt on pop, so each entry is ~100x smaller than the full
+    #               payload and the queue cannot blow the memory budget.
     queue: list = []
     seq = 0
-    heapq.heappush(
-        queue,
-        (0, len(init_valid), seq, (init_key, init_frontier, init_valid, init_tf, 0)),
-    )
+    heapq.heappush(queue, (0, seq, pack_cells_mask(init_free, cols)))
     seq += 1
 
     shared_ws = _build_workspace(rows, cols, set(init_free), pos_a, pos_b, n)
@@ -298,7 +295,6 @@ def dig_search(
     first_solvable_depth = None
 
     t_canon = 0.0
-    t_precheck = 0.0
     t_sync = 0.0
     t_solver = 0.0
     t_frontier = 0.0
@@ -314,12 +310,17 @@ def dig_search(
     # batches to keep memory usage stable even when the BFS layer is very wide.
     MAX_BATCH_SIZE = 5000
 
-    # reach-check monotonicity flag. At init it's True iff `reach_always_ok` is
-    # False (corner-adjacent placements). During the BFS we watch every full
-    # layer: once a layer completes with zero reach_ok=False states, all
-    # descendants inherit True (valid set only grows), so we can disable the
-    # check for the rest of the run.
-    reach_check_needed = not reach_always_ok
+    # Memory guard: poll real RSS in the hot loop and, when this process climbs
+    # toward its per-process ceiling, run *lossless* relief — drop and then
+    # shrink the bfs flood caches (pure memoization; entries are recomputed on
+    # demand). The search frontier itself is never truncated, so the result
+    # stays complete. budget falls back to the module-global ceiling seeded by
+    # the pool initializer when not passed explicitly.
+    from src.bfs import _clear_caches
+    from src.bfs import shrink_caches as _shrink_caches
+
+    budget = mem_budget_bytes if mem_budget_bytes is not None else _MEM_BUDGET_BYTES
+    guard = MemoryGuard(budget, relief=(_clear_caches, _shrink_caches)) if budget else None
 
     while queue:
         current_depth = queue[0][0]
@@ -332,9 +333,6 @@ def dig_search(
                 heapq.heappop(queue)
             continue
 
-        # Tracks whether any state at current_depth computed reach_ok=False.
-        layer_had_reach_false = False
-
         while queue and queue[0][0] == current_depth:
             # Process the current depth in chunks to avoid memory spikes
             batch = []
@@ -343,13 +341,15 @@ def dig_search(
                     break
                 batch.append(heapq.heappop(queue))
 
-            # Phase 1: precheck batch; collect the ones needing solver.
+            # Phase 1: decode each node and collect them all for solving.
             layer_records = []
             need_solve_payloads = []
             need_solve_indices = []
             for item in batch:
-                _pd, _pv, _pseq, (free_key, frontier, valid, tf, depth) = item
+                depth, _pseq, free_key_int = item
                 nodes_visited += 1
+                if guard is not None:
+                    guard.tick()
                 if nodes_visited % 20000 == 0:
                     elapsed = time.perf_counter() - t_start
                     qsize = len(queue) + len(layer_records)
@@ -361,25 +361,20 @@ def dig_search(
                         f"eta={eta:.0f}s ({rate:.0f} nodes/s)",
                         flush=True,
                     )
-                free_cells = set(free_key)
+                # Rebuild the heavy per-node structures from the compact key;
+                # the queue stores only free_key_int to keep memory bounded.
+                free_cells = _decode_free_key(free_key_int, cols)
+                frontier = _initial_frontier(rows, cols, free_cells)
+                valid = _valid_block_positions(rows, cols, free_cells, n)
+                tf = _tf_from_cells(free_cells)
+                free_key = frozenset(free_cells)
 
-                t0 = time.perf_counter()
-                if not reach_check_needed:
-                    precheck_ok = True
-                else:
-                    reach_ok = robot_can_reach_goal_ignoring_other(
-                        valid, pos_a, goal_a
-                    ) and robot_can_reach_goal_ignoring_other(valid, pos_b, goal_b)
-                    if not reach_ok:
-                        layer_had_reach_false = True
-                    precheck_ok = reach_ok
-                t_precheck += time.perf_counter() - t0
-
-                if precheck_ok:
-                    need_solve_payloads.append(
-                        (rows, cols, n, free_key, pos_a, pos_b, goal_a, goal_b)
-                    )
-                    need_solve_indices.append(len(layer_records))
+                # Every node is solved directly. (The old reach-ignoring-the-
+                # other-robot precheck was a no-op for edge-adjacent placements
+                # and only pruned trivially-unsolvable corner/partial nodes that
+                # the solver rejects anyway, so it was removed.)
+                need_solve_payloads.append((rows, cols, n, free_key, pos_a, pos_b, goal_a, goal_b))
+                need_solve_indices.append(len(layer_records))
 
                 layer_records.append(
                     {
@@ -389,7 +384,6 @@ def dig_search(
                         "valid": valid,
                         "tf": tf,
                         "depth": depth,
-                        "precheck_ok": precheck_ok,
                         "solve": None,
                     }
                 )
@@ -421,7 +415,7 @@ def dig_search(
                 valid = rec["valid"]
                 tf = rec["tf"]
 
-                if rec["precheck_ok"] and rec["solve"] is not None:
+                if rec["solve"] is not None:
                     solvable, res_switches = rec["solve"]
                     if solvable:
                         if first_solvable_depth is None:
@@ -459,8 +453,9 @@ def dig_search(
 
                 for cells_to_dig in dig_options(free_cells, frontier, valid, rows, cols, n):
                     expansions_total += 1
+                    if guard is not None:
+                        guard.tick()
                     new_free_set = free_cells | cells_to_dig
-                    new_key = frozenset(new_free_set)
 
                     t0 = time.perf_counter()
                     new_tf_list = list(tf)
@@ -477,42 +472,18 @@ def dig_search(
                         continue
                     visited.add(new_canon)
 
-                    t0 = time.perf_counter()
-                    new_frontier = frontier
-                    for cell in cells_to_dig:
-                        new_frontier = _extend_frontier(
-                            new_frontier, cell, new_free_set, rows, cols
-                        )
-                    t_frontier += time.perf_counter() - t0
-
-                    new_valid = valid
-                    for cell in cells_to_dig:
-                        new_valid = _extend_valid(new_valid, cell, new_free_set, rows, cols, n)
-
-                    heapq.heappush(
-                        queue,
-                        (
-                            depth + 1,
-                            len(new_valid),
-                            seq,
-                            (new_key, new_frontier, new_valid, new_tf, depth + 1),
-                        ),
-                    )
+                    # Enqueue only the compact free-cell bitmask; frontier / valid
+                    # / tf are rebuilt when this node is popped. This is what keeps
+                    # the queue ~100x smaller and the whole search memory-bounded.
+                    heapq.heappush(queue, (depth + 1, seq, pack_cells_mask(new_free_set, cols)))
                     seq += 1
-
-        # End of current_depth layer. If the reach-check was needed but no
-        # state at this depth saw reach_ok=False, monotonicity guarantees all
-        # descendants have reach_ok=True — disable the check for the rest of
-        # the run.
-        if reach_check_needed and not layer_had_reach_false:
-            reach_check_needed = False
 
     t_total = time.perf_counter() - t_start
     unique_enqueued = expansions_total - canon_dupes_skipped
     dedup_pct = (100.0 * canon_dupes_skipped / expansions_total) if expansions_total else 0.0
     logs.append(
         f"    timings: total={t_total:.2f}s  solver={t_solver:.2f}s  "
-        f"canon={t_canon:.2f}s  precheck={t_precheck:.2f}s  "
+        f"canon={t_canon:.2f}s  "
         f"sync={t_sync:.2f}s  frontier={t_frontier:.2f}s  "
         f"nodes={nodes_visited}  solves={solver_calls}"
     )
@@ -524,6 +495,19 @@ def dig_search(
         f"    prune:   solvable_nodes_pruned={solvable_prunes}  "
         f"immediate_children_skipped>={solvable_prune_children_skipped}"
     )
+    if guard is not None:
+        logs.append(
+            f"    memory:  peak_rss={guard.peak_rss / MB:.1f}MB / "
+            f"{guard.budget / MB:.1f}MB ceiling  cache_relief_runs={guard.relief_runs}  "
+            f"hard_breaches={guard.hard_breaches}"
+        )
+        if cache_stats_out is not None:
+            cache_stats_out["mem_guard"] = {
+                "peak_rss": guard.peak_rss,
+                "budget": guard.budget,
+                "relief_runs": guard.relief_runs,
+                "hard_breaches": guard.hard_breaches,
+            }
 
     if best_free_max is None or best_free_min is None:
         return None
@@ -629,6 +613,52 @@ def _worker(args, solver_pool=None):
     return out
 
 
+class _MemoryMonitor:
+    """Background sampler that prints whole-process-tree RSS against the budget,
+    so a run shows live memory usage. It samples from the orchestrator, which
+    sees itself plus every worker child — exactly the total that must stay under
+    --max-mb. Runs in a daemon thread; `stop()` returns the observed peak."""
+
+    def __init__(self, budget_mb, interval=2.0, verbose=True):
+        self.budget_mb = float(budget_mb)
+        self.interval = float(interval)
+        self.verbose = verbose
+        self.peak_mb = 0.0
+        self._stop = threading.Event()
+        self._thread = None
+
+    def _sample(self):
+        cur = tree_rss_bytes() / MB
+        if cur > self.peak_mb:
+            self.peak_mb = cur
+        return cur
+
+    def _run(self):
+        while not self._stop.wait(self.interval):
+            cur = self._sample()
+            if self.verbose:
+                pct = (100.0 * cur / self.budget_mb) if self.budget_mb else 0.0
+                flag = "  <-- OVER BUDGET" if cur > self.budget_mb else ""
+                print(
+                    f"  [mem] tree RSS {cur:7.1f} MB / {self.budget_mb:.0f} MB "
+                    f"({pct:3.0f}%)  peak {self.peak_mb:7.1f} MB{flag}",
+                    flush=True,
+                )
+
+    def start(self):
+        self._sample()  # prime an initial reading before workers ramp up
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+        return self
+
+    def stop(self):
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=self.interval + 1.0)
+        self._sample()  # capture a final reading
+        return self.peak_mb
+
+
 def find_hardest(
     rows,
     cols,
@@ -639,7 +669,8 @@ def find_hardest(
     strategy="strip",
     central_only=False,
     touching="edge",
-    cache_mb=150,
+    max_mb=500,
+    cache_mb=None,
 ):
     run_dir = os.path.join(get_plots_dir(), "hardest", f"run_{rows}x{cols}_n{n}")
     if os.path.exists(run_dir):
@@ -648,13 +679,34 @@ def find_hardest(
 
     dig_options = DIG_STRATEGIES[strategy]
 
+    # ── Memory budget plan ───────────────────────────────────────────────
+    # Split the single global ceiling (max_mb) across workers and cap the worker
+    # count so each gets baseline + working room — this is what makes the bound
+    # hold "no matter how many processes". The measured main-process RSS is a
+    # good proxy for each spawned worker's baseline (spawn re-imports the same
+    # modules). cache_mb is derived from the per-worker share unless overridden.
+    baseline_mb = rss_bytes() / MB
+    requested = processes or min(8, mp.cpu_count())
+    nproc, per_proc_ceiling_mb, derived_cache_mb = plan_budget(max_mb, requested, baseline_mb)
+    cache_mb_eff = cache_mb if cache_mb is not None else derived_cache_mb
+
     summary = [
         f"Run: {rows}x{cols}, n={n}, depth_past_first={max_depth_past_first}, "
         f"strategy={strategy}, touching={touching}",
+        f"Memory: budget={max_mb:.0f} MB total  baseline~{baseline_mb:.0f} MB/proc  "
+        f"workers={nproc} (requested {requested})  "
+        f"ceiling~{per_proc_ceiling_mb:.0f} MB/worker  cache~{cache_mb_eff:.0f} MB/worker",
         "",
     ]
+    if verbose:
+        capped = f" (capped from {requested})" if nproc < requested else ""
+        print(
+            f"Memory plan: total budget {max_mb:.0f} MB | baseline ~{baseline_mb:.0f} MB/proc | "
+            f"workers {nproc}{capped} | per-worker ceiling ~{per_proc_ceiling_mb:.0f} MB | "
+            f"cache ~{cache_mb_eff:.0f} MB"
+        )
 
-    _init_transform_tables(rows, cols, n, cache_mb=cache_mb)
+    _init_transform_tables(rows, cols, n, cache_mb=cache_mb_eff, mem_budget_mb=per_proc_ceiling_mb)
     placement_gen = all_touching_placements if touching == "all" else all_adjacent_placements
     all_placements = list(placement_gen(rows, cols, n))
     keepers, merged = Canonicalizer(rows, cols, n).dedup_placements(all_placements)
@@ -698,7 +750,6 @@ def find_hardest(
     if verbose:
         print(f"Dispatching {len(jobs)} placements across worker pool...")
 
-    nproc = processes or min(8, mp.cpu_count())
     results = []
 
     # Shared stdin kill-switch registration helper — installed for both the
@@ -724,6 +775,9 @@ def find_hardest(
 
         threading.Thread(target=_stdin_watcher, daemon=True).start()
 
+    # Live memory readout: prints whole-tree RSS vs. budget every couple seconds.
+    monitor = _MemoryMonitor(max_mb, verbose=verbose).start()
+
     # ────────────────────────────────────────────────────────────────────
     # central-only fast path: few jobs (1-2), many idle cores.
     # Run each placement sequentially in main, but give dig_search a fat
@@ -735,7 +789,17 @@ def find_hardest(
         with mp.get_context("spawn").Pool(
             processes=nproc,
             initializer=_set_transform_tables,
-            initargs=(_N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE, rows, cols, n, cache_mb),
+            initargs=(
+                _N_KINDS,
+                _CELL_TABLE,
+                _POS_TABLE,
+                _BIT_STRIDE,
+                rows,
+                cols,
+                n,
+                cache_mb_eff,
+                per_proc_ceiling_mb,
+            ),
         ) as solver_pool:
             _install_stdin_killer(solver_pool)
             for job in jobs:
@@ -760,7 +824,17 @@ def find_hardest(
         with mp.get_context("spawn").Pool(
             processes=nproc,
             initializer=_set_transform_tables,
-            initargs=(_N_KINDS, _CELL_TABLE, _POS_TABLE, _BIT_STRIDE, rows, cols, n, cache_mb),
+            initargs=(
+                _N_KINDS,
+                _CELL_TABLE,
+                _POS_TABLE,
+                _BIT_STRIDE,
+                rows,
+                cols,
+                n,
+                cache_mb_eff,
+                per_proc_ceiling_mb,
+            ),
         ) as pool:
             _install_stdin_killer(pool)
 
@@ -781,6 +855,11 @@ def find_hardest(
                             f"    DONE: {out['switches']} switches  "
                             f"max-free={out['free_max']} min-free={out['free_min']}\n"
                         )
+
+    peak_tree_mb = monitor.stop()
+    if verbose:
+        over = "  <-- EXCEEDED" if peak_tree_mb > max_mb else ""
+        print(f"\nPeak memory (whole tree): {peak_tree_mb:.1f} MB / {max_mb:.0f} MB budget{over}")
 
     global_max_sw = -1
     global_max = None
@@ -853,11 +932,33 @@ def find_hardest(
             f"  proof:     {gdir}",
         ]
 
+    # Memory summary: the whole-tree peak is the number that had to stay under
+    # max_mb; the per-worker guard readings show how close each got to its share.
+    worker_peaks = [
+        (out.get("cache_stats") or {}).get("mem_guard", {}).get("peak_rss", 0) for out in results
+    ]
+    worker_peak_mb = (max(worker_peaks) / MB) if worker_peaks else 0.0
+    breaches = sum(
+        (out.get("cache_stats") or {}).get("mem_guard", {}).get("hard_breaches", 0)
+        for out in results
+    )
+    summary.append("")
+    summary.append(
+        f"MEMORY: peak whole-tree RSS {peak_tree_mb:.1f} MB / {max_mb:.0f} MB budget"
+        + ("  EXCEEDED" if peak_tree_mb > max_mb else "  (within budget)")
+    )
+    summary.append(
+        f"  workers={nproc}  per-worker ceiling~{per_proc_ceiling_mb:.0f} MB  "
+        f"max worker peak={worker_peak_mb:.1f} MB  cache hard_breaches={breaches}"
+    )
+
     # Aggregate LRU cache stats across all workers.
     agg: dict = {}
     for out in results:
         stats_per_cache = out.get("cache_stats") or {}
         for cache_name, s in stats_per_cache.items():
+            if cache_name == "mem_guard":  # not an LRU cache; handled above
+                continue
             a = agg.setdefault(
                 cache_name,
                 {"hits": 0, "misses": 0, "evictions": 0, "peak_size": 0, "maxsize": s["maxsize"]},
@@ -902,7 +1003,7 @@ if __name__ == "__main__":
     p.add_argument("--cols", type=int, default=3)
     p.add_argument("--n", type=int, default=1)
     p.add_argument("--depth", type=int, default=4)
-    p.add_argument("--processes", type=int, default=4)
+    p.add_argument("--processes", type=int, default=2)
     p.add_argument("--quiet", action="store_true")
     p.add_argument("--strategy", choices=list(DIG_STRATEGIES.keys()), default="single")
     p.add_argument(
@@ -920,13 +1021,22 @@ if __name__ == "__main__":
         "'all' = also include corner-adjacent and partial-edge-offset pairs.",
     )
     p.add_argument(
+        "--max-mb",
+        type=float,
+        default=500.0,
+        help="HARD ceiling on total RAM (MB) across the whole process tree — "
+        "the main process plus every worker. The run divides this across "
+        "workers and caps the worker count so the bound holds no matter how "
+        "many --processes you ask for or how big the grid is. Default 500.",
+    )
+    p.add_argument(
         "--cache-mb",
-        type=int,
-        default=150,
-        help="Per-worker memory budget for bfs flood caches. Cap counts "
-        "auto-scale with grid area so memory stays near this target. "
-        "Raise for very large grids (e.g. 500 for 30x30, 1000+ for 100x100) "
-        "if you have the RAM, or lower --processes.",
+        type=float,
+        default=None,
+        help="Optional override of the per-worker bfs flood-cache budget (MB). "
+        "By default this is DERIVED from --max-mb and the worker count, so you "
+        "normally don't set it. Pass a value only to hand the caches a fixed "
+        "per-worker slice instead of the computed share.",
     )
     args = p.parse_args()
 
@@ -940,6 +1050,7 @@ if __name__ == "__main__":
         strategy=args.strategy,
         central_only=args.central_only,
         touching=args.touching,
+        max_mb=args.max_mb,
         cache_mb=args.cache_mb,
     )
     sw, gmax, gmin = result

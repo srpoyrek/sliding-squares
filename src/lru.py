@@ -44,6 +44,15 @@ class LRUCache:
     def __len__(self) -> int:
         return len(self._data)
 
+    def set_maxsize(self, new_max: int) -> None:
+        """Resize the cap and evict down to it immediately. Used as lossless
+        relief under memory pressure — evicted entries are pure memoization and
+        get recomputed on demand."""
+        self.maxsize = max(1, int(new_max))
+        while len(self._data) > self.maxsize:
+            self._data.popitem(last=False)
+            self.evictions += 1
+
     def clear(self) -> None:
         """Drop cached entries but preserve lifetime hit/miss/eviction counters.
 
