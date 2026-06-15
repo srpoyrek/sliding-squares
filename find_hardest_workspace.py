@@ -17,12 +17,21 @@ import time
 from collections import deque
 
 from src.bfs import pack_cells_mask
+from src.canonical import (
+    Canonicalizer,
+    all_adjacent_placements,
+    all_touching_placements,
+    build_transform_tables,
+    pick_central_placements,
+)
+from src.canonical import (
+    robot_block as _robot_block,
+)
 from src.directories import get_plots_dir
 from src.grid import Grid
 from src.lru import LRUCache
 from src.robot import Robot
 from src.solver import Solver
-from src.symmetry import build_transform_tables, canonical_key
 from src.validator import Validator
 from src.visualizer import draw_sequence
 from src.workspace import Workspace
@@ -44,11 +53,6 @@ def _free_set(ws):
     return {
         (r, c) for r in range(ws.grid.rows) for c in range(ws.grid.cols) if ws.grid.tiles[r][c] == 0
     }
-
-
-def _robot_block(top_left, n):
-    r, c = top_left
-    return {(r + dr, c + dc) for dr in range(n) for dc in range(n)}
 
 
 def _initial_frontier(rows, cols, free_cells):
@@ -234,9 +238,11 @@ def _set_transform_tables(
 
 
 def _canonical_key(tf, seconds, thirds):
-    """Canonical key from a precomputed transforms_free tuple and per-transform
-    tiebreakers (seconds[k] = min(pos_a_t[k], pos_b_t[k]), thirds[k] = max).
-    O(n_kinds) per call — incremental-friendly."""
+    """Hot-loop canonical key: O(n_kinds) per call from a precomputed
+    transforms_free tuple and per-transform tiebreakers
+    (seconds[k] = min(pos_a_t[k], pos_b_t[k]), thirds[k] = max). Kept separate
+    from canonical.Canonicalizer.key (which is O(n_kinds * |free|)) because the
+    BFS dig loop calls it once per expansion and needs the incremental form."""
     best = (tf[0], seconds[0], thirds[0])
     for k in range(1, _N_KINDS):  # type: ignore
         cand = (tf[k], seconds[k], thirds[k])
@@ -714,118 +720,6 @@ def _worker(args, solver_pool=None):
     return out
 
 
-def all_adjacent_placements(rows, cols, n):
-    """Full-edge-adjacent pairs only: B directly right of or below A."""
-    for r in range(rows - n + 1):
-        for c in range(cols - 2 * n + 1):
-            yield ((r, c), (r, c + n))
-    for r in range(rows - 2 * n + 1):
-        for c in range(cols - n + 1):
-            yield ((r, c), (r + n, c))
-    return
-
-
-def all_touching_placements(rows, cols, n):
-    """All non-overlapping A/B placements where the two n*n blocks touch —
-    full edge, partial edge, or just a corner. Includes everything
-    `all_adjacent_placements` yields plus partial-offset and corner pairs.
-
-    Non-overlapping + touching condition: (|dr|==n AND |dc|<=n) OR
-    (|dr|<=n AND |dc|==n), where (dr, dc) = pos_b - pos_a.
-    """
-    offsets = []
-    for dr in range(-n, n + 1):
-        for dc in range(-n, n + 1):
-            if dr == 0 and dc == 0:
-                continue
-            if abs(dr) == n or abs(dc) == n:
-                offsets.append((dr, dc))
-
-    for r_a in range(rows - n + 1):
-        for c_a in range(cols - n + 1):
-            for dr, dc in offsets:
-                r_b = r_a + dr
-                c_b = c_a + dc
-                if 0 <= r_b <= rows - n and 0 <= c_b <= cols - n:
-                    yield ((r_a, c_a), (r_b, c_b))
-    return
-
-
-def _pick_central_placements(keepers, rows, cols, n):
-    """
-    From the canonical-deduped keepers, return ONE representative per adjacency
-    orientation (horizontal vs vertical), picking whichever placement is
-    closest to the grid center.
-
-    Rationale: any workspace reachable from a non-central placement is also
-    reachable from a central placement (just leave the corresponding cells
-    undug to replicate the other placement's grid-boundary walls). So running
-    only the central representative(s) suffices for MAX and MIN-FREE.
-    """
-    center_r = (rows - 1) / 2.0
-    center_c = (cols - 1) / 2.0
-
-    def orient(pa, pb):
-        # Key by |dr|, |dc| so that placements related by reflection/rotation
-        # collapse to the same orientation class. Covers full-edge, partial
-        # edge, and corner touching.
-        dr = pb[0] - pa[0]
-        dc = pb[1] - pa[1]
-        return (min(abs(dr), abs(dc)), max(abs(dr), abs(dc)))
-
-    def dist_sq(pa, pb):
-        r_lo = min(pa[0], pb[0])
-        r_hi = max(pa[0], pb[0]) + n - 1
-        c_lo = min(pa[1], pb[1])
-        c_hi = max(pa[1], pb[1]) + n - 1
-        mid_r = (r_lo + r_hi) / 2.0
-        mid_c = (c_lo + c_hi) / 2.0
-        return (mid_r - center_r) ** 2 + (mid_c - center_c) ** 2
-
-    best: dict = {}
-    for pa, pb in keepers:
-        o = orient(pa, pb)
-        d = dist_sq(pa, pb)
-        if o not in best or d < best[o][1]:
-            best[o] = ((pa, pb), d)
-    return [pair for pair, _ in best.values()]
-
-
-def _placement_canonical_key(rows, cols, pos_a, pos_b, n):
-    if _CELL_TABLE is None or _POS_TABLE is None:
-        _init_transform_tables(rows, cols, n)
-    block_a = _robot_block(pos_a, n)
-    block_b = _robot_block(pos_b, n)
-    init_free = block_a | block_b
-    # Placement dedup is a cold path — do a one-shot full canonicalization.
-    return canonical_key(
-        frozenset(init_free),
-        pos_a,
-        pos_b,
-        _N_KINDS,
-        _CELL_TABLE,
-        _POS_TABLE,
-        _BIT_STRIDE,  # type: ignore
-    )
-
-
-def _dedup_placements(rows, cols, n, placements):
-    seen = {}
-    merged = {}
-
-    for placement in placements:
-        pos_a, pos_b = placement
-        key = _placement_canonical_key(rows, cols, pos_a, pos_b, n)
-        if key in seen:
-            rep = seen[key]
-            merged[rep].append(placement)
-        else:
-            seen[key] = placement
-            merged[placement] = [placement]
-    keepers = list(seen.values())
-    return keepers, merged
-
-
 def find_hardest(
     rows,
     cols,
@@ -854,13 +748,13 @@ def find_hardest(
     _init_transform_tables(rows, cols, n, cache_mb=cache_mb)
     placement_gen = all_touching_placements if touching == "all" else all_adjacent_placements
     all_placements = list(placement_gen(rows, cols, n))
-    keepers, merged = _dedup_placements(rows, cols, n, all_placements)
+    keepers, merged = Canonicalizer(rows, cols, n).dedup_placements(all_placements)
 
     # Optional: reduce further to just the most-central representative per
     # adjacency orientation. Valid because any non-central placement's
     # workspace can be replicated from a central one by leaving cells undug.
     if central_only:
-        central_keepers = _pick_central_placements(keepers, rows, cols, n)
+        central_keepers = pick_central_placements(keepers, rows, cols, n)
         if verbose:
             print(
                 f"Placements: {len(all_placements)} total, {len(keepers)} after symmetry, "
