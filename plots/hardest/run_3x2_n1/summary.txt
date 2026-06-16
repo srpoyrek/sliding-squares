@@ -1,0 +1,25 @@
+TIGHTEST WORKSPACE: 3 switches in 4 free cells (66.7% of 6-cell grid)
+  placement: A=(0, 0) B=(1, 0)
+  proof:     C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x2_n1\GLOBAL_TIGHTEST_S03_F04
+
+Run: 3x2, n=1, depth_past_first=4, strategy=single, touching=edge
+Memory: budget=500 MB total  baseline~22 MB/proc  workers=4 (requested 4)  ceiling~119 MB/worker  cache~48 MB/worker
+
+Placements: 7 total, 3 unique after dedup
+  ((0, 0), (0, 1)) represents: [((2, 0), (2, 1))]
+  ((0, 0), (1, 0)) represents: [((0, 1), (1, 1)), ((1, 0), (2, 0)), ((1, 1), (2, 1))]
+
+placement_A00_B01: PROOF FAILED (max): validator failed: 'L' invalid for robot A at (1,0)
+placement_A00_B10: switches=3  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x2_n1\placement_A00_B10\max_switches_S03_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x2_n1\placement_A00_B10\min_free_S03_F04
+placement_A10_B11: switches=3  max-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x2_n1\placement_A10_B11\max_switches_S03_F04  |  min-free=4 -> C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x2_n1\placement_A10_B11\min_free_S03_F04
+
+GLOBAL MAX SWITCHES: 3 switches, 4 free cells (66.7% of 6-cell grid)
+  placement: A=(0, 0) B=(1, 0)
+  proof:     C:\Users\shrey\Documents\Career\Papers\repos\sliding-squares\plots\hardest\run_3x2_n1\GLOBAL_MAX_SWITCHES_S03_F04
+
+MEMORY: peak whole-tree RSS 279.0 MB / 500 MB budget  (within budget)
+  workers=4  per-worker ceiling~119 MB  max worker peak=22.7 MB  cache hard_breaches=0
+
+CACHE USAGE (aggregated across all placements)
+  usable      peak_size=57/22697 (0%)  hits=416  misses=133  hit_rate=75.8%  evictions=0
+  parent_map  peak_size=116/30680 (0%)  hits=268  misses=281  hit_rate=48.8%  evictions=0

@@ -15,7 +15,7 @@ import shutil
 import threading
 import time
 
-from src.bfs import pack_cells_mask
+from src.bfs import bfs_bidirectional, pack_cells_mask
 from src.canonical import (
     Canonicalizer,
     all_adjacent_placements,
@@ -30,7 +30,6 @@ from src.directories import get_plots_dir
 from src.frontier import initial_frontier as _initial_frontier
 from src.lru import LRUCache
 from src.memory import MB, MemoryGuard, SpillableSet, plan_budget, rss_bytes, tree_rss_bytes
-from src.solver import Solver
 from src.visualizer import plot_proof as _plot_proof
 from src.workspace import Workspace
 
@@ -65,8 +64,8 @@ def _solve_payload(payload):
     """
     rows, cols, n, free_cells, pos_a, pos_b, goal_a, goal_b = payload
     ws = _build_workspace(rows, cols, set(free_cells), pos_a, pos_b, n)
-    res = Solver(ws, goal_a, goal_b).solve(need_path=False)
-    return res.solvable, res.switches
+    out = bfs_bidirectional(ws, goal_a, goal_b, need_path=False)
+    return (False, None) if out is None else (True, out["switches"])
 
 
 # ---------------------------------------------------------------------------
@@ -353,7 +352,6 @@ def dig_search(
     init_frontier = _initial_frontier
     valid_positions_of = _valid_block_positions
     tf_from_cells = _tf_from_cells
-    pack_mask = pack_cells_mask
     heappush = heapq.heappush
     perf = time.perf_counter
     vis_add = visited.add
@@ -436,9 +434,11 @@ def dig_search(
                     batch_results = []
                     for p in need_solve_payloads:
                         _rows, _cols, _n, fk, _pa, _pb, _ga, _gb = p
-                        sync_tiles_to(set(fk))
-                        result = Solver(shared_ws, goal_a, goal_b).solve(need_path=False)
-                        batch_results.append((result.solvable, result.switches))
+                        sync_tiles_to(fk)  # fk is a set; sync_tiles_to never mutates it
+                        out = bfs_bidirectional(shared_ws, goal_a, goal_b, need_path=False)
+                        batch_results.append(
+                            (False, None) if out is None else (True, out["switches"])
+                        )
                 t_solver += time.perf_counter() - t0
                 solver_calls += len(need_solve_payloads)
                 for idx, res in zip(need_solve_indices, batch_results):
@@ -498,7 +498,6 @@ def dig_search(
                     expansions_total += 1
                     if guard is not None:
                         guard.tick()
-                    new_free_set = free_cells | cells_to_dig
 
                     t0 = perf()
                     new_tf_list = list(tf)
@@ -521,10 +520,11 @@ def dig_search(
                         continue
                     vis_add(new_canon)
 
-                    # Enqueue only the compact free-cell bitmask; frontier / valid
-                    # / tf are rebuilt when this node is popped. This is what keeps
-                    # the queue ~100x smaller and the whole search memory-bounded.
-                    heappush(queue, (depth + 1, seq, pack_mask(new_free_set, cols)))
+                    # Enqueue only the compact free-cell bitmask. new_tf[0] is the
+                    # identity-transform bitmap, which is exactly that mask — so we
+                    # reuse it instead of rebuilding it (no set union, no repack).
+                    # frontier / valid / tf are rebuilt when this node is popped.
+                    heappush(queue, (depth + 1, seq, new_tf[0]))
                     seq += 1
 
     t_total = time.perf_counter() - t_start
