@@ -3,3 +3,4 @@ pre-commit>=3.5.0
 ruff>=0.4.4
 numpy>=2.0.0
 psutil>=5.9.0  # real RSS measurement for find_hardest_workspace.py's memory guard
+jinja2>=3.1.0  # renders src/templates/*.html.j2 into the run reports

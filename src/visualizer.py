@@ -31,8 +31,12 @@ def _load_mpl():
         patches = _patches
 
 
+# These constants are the single definition of the board palette: src/report.py
+# reads them via `report.palette()` and emits them as CSS variables, and
+# render_run.py imports them directly, so the HTML report and every PNG stay in
+# step. Change a colour here and all three renderers follow.
 COLOR_OBSTACLE = "#000000"
-COLOR_FREE = "#f5f5f0"
+COLOR_FREE = "#ffffff"
 COLOR_GRID_LINE = "#cccccc"
 COLOR_ROBOT_A = "#e80d1f"
 COLOR_ROBOT_B = "#122fd3"

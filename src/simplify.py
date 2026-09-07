@@ -23,6 +23,7 @@ from __future__ import annotations
 import os
 
 from src.grid import Grid
+from src.report import build_run, encode_grid, encode_sequence, write_local_report, write_run
 from src.robot import Robot
 from src.solver import Solver
 from src.validator import Validator
@@ -449,12 +450,20 @@ def run_simplification(
     keep_relative_robot_size=False,
     prune_uncrossable=False,
     remove_black=True,
+    want_png=False,
 ):
     """Run one simplification recipe; save results into
     <plot_dir>/simplified/<mode>/, where <mode> names the recipe (see
     `mode_name`) so different strategies sit side by side.
 
-    Returns a status dict for the result summary.
+    Returns a status dict for the result summary. The dict always carries the
+    recipe's surviving ``grid`` and, when the result is solvable, its own
+    ``sequence`` — so the HTML report can play a recipe's solution beside the
+    original instead of the recipe being reachable only as images.
+
+    ``want_png`` additionally renders the matplotlib sequence and comparison
+    summary. Off by default: those dominate a run's cost and the report already
+    shows the same information.
     """
     counts, face_counts = _aggregate_wall_counts(ws.grid, vr.snapshots)
     walls_before = _count_walls(ws.grid)
@@ -533,13 +542,44 @@ def run_simplification(
     if res.solvable:
         vr2 = Validator(simplified, goal_a, goal_b).run(res.path, plot=False)
         snapshots = [[a, b] for a, b in vr2.snapshots]
-        draw_sequence(
-            simplified.grid,
-            snapshots,
+        # Encoded unconditionally: this is what makes the recipe's own solution
+        # browsable in the parent report. The images below are the optional extra.
+        status["sequence"] = encode_sequence(simplified.grid, snapshots, vr2.titles)
+        status["path"] = res.path
+
+        # The recipe also gets its own run.json + index.html in its folder, so a
+        # recipe can be opened, linked and compared on its own rather than only
+        # through the parent page. Robots are rebuilt at their start positions
+        # because the validator above left the workspace at the final state.
+        start_robot_a = Robot(simplified.robot_a.label, simplified.robot_a.n, *start_a)
+        start_robot_b = Robot(simplified.robot_b.label, simplified.robot_b.n, *start_b)
+        recipe_run = build_run(
+            name=f"{test_name} · {mode}",
+            grid=simplified.grid,
+            robot_a=start_robot_a,
+            robot_b=start_robot_b,
+            goal_a=goal_a,
+            goal_b=goal_b,
+            snapshots=snapshots,
             titles=vr2.titles,
-            save_dir=sub_dir,
-            robot_size=ws.robot_a.n,
+            switches=res.switches,
+            path=res.path,
         )
+        write_run(recipe_run, sub_dir)
+        # The page sits at simplified/<mode>/, so "back" is two levels up at the
+        # test's own report. `report_href` is stored relative to the test folder
+        # so the parent page can link straight to it.
+        write_local_report(recipe_run, sub_dir, parent_href="../../index.html")
+        status["report_href"] = f"simplified/{mode}/index.html"
+
+        if want_png:
+            draw_sequence(
+                simplified.grid,
+                snapshots,
+                titles=vr2.titles,
+                save_dir=sub_dir,
+                robot_size=ws.robot_a.n,
+            )
 
     if status["preserved"]:
         outcome = f"PRESERVED — switches stayed at {target_switches}"
@@ -587,12 +627,17 @@ def run_simplification(
         (ws.grid, [ws.robot_a, ws.robot_b], "original"),
         (simplified.grid, [summary_a, summary_b], "simplified"),
     ]
-    draw_summary(
-        panels,
-        stats,
-        os.path.join(sub_dir, "summary.png"),
-        title=f"{test_name} · {mode}  —  {outcome}",
-    )
+    if want_png:
+        draw_summary(
+            panels,
+            stats,
+            os.path.join(sub_dir, "summary.png"),
+            title=f"{test_name} · {mode}  —  {outcome}",
+        )
 
     status["plot_dir"] = sub_dir
+    # The surviving layout, for report.py to draw. Encoded here rather than
+    # re-derived later because cropping can change the grid's dimensions, so the
+    # simplified walls are only meaningful alongside their own rows/cols.
+    status["grid"] = encode_grid(simplified.grid)
     return status

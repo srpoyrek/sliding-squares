@@ -1,0 +1,56 @@
+<!doctype html>
+{#
+  Global index over every run.json under plots/tests/.
+  Rendered by src.report.write_global_index with: rows (list of dicts).
+  Autoescaping is on, so test names and error text are safe to interpolate.
+#}
+<meta charset="utf-8">
+<title>sliding-squares — all tests</title>
+<style>
+ :root{--bg:#fff;--fg:#1a1a1a;--muted:#666;--line:#ddd;--ok:#1a7f37;--bad:#b3261e;--card:#fafafa}
+ @media (prefers-color-scheme:dark){:root{--bg:#24262b;--fg:#f2f2f2;--muted:#a9adb5;
+       --line:#3d414a;--card:#2d3038;--ok:#4ac26b;--bad:#f4776a}}
+ body{margin:0;padding:24px;background:var(--bg);color:var(--fg);
+      font:14px/1.5 ui-sans-serif,system-ui,sans-serif}
+ h1{font-size:20px;margin:0 0 12px}
+ table{border-collapse:collapse;width:100%;display:block;overflow-x:auto}
+ th,td{border-bottom:1px solid var(--line);padding:7px 12px;text-align:left;white-space:nowrap}
+ th{color:var(--muted);font-weight:600}
+ tr:hover td{background:var(--card)}
+ a{color:inherit} .muted{color:var(--muted)}
+ .ok{color:var(--ok);font-weight:600} .bad{color:var(--bad);font-weight:600}
+</style>
+
+<h1>sliding-squares — all tests</h1>
+<p class="muted">{{ rows | length }} run(s). Generated output — regenerated on every run.</p>
+
+<table>
+  <tr>
+    <th>test</th><th>grid</th><th>robot</th><th>switches</th>
+    <th>steps</th><th>recipes</th><th>generated</th>
+  </tr>
+  {% for row in rows %}
+  {% if row.error %}
+  <tr>
+    <td>{{ row.folder }}</td>
+    <td colspan="6" class="bad">unreadable: {{ row.error }}</td>
+  </tr>
+  {% else %}
+  <tr>
+    <td><a href="{{ row.folder }}/{{ report_filename }}">{{ row.name }}</a></td>
+    <td>{{ row.rows }}x{{ row.cols }}</td>
+    <td>{{ row.n }}x{{ row.n }}</td>
+    <td>{{ row.switches }}</td>
+    <td>{{ row.steps }}</td>
+    <td>
+      {%- if row.recipe_total -%}
+        <span class="ok">{{ row.recipe_kept }}</span>/{{ row.recipe_total }} preserved
+      {%- else -%}
+        <span class="muted">-</span>
+      {%- endif -%}
+    </td>
+    <td class="muted">{{ row.generated }}</td>
+  </tr>
+  {% endif %}
+  {% endfor %}
+</table>

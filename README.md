@@ -37,6 +37,7 @@ sliding-squares/
 │   ├── validator.py        # Step-by-step path execution and validation
 │   ├── simplify.py         # Workspace simplification — strip redundant walls, preserve switch count
 │   ├── visualizer.py       # Matplotlib visualization (grids, sequences, BFS frontiers, proof rendering)
+│   ├── report.py           # run.json + the HTML reports built from it
 │   ├── path_resolver.py    # Compact path notation parser (e.g. "12R2US")
 │   ├── test_case.py        # Base class for test cases
 │   └── directories.py      # Path management utilities
@@ -54,6 +55,7 @@ sliding-squares/
 ├── demo_solver.py
 ├── demo_validator.py
 ├── find_hardest_workspace.py      # Parallel search for the workspace requiring the most switches
+├── render_run.py                  # run.json -> PNGs, offline (see Reports)
 ├── run_tests.py
 ├── requirements.txt
 └── README.md
@@ -88,6 +90,7 @@ python run_tests.py 4x4_robot_holes --simplified uncrossable black_peaks
 |---|---|---|
 | `name` (positional) | all | Substring filter — run only tests whose name contains it |
 | `--simplified` | off | After solving, also run the wall-simplification recipes (below). Bare `--simplified` runs **every** recipe; name recipes after it to run a subset. Without the flag, behaviour is unchanged: solve + plot only |
+| `--png` | off | Also render the matplotlib images — the per-switch frames and each recipe's `summary.png`. Off by default: the HTML report (below) covers the same ground without paying matplotlib's per-frame cost, which dominates a run. Use it to cross-check the report against the images, or for paper figures |
 
 Run `python run_tests.py --list-recipes` to print the recipes and what each one does. After a run, `plots/tests/<name>/simplified/README.txt` names every recipe folder and ranks them by how few walls survived.
 
@@ -109,6 +112,83 @@ The recipes, defined in `simplify.RECIPES` — each writes to its own folder:
 `--uncrossable` adds an *exact* pass on top: the solver sees the grid only through the set of legal n×n robot placements, so a wall whose removal opens no new placement is invisible to it and can be freed with the state space — and therefore the switch count — provably unchanged. This is what thins a straight line of walls down to a picket at spacing n while keeping the corners the robot could round; the spacing is derived from the robot size, so a 1×1 robot keeps every wall and a 5×5 robot keeps every fifth.
 
 Each recipe writes into its own folder, `plots/tests/<name>/simplified/<mode>/`, so strategies sit side by side instead of overwriting each other — `black`, `black_peaks`, `black_uncrossable`, `uncrossable`, and so on. Results are a before/after image, a solved sequence, and `simplification.txt`, which reads **PRESERVED** if the switch count held or **FAILED** if a removed wall turned out to be load-bearing.
+
+### Reports
+
+Every run writes `plots/tests/<name>/run.json` — the encoded record of that
+solve: the wall bitstring, both robots at every step, the per-switch turns, and
+each simplification recipe's outcome. Everything else derives from it, and it is
+regenerated (never hand-edited) on the next run.
+
+Two HTML views are built from it automatically. **Where they land:**
+
+```
+plots/
+└── tests/
+    ├── index.html                      <- START HERE: every run, one table
+    ├── 3x3_robot_holes/
+    │   ├── run.json                    <- the encoded record
+    │   ├── index.html                  <- this run: transitions, heatmap, recipes
+    │   ├── png_from_json/              <- only if you run render_run.py
+    │   └── simplified/
+    │       └── <recipe>/
+    │           ├── run.json            <- that recipe's own record
+    │           └── index.html          <- its own report, linked from above
+    └── 4x4_robot_holes/
+        └── ...
+```
+
+The per-test folder is the test's name with spaces replaced by underscores. Open
+the top-level file directly:
+
+```bash
+start plots/tests/index.html      # Windows
+open  plots/tests/index.html      # macOS
+```
+
+| File | What it is |
+|---|---|
+| `plots/tests/index.html` | Every run in one table — grid, robot size, switches, recipe verdicts, generation time. Each row links to its run |
+| `plots/tests/<name>/index.html` | One run, end to end (below) |
+
+The per-test page holds:
+
+- **A player that advances one control switch at a time** — arrow keys, a
+  scrubber, or Play. Each step draws the board after that switch, tracing the
+  route the robot actually took, with a faded ghost of where it started and the
+  walls it touched shaded orange. Stepping move-by-move made a long solve tedious,
+  so moves are summarised per turn instead.
+
+  The board matches the PNGs deliberately: colours come from `visualizer.py`'s
+  constants (see `report.palette()`), and the draw order follows
+  `visualizer._draw_turn`, so page and image can be compared directly.
+- **The path split at each `S`**, so the moves belonging to each switch read
+  separately rather than running together in one string.
+- **A thumbnail per switch**, the whole solution at a glance.
+- **The blocker heatmap** — each wall shaded and labelled by how often it was in
+  contact with a robot face. Untouched walls stay black; that split is exactly
+  what the recipes act on.
+- **The simplification recipes** — the full stats table (walls before/after, the
+  black / orange / uncrossable breakdown, total removed, switches, verdict).
+  Clicking a row **plays that recipe inline**; its **page** column opens the
+  recipe's own standalone report at
+  `plots/tests/<name>/simplified/<recipe>/index.html`, which has the same
+  player, heatmap and path for the simplified workspace and links back here.
+  Recipes are hidden entirely when the run had none.
+
+Both pages are self-contained — open by double-click, no server. The grids are drawn
+as SVG in the browser straight from `run.json`, so a report is kilobytes of text
+rather than a folder of images, it diffs in git, and tooling can read it.
+
+For raster output, convert on demand:
+
+```bash
+python render_run.py plots/tests/3x3_robot_holes/run.json   # per-switch PNGs + transitions.png
+python render_run.py plots/tests/*/run.json --chart-only    # just the combined chart
+```
+
+It writes to `<run-dir>/png_from_json/`, leaving any existing `switch_NN.png`
+untouched so the two can be compared side by side.
 
 ### Run demos
 

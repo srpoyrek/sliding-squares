@@ -19,6 +19,7 @@ class TestResult:
     error: Optional[str] = None
     time: Optional[float] = None
     simplification: Optional[list] = None  # one status dict per recipe run
+    report_path: Optional[str] = None  # the run's index.html (see src/report.py)
 
     def __repr__(self):
         status = "PASS" if self.passed else "FAIL"
