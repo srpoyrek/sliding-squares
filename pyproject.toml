@@ -8,3 +8,8 @@ select = ["E", "F", "I"]   # errors, pyflakes, isort
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+# Collect only from tests/. Without this pytest also walks src/ and testcases/,
+# where `TestCase` and `TestResult` are solver types, not pytest classes.
+testpaths = ["tests"]

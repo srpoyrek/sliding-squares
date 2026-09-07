@@ -22,18 +22,18 @@
 </style>
 
 <h1>sliding-squares — all tests</h1>
-<p class="muted">{{ rows | length }} run(s). Generated output — regenerated on every run.</p>
+<p class="muted">{{ rows | length }} run(s).</p>
 
 <table>
   <tr>
     <th>test</th><th>grid</th><th>robot</th><th>switches</th>
-    <th>steps</th><th>recipes</th><th>generated</th>
+    <th>steps</th><th>recipes</th><th>best recipe</th><th>walls</th><th>generated</th>
   </tr>
   {% for row in rows %}
   {% if row.error %}
   <tr>
     <td>{{ row.folder }}</td>
-    <td colspan="6" class="bad">unreadable: {{ row.error }}</td>
+    <td colspan="8" class="bad">unreadable: {{ row.error }}</td>
   </tr>
   {% else %}
   <tr>
@@ -45,6 +45,26 @@
     <td>
       {%- if row.recipe_total -%}
         <span class="ok">{{ row.recipe_kept }}</span>/{{ row.recipe_total }} preserved
+      {%- else -%}
+        <span class="muted">-</span>
+      {%- endif -%}
+    </td>
+    {# Fewest walls left among the recipes that kept the switch count. #}
+    <td>
+      {%- if row.best -%}
+        {%- if row.best.href -%}
+          <a href="{{ row.folder }}/{{ row.best.href }}"><b>{{ row.best.mode }}</b></a>
+        {%- else -%}
+          <b>{{ row.best.mode }}</b>
+        {%- endif -%}
+      {%- else -%}
+        <span class="muted">none preserved</span>
+      {%- endif -%}
+    </td>
+    <td>
+      {%- if row.best -%}
+        {{ row.best.walls_before }}&rarr;{{ row.best.walls_after }}
+        <span class="ok">&minus;{{ row.best.pct }}%</span>
       {%- else -%}
         <span class="muted">-</span>
       {%- endif -%}

@@ -10,10 +10,13 @@
 <title>Simplification recipes — worked cases</title>
 <style>
  :root{--bg:#fff;--fg:#1a1a1a;--muted:#666;--line:#ddd;--card:#fafafa;
-       --ok:#1a7f37;--bad:#b3261e;--removed:#d64545;--cropped:#9aa0a8}
+       --ok:#1a7f37;--bad:#b3261e;--cropped:#9aa0a8;
+       /* one colour per removal rule, so a wall's fate names its cause */
+       --untouched:#3f7fd6;--thinned:#d67f1e;--uncross:#1a9e6a}
  @media (prefers-color-scheme:dark){:root{--bg:#24262b;--fg:#f2f2f2;--muted:#a9adb5;
        --line:#3d414a;--card:#2d3038;--ok:#4ac26b;--bad:#f4776a}}
- :root{--wall:{{ palette.wall }};--free:{{ palette.free }};--grid:{{ palette.grid }}}
+ :root{--wall:{{ palette.wall }};--free:{{ palette.free }};--grid:{{ palette.grid }};
+       --hot:{{ palette.hot }};--a:{{ palette.a }};--b:{{ palette.b }}}
  body{margin:0;padding:24px;background:var(--bg);color:var(--fg);
       font:14px/1.6 ui-sans-serif,system-ui,sans-serif;max-width:1200px}
  h1{font-size:22px;margin:0 0 6px} h2{font-size:17px;margin:32px 0 4px}
@@ -50,29 +53,40 @@ a given shape is visible rather than described. Generated {{ generated }} by
 {% endfor %}
 </dl>
 
+<h3>Reading a row</h3>
+<p class="why muted">The first board is the scene: <b>A</b> solid at its start
+with its slide ghosted behind it, <b>B</b> parked, walls the robots press tinted
+orange and labelled with their contact count, and walls the geometry rule finds
+redundant hatched green. Every later board is one recipe's result, with each
+removed wall coloured by <em>which rule took it</em>.</p>
+
 <div class="legend">
   <span><i class="key" style="background:var(--wall)"></i>wall kept</span>
-  <span><i class="key" style="background:var(--removed)"></i>wall removed by this recipe</span>
+  <span><i class="key" style="background:var(--untouched)"></i>removed: never touched</span>
+  <span><i class="key" style="background:var(--thinned)"></i>removed: thinned by spacing</span>
+  <span><i class="key" style="background:var(--uncross)"></i>removed: robot could never cross it</span>
   <span><i class="key" style="background:var(--cropped)"></i>cropped away</span>
   <span><i class="key" style="background:var(--free)"></i>already free</span>
 </div>
 
 {% for case in cases %}
-<h2>{{ case.name }} <span class="muted" style="font-weight:400">· {{ case.n }}×{{ case.n }} robot
-  · {{ case.walls_before }} walls</span></h2>
+<h2>{{ case.name }} <span class="muted" style="font-weight:400">· {{ case.n }}×{{ case.n }} robots
+  · {{ case.walls_before }} walls · {{ case.touched }} touched over {{ case.steps }} step(s)
+  · {{ case.uncrossable }} uncrossable</span></h2>
 <p class="why">{{ case.why }}</p>
 <div class="strip">
-  <figure>{{ case.original_svg | safe }}
-    <figcaption><b>original</b><br>{{ case.walls_before }} walls</figcaption></figure>
+  <figure>{{ case.scene_svg | safe }}
+    <figcaption><b>the scene</b><br>{{ case.walls_before }} walls ·
+      {{ case.touched }} touched · {{ case.uncrossable }} uncrossable</figcaption></figure>
   {% for r in case.results %}
   <figure>{{ r.svg | safe }}
     <figcaption><b>{{ r.mode }}</b><br>
-      {{ case.walls_before }}→{{ r.walls_after }} walls<br>
-      removed {{ r.removed }}{% if r.cropped %} · cropped {{ r.cropped }}{% endif %}
+      {{ case.walls_before }}→{{ r.kept }} walls<br>
+      {% if r.untouched %}<span style="color:var(--untouched)">−{{ r.untouched }} untouched</span><br>{% endif %}
+      {% if r.thinned %}<span style="color:var(--thinned)">−{{ r.thinned }} thinned</span><br>{% endif %}
+      {% if r.uncrossable %}<span style="color:var(--uncross)">−{{ r.uncrossable }} uncrossable</span><br>{% endif %}
+      {% if r.cropped %}<span style="color:var(--cropped)">−{{ r.cropped }} cropped</span>{% endif %}
     </figcaption></figure>
   {% endfor %}
 </div>
 {% endfor %}
-
-<p class="muted" style="margin-top:36px">Generated output — rebuilt on every run,
-never edited by hand.</p>

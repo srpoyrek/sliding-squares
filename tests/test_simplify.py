@@ -30,8 +30,8 @@ from src.simplify import (
     RECIPES,
     _count_walls,
     _crop_bounds,
-    _orange_relative_keepers,
     _prune_uncrossable,
+    _spacing_keepers,
     mode_name,
 )
 from src.workspace import Workspace
@@ -181,7 +181,7 @@ def test_relative_keepers_never_leave_a_crossable_gap():
     """No run of dropped cells may reach n, or an n*n robot slips through."""
     n = 3
     face_counts = {(5, c, "N"): 1 for c in range(12)}
-    keepers = set(_orange_relative_keepers(face_counts, n))
+    keepers = set(_spacing_keepers(face_counts, n))
     cols = sorted(c for (_r, c) in keepers)
     assert cols, "the rule must keep at least one cell"
     gaps = [b - a - 1 for a, b in zip(cols, cols[1:])]
@@ -192,7 +192,7 @@ def test_relative_keepers_keep_the_contact_peak():
     """A clear peak is a blocking surface and must survive the thinning."""
     face_counts = {(2, c, "N"): 1 for c in range(6)}
     face_counts[(2, 3, "N")] = 9
-    keepers = set(_orange_relative_keepers(face_counts, 2))
+    keepers = set(_spacing_keepers(face_counts, 2))
     assert (2, 3) in keepers
 
 
@@ -218,7 +218,7 @@ def test_every_recipe_is_documented():
 def test_uncrossable_recipe_touches_no_contact_data():
     """The lossless recipe must not depend on the heuristic half."""
     kwargs = RECIPES["uncrossable"]["kwargs"]
-    assert kwargs["remove_black"] is False
+    assert kwargs["remove_untouched"] is False
     assert kwargs["prune_uncrossable"] is True
 
 

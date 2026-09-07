@@ -13,6 +13,11 @@ from typing import Optional
 
 @dataclass
 class TestResult:
+    # Not a pytest test class despite the name — it is the solver harness's
+    # result record. pytest matches on the `Test` prefix and would try to
+    # collect it, warning that a class with __init__ cannot be collected.
+    __test__ = False
+
     name: str
     passed: bool
     plot_path: Optional[str] = None
@@ -49,6 +54,8 @@ class TestCase:
                 ws    = Workspace(grid, a, b)
                 return ws, (1,3), (1,1)
     """
+
+    __test__ = False  # a solver test case, not a pytest one — see TestResult
 
     name: str = "unnamed"
 

@@ -6,10 +6,9 @@ Discovers all test cases in testcases/ and runs them.
 After each test passes we run every simplification recipe in simplify.RECIPES
 (or the subset named on the command line). Each recipe:
   1. Aggregates the blocker heatmap from the validated solution.
-  2. Removes black walls (zero contact) unless the recipe keeps them, and thins
-     the touched "orange" walls by its chosen strategy — every other one,
-     keeping contact plateaus plus enough spacing that an n×n robot still
-     cannot cross.
+  2. Removes untouched walls (zero contact) unless the recipe keeps them, and
+     thins the touched ones by keeping each contact plateau plus enough spacing
+     that an n×n robot still cannot cross.
   3. Optionally frees every wall the robot could never cross (exact, lossless).
   4. Crops all-wall borders and runs the solver once on the result.
   5. Saves the simplified workspace, a solved sequence and a comparison summary
@@ -21,7 +20,7 @@ Usage:
     python run_tests.py                          # run every test, no simplify
     python run_tests.py <name>                   # filter tests by substring
     python run_tests.py --simplified             # + EVERY simplify recipe
-    python run_tests.py --simplified uncrossable black_relative   # a subset
+    python run_tests.py --simplified uncrossable untouched_spaced   # a subset
     python run_tests.py 3x3 --simplified         # both filters at once
 """
 
@@ -302,13 +301,13 @@ def _print_simplification(simp: dict) -> None:
         return
     walls_before = simp.get("walls_before", 0)
     walls_after = simp.get("walls_after", 0)
-    n_black = simp.get("removed_black", 0)
-    n_orange = simp.get("removed_orange", 0)
+    n_untouched = simp.get("removed_untouched", 0)
+    n_thinned = simp.get("removed_thinned", 0)
     n_uncross = simp.get("removed_uncrossable", 0)
     pct = 100.0 * simp.get("removed", 0) / walls_before if walls_before else 0.0
-    breakdown = f"black={n_black}"
-    if n_orange:
-        breakdown += f", orange={n_orange}"
+    breakdown = f"untouched={n_untouched}"
+    if n_thinned:
+        breakdown += f", thinned={n_thinned}"
     if n_uncross:
         breakdown += f", uncrossable={n_uncross}"
     print(

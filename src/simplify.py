@@ -5,10 +5,10 @@ Reusable workspace-simplification pass.
 
 Given a solved workspace and its validated solution, this strips the workspace
 down to the walls that actually matter while preserving the minimum control-
-switch count: it removes all untouched ("black") walls, optionally thins the
-touched ("orange") walls, optionally frees every wall the robot could never
-cross, crops all-wall borders, and re-solves to verify the switch count is
-unchanged.
+switch count: it removes every wall the solution never touched, optionally thins
+the touched ones to a spacing an n*n robot cannot cross, optionally frees every
+wall the robot could never cross at all, crops all-wall borders, and re-solves
+to verify the switch count is unchanged.
 
 Each recipe writes into its own <plot_dir>/simplified/<mode>/ folder — see
 `mode_name` — so strategies can be compared side by side instead of
@@ -67,7 +67,7 @@ def _count_walls(grid):
     return sum(1 for r in range(grid.rows) for c in range(grid.cols) if grid.tiles[r][c] != 0)
 
 
-def _orange_relative_keepers(face_counts, n):
+def _spacing_keepers(face_counts, n):
     """Touched-wall cells to KEEP when thinning each side to a robot-proof picket.
 
     Split the touched walls into per-face straight edges: a cell pressed on its
@@ -165,20 +165,24 @@ def _prune_uncrossable(tiles, n, protected: set | frozenset = frozenset()):
 
 
 def mode_name(
-    remove_black=True,
-    keep_relative_robot_size=False,
+    remove_untouched=True,
+    keep_robot_spacing=False,
     prune_uncrossable=False,
 ):
-    """Folder name for one simplification recipe, e.g. "black_relative_uncrossable".
+    """Folder name for one recipe, e.g. "untouched_spaced_uncrossable".
+
+    One tag per pass that runs, so the name states what was applied. The tags
+    name the rule rather than the colour it is drawn in, which a reader would
+    have to already know the palette to decode.
 
     Each recipe writes into its own <plot_dir>/simplified/<mode>/ so runs with
     different strategies sit side by side instead of overwriting each other.
     """
     parts = []
-    if remove_black:
-        parts.append("black")
-    if keep_relative_robot_size:
-        parts.append("relative")
+    if remove_untouched:
+        parts.append("untouched")
+    if keep_robot_spacing:
+        parts.append("spaced")
     if prune_uncrossable:
         parts.append("uncrossable")
     return "_".join(parts) or "crop_only"
@@ -191,28 +195,32 @@ def mode_name(
 # --list-recipes and written into each run's simplification.txt and summary.png,
 # so a folder is never an unexplained name.
 RECIPES: dict[str, dict] = {
-    "black_relative": {
-        "doc": "Baseline + keep contact peaks plus enough extra cells that no "
-        "gap along a run exceeds n-1, so an n x n robot still cannot slip past.",
-        "kwargs": {"keep_relative_robot_size": True},
+    "untouched_spaced": {
+        "doc": "Drop every wall the solution never touched, then thin the "
+        "touched runs: keep each contact peak plus enough extra cells that no "
+        "gap exceeds n-1, so an n x n robot still cannot slip past. Heuristic "
+        "on both counts — it must be verified by re-solving.",
+        "kwargs": {"keep_robot_spacing": True},
     },
-    "black_uncrossable": {
-        "doc": "Baseline + exact pass: free every remaining wall whose removal "
-        "opens no new n x n robot placement. Thins lines to a picket at spacing "
-        "n without guessing.",
+    "untouched_uncrossable": {
+        "doc": "Drop every wall the solution never touched, then free every "
+        "remaining wall whose removal opens no new n x n placement. Touched "
+        "walls survive unless geometry says they were never in the way.",
         "kwargs": {"prune_uncrossable": True},
     },
-    "black_relative_uncrossable": {
-        "doc": "black_relative, then the exact pass. The spacing rule and the "
-        "placement rule agree on straight runs, so this mostly shows what the "
-        "exact pass finds that the gap heuristic misses at corners.",
-        "kwargs": {"keep_relative_robot_size": True, "prune_uncrossable": True},
+    "untouched_spaced_uncrossable": {
+        "doc": "Everything: drop untouched walls, thin the touched runs by "
+        "spacing, then apply the placement rule to what is left. The spacing "
+        "and placement rules agree on straight runs, so what this adds over "
+        "untouched_spaced is mostly found at corners.",
+        "kwargs": {"keep_robot_spacing": True, "prune_uncrossable": True},
     },
     "uncrossable": {
-        "doc": "The only PROVABLY lossless recipe: nothing is removed but walls "
-        "the robot could never cross, so the state space — and therefore the "
-        "switch count — cannot move. Always reports PRESERVED.",
-        "kwargs": {"remove_black": False, "prune_uncrossable": True},
+        "doc": "The only PROVABLY lossless recipe. Contact is ignored entirely; "
+        "a wall goes only if freeing it opens no new n x n placement, which "
+        "leaves the state space — and therefore the switch count — untouched. "
+        "Always reports PRESERVED.",
+        "kwargs": {"remove_untouched": False, "prune_uncrossable": True},
     },
 }
 
@@ -268,17 +276,17 @@ def simplify_workspace(
     ws,
     contact_counts,
     face_counts=None,
-    keep_relative_robot_size=False,
+    keep_robot_spacing=False,
     prune_uncrossable=False,
     protected=None,
-    remove_black=True,
+    remove_untouched=True,
 ):
     """Wall-removal simplification driven by the contact heatmap.
 
-    All black walls (contact count == 0) are removed. Touched "orange" walls
+    Every untouched wall (contact count == 0) is removed. Touched walls
     (contact count > 0) are thinned only when asked:
 
-      - `keep_relative_robot_size`: on each per-face edge keep every contact
+      - `keep_robot_spacing`: on each per-face edge keep every contact
         plateau's center, plus enough extra cells that no gap exceeds n-1, so an
         n*n robot still cannot slip past (needs `face_counts`).
 
@@ -287,35 +295,35 @@ def simplify_workspace(
     `prune_uncrossable` then runs the exact pass on whatever survived: every
     wall the n*n robot can never cross is freed, which the solver provably
     cannot notice. It composes with any of the above, or stands alone as the
-    only lossless recipe (`remove_black=False`, no orange strategy).
+    only lossless recipe (`remove_untouched=False`, no thinning).
 
     Cells in `protected` are exempt from all removal (e.g. walls the robots
     rest against at their start/goal positions).
 
-    Returns (simplified_ws, removed_black, removed_orange, removed_uncrossable,
+    Returns (simplified_ws, removed_untouched, removed_thinned, removed_uncrossable,
     (crop_top, crop_left)).
     """
     rows, cols = ws.grid.rows, ws.grid.cols
     new_tiles = [row[:] for row in ws.grid.tiles]
 
-    orange_cells = [
+    touched_cells = [
         (r, c)
         for r in range(rows)
         for c in range(cols)
         if new_tiles[r][c] != 0 and contact_counts.get((r, c), 0) > 0
     ]
 
-    removed_orange = []
-    if keep_relative_robot_size:
-        keepers = set(_orange_relative_keepers(face_counts or {}, ws.robot_a.n))
-        removed_orange = [cell for cell in orange_cells if cell not in keepers]
+    removed_thinned = []
+    if keep_robot_spacing:
+        keepers = set(_spacing_keepers(face_counts or {}, ws.robot_a.n))
+        removed_thinned = [cell for cell in touched_cells if cell not in keepers]
 
-    # Remove black (zero-contact) walls — unless asked to keep them — plus the
-    # thinned orange. On a maximally-hard workspace every untouched wall is still
-    # load-bearing (it blocks a shortcut), so remove_black=False + crop is the
-    # only lossless pass there.
+    # Remove the zero-contact walls — unless asked to keep them — plus whatever
+    # thinning selected. On a maximally-hard workspace every untouched wall is
+    # still load-bearing (it blocks a shortcut), so remove_untouched=False + crop
+    # is the only lossless pass there.
     protected = protected or set()
-    removed_black = (
+    removed_untouched = (
         [
             (r, c)
             for r in range(rows)
@@ -324,14 +332,14 @@ def simplify_workspace(
             and contact_counts.get((r, c), 0) == 0
             and (r, c) not in protected
         ]
-        if remove_black
+        if remove_untouched
         else []
     )
-    removed_orange = [cell for cell in removed_orange if cell not in protected]
+    removed_thinned = [cell for cell in removed_thinned if cell not in protected]
 
-    for r, c in removed_black:
+    for r, c in removed_untouched:
         new_tiles[r][c] = 0
-    for r, c in removed_orange:
+    for r, c in removed_thinned:
         new_tiles[r][c] = 0
 
     # Crop fully-wall outer borders, shifting the robots into the smaller grid.
@@ -358,7 +366,7 @@ def simplify_workspace(
         Robot(ws.robot_a.label, n, ws.robot_a.row - top, ws.robot_a.col - left),
         Robot(ws.robot_b.label, n, ws.robot_b.row - top, ws.robot_b.col - left),
     )
-    return cropped_ws, removed_black, removed_orange, removed_uncrossable, (top, left)
+    return cropped_ws, removed_untouched, removed_thinned, removed_uncrossable, (top, left)
 
 
 def run_simplification(
@@ -369,9 +377,9 @@ def run_simplification(
     plot_dir,
     target_switches,
     test_name,
-    keep_relative_robot_size=False,
+    keep_robot_spacing=False,
     prune_uncrossable=False,
-    remove_black=True,
+    remove_untouched=True,
     want_png=False,
 ):
     """Run one simplification recipe; save results into
@@ -390,37 +398,37 @@ def run_simplification(
     counts, face_counts = _aggregate_wall_counts(ws.grid, vr.snapshots)
     walls_before = _count_walls(ws.grid)
     mode = mode_name(
-        remove_black=remove_black,
-        keep_relative_robot_size=keep_relative_robot_size,
+        remove_untouched=remove_untouched,
+        keep_robot_spacing=keep_robot_spacing,
         prune_uncrossable=prune_uncrossable,
     )
     recipe_doc = RECIPES.get(mode, {}).get("doc", "")
 
     (
         simplified,
-        removed_black,
-        removed_orange,
+        removed_untouched,
+        removed_thinned,
         removed_uncrossable,
         (off_r, off_c),
     ) = simplify_workspace(
         ws,
         counts,
         face_counts=face_counts,
-        keep_relative_robot_size=keep_relative_robot_size,
+        keep_robot_spacing=keep_robot_spacing,
         prune_uncrossable=prune_uncrossable,
-        remove_black=remove_black,
+        remove_untouched=remove_untouched,
     )
     goal_a = (goal_a[0] - off_r, goal_a[1] - off_c)
     goal_b = (goal_b[0] - off_r, goal_b[1] - off_c)
     walls_after = _count_walls(simplified.grid)
-    removed_total = len(removed_black) + len(removed_orange) + len(removed_uncrossable)
+    removed_total = len(removed_untouched) + len(removed_thinned) + len(removed_uncrossable)
 
     status: dict = {
         "mode": mode,
         "doc": recipe_doc,
         "removed": removed_total,
-        "removed_black": len(removed_black),
-        "removed_orange": len(removed_orange),
+        "removed_untouched": len(removed_untouched),
+        "removed_thinned": len(removed_thinned),
         "removed_uncrossable": len(removed_uncrossable),
         # Rows/cols peeled off the top and left. Recorded because a cropped
         # result has different dimensions from the original, so this offset is
@@ -517,8 +525,8 @@ def run_simplification(
             f"  {recipe_doc}\n"
             f"Walls before: {walls_before}\n"
             f"Walls after:  {walls_after}\n"
-            f"Black walls removed ({len(removed_black)}): {removed_black}\n"
-            f"Orange walls removed ({len(removed_orange)}): {removed_orange}\n"
+            f"Untouched walls removed ({len(removed_untouched)}): {removed_untouched}\n"
+            f"Thinned walls removed ({len(removed_thinned)}): {removed_thinned}\n"
             f"Uncrossable walls removed ({len(removed_uncrossable)}): "
             f"{removed_uncrossable}\n"
         )
@@ -538,8 +546,8 @@ def run_simplification(
         ),
         ("walls before", walls_before),
         ("walls after", walls_after),
-        ("removed black", len(removed_black)),
-        ("removed orange", len(removed_orange)),
+        ("removed untouched", len(removed_untouched)),
+        ("removed thinned", len(removed_thinned)),
         ("removed uncrossable", len(removed_uncrossable)),
         ("total removed", f"{removed_total} ({pct:.1f}%)"),
     ]

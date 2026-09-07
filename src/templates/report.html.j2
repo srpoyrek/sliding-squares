@@ -97,7 +97,7 @@ recipes remove first.</p>
 <div id="rplayer"></div>
 
 <p class="muted"><a href="{{ parent_href }}">&larr; back</a> &middot;
-generated output, regenerated on every run &middot; <span id="gen"></span></p>
+<span id="gen"></span></p>
 
 {# `safe`: the payload is already JSON. Autoescaping it would turn every quote
    into &#34;, and a <script> body is raw text -- the browser never decodes
@@ -432,11 +432,11 @@ if(!RUN.recipes.length){
   const playable = RUN.recipes.filter(r => r.sequence && r.grid);
   if(!playable.length) el('rhint').style.display = 'none';
 
-  // Every column summary.png used to carry, so nothing is lost by not rendering
-  // the images: the wall breakdown by kind, before/after, and the percentage.
+  // The full breakdown: how many walls each rule took, before/after, and the
+  // percentage — so the table explains a result rather than just scoring it.
   el('recipes').innerHTML =
    `<table><tr><th>recipe</th><th>walls before</th><th>walls after</th>
-      <th>black</th><th>orange</th><th>uncrossable</th><th>total removed</th>
+      <th>untouched</th><th>thinned</th><th>uncrossable</th><th>total removed</th>
       <th>switches</th><th>status</th><th>page</th></tr>` +
    RUN.recipes.map((r, n) => {
      if(r.error)
@@ -453,7 +453,7 @@ if(!RUN.recipes.length){
        : '<span class="muted">—</span>';
      return `<tr${pick}><td>${r.mode??'?'}${note}</td>
        <td>${r.walls_before??'-'}</td><td>${r.walls_after??'-'}</td>
-       <td>${r.removed_black??'-'}</td><td>${r.removed_orange??'-'}</td>
+       <td>${r.removed_untouched??'-'}</td><td>${r.removed_thinned??'-'}</td>
        <td>${r.removed_uncrossable??'-'}</td>
        <td>${r.removed??'-'} (${pct}%)</td>
        <td>${r.new_switches??'-'} / ${RUN.meta.switches}</td><td>${st}</td>

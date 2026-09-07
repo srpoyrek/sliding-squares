@@ -99,7 +99,7 @@ Commands: `U` (up), `D` (down), `L` (left), `R` (right), `S` (switch control).
 python run_tests.py                        # run every test case
 python run_tests.py 3x3                    # only tests whose name contains "3x3"
 python run_tests.py --simplified           # every test, every simplify recipe
-python run_tests.py 4x4_robot_holes --simplified uncrossable black_relative
+python run_tests.py 4x4_robot_holes --simplified uncrossable untouched_spaced
 ```
 
 | Flag | Default | Purpose |
@@ -115,16 +115,16 @@ The recipes, defined in `simplify.RECIPES` — each writes to its own folder:
 
 | Recipe | Removes never-touched walls | Thins touched walls by | Frees uncrossable walls |
 |---|---|---|---|
-| `black_relative` | ✓ | contact plateaus + spacing so no gap exceeds n−1 | — |
-| `black_uncrossable` | ✓ | — | ✓ |
-| `black_relative_uncrossable` | ✓ | plateaus + spacing | ✓ |
+| `untouched_spaced` | ✓ | contact plateaus + spacing so no gap exceeds n−1 | — |
+| `untouched_uncrossable` | ✓ | — | ✓ |
+| `untouched_spaced_uncrossable` | ✓ | plateaus + spacing | ✓ |
 | `uncrossable` | — | — | ✓ (**provably lossless**) |
 
-**The simplification pass** removes walls that aren't load-bearing and crops all-wall borders, then **re-solves to verify the minimum switch count is unchanged.** A wall the robots never touch ("black") is always removed; touched ("orange") walls are thinned according to the chosen mode.
+**The simplification pass** removes walls that aren't load-bearing and crops all-wall borders, then **re-solves to verify the minimum switch count is unchanged.** A wall the robots never touch is removed; touched walls are thinned according to the chosen recipe.
 
 `--uncrossable` adds an *exact* pass on top: the solver sees the grid only through the set of legal n×n robot placements, so a wall whose removal opens no new placement is invisible to it and can be freed with the state space — and therefore the switch count — provably unchanged. This is what thins a straight line of walls down to a picket at spacing n while keeping the corners the robot could round; the spacing is derived from the robot size, so a 1×1 robot keeps every wall and a 5×5 robot keeps every fifth.
 
-Each recipe writes into its own folder, `plots/tests/<name>/simplified/<mode>/`, so strategies sit side by side instead of overwriting each other — `black_relative`, `black_uncrossable`, `uncrossable`, and so on. Results are that recipe's own `run.json` and `index.html`, plus `simplification.txt`, which reads **PRESERVED** if the switch count held or **FAILED** if a removed wall turned out to be load-bearing.
+Each recipe writes into its own folder, `plots/tests/<name>/simplified/<mode>/`, so strategies sit side by side instead of overwriting each other — `untouched_spaced`, `untouched_uncrossable`, `uncrossable`, and so on. Results are that recipe's own `run.json` and `index.html`, plus `simplification.txt`, which reads **PRESERVED** if the switch count held or **FAILED** if a removed wall turned out to be load-bearing.
 
 ### Reports
 
@@ -151,17 +151,18 @@ plots/
         └── ...
 ```
 
-The per-test folder is the test's name with spaces replaced by underscores. Open
-the top-level file directly:
+The per-test folder is the test's name with spaces replaced by underscores.
+Every page is self-contained, so opening one needs no server:
 
 ```bash
 start plots/tests/index.html      # Windows
 open  plots/tests/index.html      # macOS
+xdg-open plots/tests/index.html   # Linux
 ```
 
 | File | What it is |
 |---|---|
-| `plots/tests/index.html` | Every run in one table — grid, robot size, switches, recipe verdicts, generation time. Each row links to its run |
+| `plots/tests/index.html` | Every run in one table — grid, robot size, switches, recipe verdicts, and the **best recipe** for that test: the one leaving the fewest walls *while preserving the switch count*, linked to its own page. A failed recipe usually leaves fewer walls, but it has changed the problem, so it cannot win |
 | `plots/tests/<name>/index.html` | One run, end to end (below) |
 
 The per-test page holds:
@@ -188,7 +189,7 @@ The per-test page holds:
   leans on. A variant that solves in fewer switches simply holds at its final
   state once the longer one continues. Hidden when the run had no recipes.
 - **The simplification recipes** — the full stats table (walls before/after, the
-  black / orange / uncrossable breakdown, total removed, switches, verdict).
+  untouched / thinned / uncrossable breakdown, total removed, switches, verdict).
   Clicking a row plays that recipe's solution inline; its **page** column opens
   the recipe's own standalone report at
   `plots/tests/<name>/simplified/<recipe>/index.html`, which carries the same

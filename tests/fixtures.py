@@ -1,22 +1,22 @@
 """
 fixtures.py
 -----------
-Hand-built wall layouts, one per behaviour the simplification recipes claim.
+Small worked layouts, each showing one thing the simplification recipes do.
 
-Each case is small enough that the correct answer can be worked out on paper,
-which is the point: a test that only re-runs the implementation proves nothing.
-Every fixture therefore carries the expectation alongside the grid, and
-`tests/test_simplify.py` asserts against it while `make_gallery.py` renders the
-same set as a page.
+Every case states **where the robots are and how one of them slides**. The walls
+they touch are then computed by `simplify._aggregate_wall_counts` — the same
+function the real pipeline uses — rather than declared here, so a fixture cannot
+claim a contact the code would not produce. Declaring them by hand also risks
+an empty set, which does not mean "touched nothing" but "unspecified", and would
+silently make every wall look untouched.
 
-Grids are written as strings so the shape is visible in the source:
+Grids are written as pictures so the shape is visible in the source:
 
     "#" wall     "." free
 
-`contacts` names the walls a solution is pretended to have touched. The recipes
-that thin "orange" walls are driven by contact counts, so supplying them
-directly isolates the wall transform from the solver — a fixture does not need
-to be a solvable puzzle to prove what a recipe does to a shape.
+A case is a *scenario*, not a solvable puzzle: robot B is parked, robot A slides
+along a run of positions, and that is enough to produce honest contact data. The
+recipes act on walls, and this isolates that from the solver.
 """
 
 from __future__ import annotations
@@ -45,200 +45,198 @@ def walls_of(tiles) -> set[tuple[int, int]]:
 
 @dataclass
 class Case:
-    """One fixture: a layout, a robot size, and what the recipes should do to it."""
+    """One scenario: a layout, a robot size, where the robots are, and why."""
 
     name: str
     n: int
     rows: list[str]
-    #: What this case is here to demonstrate. Shown in the gallery.
+    #: What this case demonstrates. Written to match what the code does, not
+    #: what it might be assumed to do.
     why: str
-    #: Walls a solution is pretended to have touched, as (row, col).
-    contacts: set[tuple[int, int]] = field(default_factory=set)
-    #: Per-face contact counts: (row, col, face) -> hits. Needed by the
-    #: spacing recipe, which reasons per wall face rather than per cell.
-    face_contacts: dict = field(default_factory=dict)
-    #: Expected result of `_prune_uncrossable` alone, as a picture. None when
-    #: the case is not about that pass.
+    #: Successive top-left positions of robot A. One entry is a static
+    #: placement; several describe a slide, and every step contributes contacts.
+    path_a: list[tuple[int, int]] = field(default_factory=list)
+    #: Robot B's top-left position. Parked; it still braces against walls, and
+    #: those contacts count exactly as they do in a real solve.
+    pos_b: tuple[int, int] = (0, 0)
+    #: Expected result of `_prune_uncrossable` alone, as a picture. Set only
+    #: where the answer is provable by inspection.
     uncrossable_expect: list[str] | None = None
 
     @property
     def tiles(self) -> list[list[int]]:
         return parse(self.rows)
 
+    def grid(self) -> Grid:
+        return Grid([row[:] for row in self.tiles])
+
+    def snapshots(self) -> list[list[Robot]]:
+        """The [A, B] pairs for each step, in the shape the aggregator wants."""
+        return [
+            [Robot("A", self.n, *pos), Robot("B", self.n, *self.pos_b)]
+            for pos in (self.path_a or [self.pos_b])
+        ]
+
     def workspace(self) -> Workspace:
-        """A Workspace over this layout, robots parked in the top-left free run.
+        start = self.path_a[0] if self.path_a else self.pos_b
+        return Workspace(self.grid(), Robot("A", self.n, *start), Robot("B", self.n, *self.pos_b))
 
-        The robots are placed only so the type is well-formed; every fixture
-        here exercises the wall transform, which never reads their positions.
+    def contacts(self) -> tuple[dict, dict]:
+        """(counts, face_counts) computed from the real placements.
+
+        Imported here rather than at module scope so importing fixtures stays
+        cheap and free of import-order concerns.
         """
-        tiles = self.tiles
-        free = sorted(
-            (r, c) for r, row in enumerate(tiles) for c, cell in enumerate(row) if cell == 0
-        )
-        spot = free[0] if free else (0, 0)
-        return Workspace(
-            Grid([row[:] for row in tiles]),
-            Robot("A", self.n, *spot),
-            Robot("B", self.n, *spot),
-        )
+        from src.simplify import _aggregate_wall_counts
 
-    def counts(self) -> dict:
-        """`contacts` as the {(row, col): hits} mapping the recipes consume."""
-        return {cell: 1 for cell in self.contacts}
-
-
-def _edges(cells, face):
-    """Shorthand: give every named cell one contact on the same face."""
-    return {(r, c, face): 1 for r, c in cells}
+        return _aggregate_wall_counts(self.grid(), self.snapshots())
 
 
 # ── The cases ───────────────────────────────────────────────────────────
 #
-# Ordered from the simplest claim to the ones where two rules disagree.
+# Each pairs a shape with a movement, so the contact rule and the geometry rule
+# act on different walls and the recipes visibly diverge.
 
 CASES: list[Case] = [
     Case(
-        name="n1_degenerate",
-        n=1,
-        why="With a 1x1 robot the uncrossable pass can never remove anything: "
-        "the only placement overlapping a wall is that cell itself, so freeing "
-        "it always opens exactly one new placement.",
+        name="slide_over_block",
+        n=2,
+        why="A 2x2 robot slides left-to-right across the top of a solid block. "
+        "Only the block's top row is ever pressed, so the contact rule strips "
+        "the 12 interior walls and keeps those 4 — while the geometry rule, "
+        "which never looks at contact, hollows the block from the inside.",
         rows=[
-            ".....",
-            ".###.",
-            ".###.",
-            ".###.",
-            ".....",
+            "........",
+            "........",
+            ".####...",
+            ".####...",
+            ".####...",
+            ".####...",
+            "........",
+            "........",
         ],
-        # Identical to the input — nothing is uncrossable for n=1.
-        uncrossable_expect=[
-            ".....",
-            ".###.",
-            ".###.",
-            ".###.",
-            ".....",
-        ],
+        path_a=[(0, 1), (0, 2), (0, 3)],
+        pos_b=(6, 6),
     ),
     Case(
-        name="thick_block",
+        name="slide_half_a_line",
         n=2,
-        why="A solid mass is hollowed out: interior walls open no new 2x2 "
-        "placement on their own, so they are freed, and the sweep leaves a "
-        "picket rather than clearing the whole block.",
+        why="The robot travels along only the left half of a long wall. The "
+        "right half is never touched, so the contact rule deletes it outright "
+        "while the geometry rule treats both halves identically — the clearest "
+        "case of the two rules disagreeing.",
         rows=[
-            "......",
-            ".####.",
-            ".####.",
-            ".####.",
-            ".####.",
-            "......",
+            "..........",
+            "..........",
+            "##########",
+            "..........",
+            "..........",
         ],
+        path_a=[(0, 0), (0, 1), (0, 2)],
+        pos_b=(3, 7),
     ),
     Case(
-        name="thin_line_h",
+        name="slide_along_line",
         n=2,
-        why="A one-thick horizontal line thins to a picket at spacing n: the "
-        "sweep frees a cell, which makes its neighbour load-bearing, so the "
-        "neighbour survives.",
+        why="The same wall, but the robot traverses its whole length, so every "
+        "cell is touched and the contact rule can remove none of it. Only the "
+        "spacing rule thins it here, down to a picket an n x n robot still "
+        "cannot cross.",
         rows=[
-            "......",
-            "......",
-            "######",
-            "......",
-            "......",
+            "..........",
+            "..........",
+            "##########",
+            "..........",
+            "..........",
         ],
+        path_a=[(0, c) for c in range(9)],
+        pos_b=(3, 0),
     ),
     Case(
-        name="thin_line_v",
+        name="corner_pocket",
         n=2,
-        why="The same rule on a vertical line — the pass is orientation-"
-        "agnostic, which a horizontal-only test would not catch.",
+        why="A wall in the grid corner with the robot pressed against it. The "
+        "geometry rule KEEPS it, which is correct and easy to get wrong: "
+        "freeing that one cell would complete the 2x2 placement at (0,0), so "
+        "it is not redundant even though the boundary is already beside it.",
         rows=[
-            "..#..",
-            "..#..",
-            "..#..",
-            "..#..",
-            "..#..",
+            "#.....",
+            "......",
+            "......",
+            "......",
+            "......",
+            "......",
         ],
-    ),
-    Case(
-        name="corner_wall",
-        n=2,
-        why="A wall tucked in the grid corner. The boundary already blocks the "
-        "robot there, so the wall adds nothing a placement could use.",
-        rows=[
-            "#....",
-            ".....",
-            ".....",
-            ".....",
-            ".....",
-        ],
-    ),
-    Case(
-        name="edge_wall",
-        n=2,
-        why="A single wall against the border, the case most likely to be "
-        "mishandled by an off-by-one in the placement window.",
-        rows=[
-            ".....",
-            "#....",
-            ".....",
-            ".....",
-            ".....",
-        ],
-    ),
-    Case(
-        name="isolated_wall",
-        n=2,
-        why="One wall in open space is genuinely load-bearing: freeing it "
-        "completes four different 2x2 placements, so it must survive.",
-        rows=[
-            ".....",
-            ".....",
-            "..#..",
-            ".....",
-            ".....",
-        ],
-        uncrossable_expect=[
-            ".....",
-            ".....",
-            "..#..",
-            ".....",
-            ".....",
-        ],
+        path_a=[(0, 1), (1, 1)],
+        pos_b=(4, 4),
     ),
     Case(
         name="l_junction",
         n=2,
-        why="Two lines meeting at a right angle. The corner cell belongs to "
-        "both runs, so it is where a per-run rule and a per-placement rule can "
-        "disagree.",
+        why="Two runs meeting at a right angle, the robot sliding down the "
+        "inside. The corner cell belongs to both runs, which is where a "
+        "per-run spacing rule and a per-placement rule can reach different "
+        "answers about the same wall.",
         rows=[
-            "#.....",
-            "#.....",
-            "#.....",
-            "######",
-            "......",
+            "#.......",
+            "#.......",
+            "#.......",
+            "#.......",
+            "#####...",
+            "........",
+            "........",
         ],
+        path_a=[(0, 1), (1, 1), (2, 1)],
+        pos_b=(5, 6),
     ),
     Case(
         name="t_junction",
         n=2,
-        why="A branch point: the stem's first cell is adjacent to the crossbar, "
-        "so it can be freed only if the crossbar still blocks every placement.",
+        why="A branch point. The stem's first cell sits against the crossbar, "
+        "so the geometry rule may free it only while the crossbar still blocks "
+        "every placement through it.",
         rows=[
-            "......",
-            "######",
-            "..#...",
-            "..#...",
-            "..#...",
+            "........",
+            "########",
+            "...##...",
+            "...##...",
+            "...##...",
+            "........",
+        ],
+        path_a=[(2, 0), (2, 1)],
+        pos_b=(2, 6),
+    ),
+    Case(
+        name="n1_degenerate",
+        n=1,
+        why="With a 1x1 robot the geometry rule can never remove anything: the "
+        "only placement overlapping a wall is that cell itself, so freeing it "
+        "always opens exactly one new placement. Whatever disappears here was "
+        "taken by the contact rule, never by the geometry rule.",
+        rows=[
+            ".....",
+            ".###.",
+            ".###.",
+            ".###.",
+            ".....",
+        ],
+        path_a=[(0, 1), (0, 2), (0, 3)],
+        pos_b=(4, 4),
+        uncrossable_expect=[
+            ".....",
+            ".###.",
+            ".###.",
+            ".###.",
+            ".....",
         ],
     ),
     Case(
-        name="all_wall_border",
+        name="walled_border",
         n=1,
         why="A fully walled border is redundant — the grid edge bounds the "
-        "robot identically — so cropping peels it and reports the offset.",
+        "robot identically — so cropping peels it away and records the offset. "
+        "Nothing is 'removed' here in the sense the other columns mean; the "
+        "grid simply gets smaller.",
         rows=[
             "#####",
             "#...#",
@@ -246,34 +244,8 @@ CASES: list[Case] = [
             "#...#",
             "#####",
         ],
-    ),
-    Case(
-        name="untouched_mass",
-        n=2,
-        why="Contact drives the black pass, not geometry. Nothing here is "
-        "touched, so the black pass takes all of it while the uncrossable pass "
-        "judges the same walls purely on placements.",
-        rows=[
-            "......",
-            ".####.",
-            ".####.",
-            "......",
-        ],
-        contacts=set(),
-    ),
-    Case(
-        name="touched_line",
-        n=2,
-        why="Every wall of this line was touched, so the black pass keeps all "
-        "of it and only the spacing recipe thins it — the case that separates "
-        "the two strategies.",
-        rows=[
-            "......",
-            "######",
-            "......",
-        ],
-        contacts={(1, c) for c in range(6)},
-        face_contacts=_edges([(1, c) for c in range(6)], "N"),
+        path_a=[(1, 1), (1, 2)],
+        pos_b=(3, 3),
     ),
 ]
 
