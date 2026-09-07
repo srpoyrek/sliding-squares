@@ -135,11 +135,14 @@ def _write_recipe_index(simplified_dir, test_name, switches, statuses) -> None:
 def run_one(args) -> TestResult:
     """Run a single test by class name.
 
-    `args` is (cls_name, recipes, want_png) where `recipes` is a list of names
-    from simplify.RECIPES to run after the test passes (empty list = skip), and
-    `want_png` keeps the matplotlib per-switch images alongside the HTML report.
+    `args` is (cls_name, recipes, want_png, strategy) where `recipes` is a list
+    of names from simplify.RECIPES to run after the test passes (empty list =
+    skip), `want_png` keeps the matplotlib per-switch images alongside the HTML
+    report, and `strategy` is the Solver search to use. The strategy travels in
+    the payload rather than a module global because the pool spawns its
+    workers, which start from a fresh import.
     """
-    cls_name, recipes, want_png = args
+    cls_name, recipes, want_png, strategy = args
     sys.path.insert(0, BASE_DIR)
     sys.path.insert(0, get_testcases_dir())
 
@@ -168,7 +171,7 @@ def run_one(args) -> TestResult:
         # 15.6 ms, so any solve faster than that measures as exactly 0.0. This is
         # a monotonic high-resolution timer, which is what a duration needs.
         start = time.perf_counter()
-        solver_result = Solver(ws, goal_a, goal_b).solve()
+        solver_result = Solver(ws, goal_a, goal_b, strategy=strategy).solve()
         elapsed = time.perf_counter() - start
         result.seconds = elapsed
         result.time = _fmt_time(elapsed)
@@ -219,6 +222,7 @@ def run_one(args) -> TestResult:
                         solver_result.switches,
                         tc.name,
                         want_png=want_png,
+                        strategy=strategy,
                         **RECIPES[recipe]["kwargs"],
                     )
                 except Exception as e:
@@ -338,7 +342,7 @@ def _write_index() -> None:
         print(f"\nOpen: {_rel(dest)}", flush=True)
 
 
-def run_all(recipes, want_png=False, verbose=False):
+def run_all(recipes, want_png=False, verbose=False, strategy="mirror"):
     wall_start = time.time()
     classes = discover_test_cases()
 
@@ -353,7 +357,7 @@ def run_all(recipes, want_png=False, verbose=False):
     print("\n" + "=" * 60)
 
     results = []
-    jobs = [(cls.__name__, recipes, want_png) for cls in classes]
+    jobs = [(cls.__name__, recipes, want_png, strategy) for cls in classes]
     with mp.get_context("spawn").Pool(processes=min(8, mp.cpu_count())) as pool:
         for r in pool.imap_unordered(run_one, jobs):
             results.append(r)
@@ -419,6 +423,13 @@ if __name__ == "__main__":
         "per frame, which dominates a run. Use this to cross-check the report "
         "against the images, or to produce figures for the paper.",
     )
+    parser.add_argument(
+        "--bidirectional",
+        action="store_true",
+        help="Solve with the older forward+backward search instead of the "
+        "single-tree mirror search. Both are exact, so the switch counts must "
+        "agree; the flag exists to check that they do.",
+    )
     args = parser.parse_args()
 
     if args.list_recipes:
@@ -438,6 +449,8 @@ if __name__ == "__main__":
     else:
         recipes = list(RECIPES)
 
+    strategy = "bidirectional" if args.bidirectional else "mirror"
+
     if args.name:
         name = args.name.lower()
         classes = discover_test_cases()
@@ -446,7 +459,7 @@ if __name__ == "__main__":
             print(f"No test case matching '{args.name}'")
             sys.exit(1)
         for cls in matched:
-            _print_result(run_one((cls.__name__, recipes, args.png)), args.verbose)
+            _print_result(run_one((cls.__name__, recipes, args.png, strategy)), args.verbose)
         _write_index()
     else:
-        run_all(recipes, want_png=args.png, verbose=args.verbose)
+        run_all(recipes, want_png=args.png, verbose=args.verbose, strategy=strategy)

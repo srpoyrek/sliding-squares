@@ -78,15 +78,17 @@ sliding-squares/
 
 ## Algorithm
 
-The solver runs a **bidirectional layered breadth-first search** over the state space `(pos_a, pos_b, control)` — see [`src/solver.py`](src/solver.py) and [`src/bfs.py`](src/bfs.py):
+The solver runs a **single-tree layered breadth-first search** over the state space `(pos_a, pos_b, control)` — see [`src/solver.py`](src/solver.py) and [`src/bfs.py`](src/bfs.py):
 
 1. **Layered structure.** Each BFS layer represents states reachable with exactly *k* control switches. Within a layer, `flood_fill` explores all positions the controlled robot can reach without switching.
-2. **Bidirectional expansion.** A forward BFS from the start and a backward BFS from the goal are expanded in lockstep. Both initial controllers are seeded in forward layer 0 and both final controllers in backward layer 0, so the run finds the minimum-switch solution over any choice of first/last mover in a single pass.
-3. **Symmetry pruning.** [`src/canonical.py`](src/canonical.py) detects when a workspace is invariant under an A↔B label swap; in that case the dual-start expansion is collapsed to a single BFS half, halving the work.
+2. **Relabelling symmetry.** The two robots are identical squares and the grid never moves, so exchanging their labels is a symmetry of *every* workspace — no geometric symmetry of the walls is required. Because the goal is the start with the robots exchanged, that relabelling carries the start onto the goal, and the states *l* switches from the goal are exactly the relabelling of the states *l* switches from the start. The backward half of a search is therefore the forward half relabelled, the same size at every layer.
+3. **Mirror meeting.** Only the forward tree is built. A state's distance to the goal is read out of the same `visited` map by looking up its relabelling, so the tree, its parent pointers and its frontier are built once instead of twice. Both initial controllers are seeded in layer 0, which covers either robot moving first — and, under the relabelling, either moving last. The second half of the solution is the route to the meeting state's relabelling played backwards: reversed, with each direction inverted. Commands name no robot, so the string needs no further translation.
 4. **Memoization.** Per-process LRU caches in `bfs.py` (`_USABLE_CACHE`, `_PARENT_MAP_CACHE`, `_VALID_POS_CACHE`) memoize flood-fill results and valid-position sets. Keys include a `free_key` (an int bitmask where bit `r*cols + c` is set iff cell `(r,c)` is free — ~300× smaller than a frozenset and O(1) to hash), so cached entries are pure functions of their inputs and safely reused across every solve call within a worker. Cache caps are **auto-sized to the grid and the memory budget** (see [Memory budget](#memory-budget) below). Because the caches are pure memoization, they are fully disposable: under memory pressure they are cleared and shrunk (forcing recomputation, never a wrong answer).
-5. **Optimality.** The goal is checked at each layer; the first match is optimal by construction. Path reconstruction backtracks through parent pointers to produce a command sequence.
+5. **Optimality.** Layer *h* makes exactly two totals newly reachable — 2*h*−1 (relabelling one layer back) and 2*h* (relabelling in this layer). The whole layer is scanned and the smallest total taken before the layer is left, which is what keeps the answer minimal: arriving at layer *h* with nothing found already proves the optimum is at least 2*h*−1, so the first total found there is that optimum. Path reconstruction backtracks through parent pointers to produce a command sequence.
 
 Commands: `U` (up), `D` (down), `L` (left), `R` (right), `S` (switch control).
+
+`bfs_bidirectional` — the earlier forward-plus-backward pair — is still in [`src/bfs.py`](src/bfs.py) so the two searches can be cross-checked against each other (`run_tests.py --bidirectional`). It is also what `Solver` falls back to for a goal that is not a straight swap, which `bfs_mirror` rejects outright.
 
 ## Usage
 
@@ -107,6 +109,7 @@ python run_tests.py 4x4_robot_holes --simplified uncrossable untouched_spaced
 | `--simplified` | off | After solving, also run the wall-simplification recipes (below). Bare `--simplified` runs **every** recipe; name recipes after it to run a subset. Without the flag, behaviour is unchanged: solve + plot only |
 | `-v`, `--verbose` | off | Print every recipe's full result. Without it each test gets one summary line: how many recipes held, which left the fewest walls, and which failed |
 | `--png` | off | Also render the matplotlib images — the per-switch frames and each recipe's `summary.png`. Off by default: the HTML report (below) covers the same ground without paying matplotlib's per-frame cost, which dominates a run. Use it to cross-check the report against the images, or for paper figures |
+| `--bidirectional` | off | Solve with the older forward+backward search instead of the single-tree mirror search (see [Algorithm](#algorithm)). Both are exact, so the switch counts must agree; the flag exists to check that they do. It applies to the recipe re-solves too, so a comparison covers the simplified workspaces as well |
 
 Run `python run_tests.py --list-recipes` to print the recipes and what each one does. After a run, `plots/tests/<name>/simplified/README.txt` names every recipe folder and ranks them by how few walls survived.
 

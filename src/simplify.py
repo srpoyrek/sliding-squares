@@ -415,6 +415,7 @@ def run_simplification(
     prune_uncrossable=False,
     remove_untouched=True,
     want_png=False,
+    strategy="mirror",
 ):
     """Run one simplification recipe; save results into
     <plot_dir>/simplified/<mode>/, where <mode> names the recipe (see
@@ -428,6 +429,10 @@ def run_simplification(
     ``want_png`` additionally renders the matplotlib sequence and comparison
     summary. Off by default: those dominate a run's cost and the report already
     shows the same information.
+
+    ``strategy`` is handed to the verifying ``Solver`` so a recipe re-solves
+    with the same search as the run it is verifying — otherwise a comparison
+    between the two searches would only cover the original workspace.
     """
     counts, face_counts = _aggregate_wall_counts(ws.grid, vr.snapshots)
     walls_before = _count_walls(ws.grid)
@@ -489,7 +494,7 @@ def run_simplification(
         return status
 
     # Verify the simplification with one solver call.
-    res = Solver(simplified, goal_a, goal_b).solve()
+    res = Solver(simplified, goal_a, goal_b, strategy=strategy).solve()
     status["new_switches"] = control_turns(res.switches) if res.solvable else None
     status["preserved"] = res.solvable and res.switches == target_switches
     if not res.solvable:

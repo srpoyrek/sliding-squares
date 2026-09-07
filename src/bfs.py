@@ -6,11 +6,12 @@ Core BFS logic for the sliding squares problem.
 Public API:
     flood_fill            — all positions the current robot can reach without switching
     bfs                   — unidirectional layered BFS (forward only)
+    bfs_mirror            — single-tree layered BFS using the A<->B relabelling
     bfs_bidirectional     — bidirectional layered BFS (forward + backward in lockstep)
 
-Both BFS entry points share the same per-layer expansion helper `_expand_layer`
-and the same flood-fill cache, so memoization carries across halves inside a
-single bidirectional run.
+All three BFS entry points share the same per-layer expansion helper
+`_expand_layer` and the same flood-fill cache, so memoization carries across
+halves inside a single bidirectional run.
 
 State = (pos_a, pos_b, ctrl) — ctrl is the robot that just moved.
 Parent tuple convention (unified across fwd and bwd): (prev_state, target_pos, mover)
@@ -478,6 +479,129 @@ def _reconstruct_bwd(bwd_parent: dict, meeting_sid, workspace, unpack) -> list:
         path.extend(cmds)
         sid = next_sid
     return path
+
+
+# ---------------------------------------------------------------------------
+# A<->B relabelling — the symmetry bfs_mirror runs on
+# ---------------------------------------------------------------------------
+
+
+def _make_mirror(workspace, n: int):
+    """Closure mapping a packed sid to the sid of its A<->B relabelling.
+
+    `pack` lays a state out as ai * pos_stride + bi * 2 + ctrl_bit, so
+    exchanging the robots is exchanging the two position fields and flipping
+    the control bit — one divmod, no (row, col) tuples materialised.
+    """
+    col_span = workspace.grid.cols - n + 1
+    row_span = workspace.grid.rows - n + 1
+    max_pos = row_span * col_span
+    pos_stride = max_pos * 2
+
+    def mirror(sid):
+        ai, bi = divmod(sid >> 1, max_pos)
+        return bi * pos_stride + ai * 2 + (1 - (sid & 1))
+
+    return mirror
+
+
+def _mirror_tail(parent: dict, mirror_sid, workspace, unpack) -> list:
+    """Second half of a mirrored solve: the forward route to the meeting
+    state's relabelling, played backwards.
+
+    Commands name no robot — 'R' is 'R' whichever square executes it — so the
+    relabelling leaves the string alone and only the reversal applies: the
+    order flips and each direction inverts, while switches keep their places.
+    The first segment of the result is driven by the same robot that made the
+    last move of the first half, so the two halves join without an extra
+    switch and the switch count is the sum of the two layers.
+    """
+    tail = _reconstruct_fwd(parent, mirror_sid, workspace, unpack)
+    tail.reverse()
+    return [_INVERSE_CMD.get(cmd, cmd) for cmd in tail]
+
+
+# ---------------------------------------------------------------------------
+# bfs_mirror — one forward tree; the backward half is that tree, relabelled
+# ---------------------------------------------------------------------------
+
+
+def bfs_mirror(workspace, goal_a, goal_b, need_path=True):
+    """Layered BFS over a single forward tree, using the A<->B relabelling.
+
+    Requires the goal to be the start with the robots exchanged (`goal_a` is
+    robot B's start, `goal_b` is robot A's start) and raises otherwise; any
+    other goal has to go through `bfs_bidirectional`.
+
+    Exchanging the two labels is a symmetry of *every* workspace — the squares
+    are identical and the grid does not move — and under it the goal set is
+    the image of the start set. The backward half of a bidirectional run is
+    therefore the forward half relabelled: the states l switches from the goal
+    are exactly the relabelling of the states l switches from the start, at
+    every l, so the two trees are the same size at every layer. One tree
+    suffices — a state's distance to the goal is read out of the same
+    `visited` map by looking up its relabelling — and the tree, its parent
+    pointers and its frontier are built once instead of twice.
+
+    Layer h makes exactly two totals newly reachable: 2h-1 (relabelling one
+    layer back) and 2h (relabelling in this layer). The whole layer is scanned
+    and the smallest total taken before the layer is left, which is what keeps
+    the result minimal — arriving at layer h with nothing found already proves
+    the optimum is at least 2h-1, so the first total found here is that
+    optimum.
+    """
+    n = workspace.robot_a.n
+    robot_a = workspace.robot_a
+    robot_b = workspace.robot_b
+    if goal_a != robot_b.position() or goal_b != robot_a.position():
+        raise ValueError(
+            "bfs_mirror needs the goal to be the start with the robots exchanged; "
+            "use bfs_bidirectional for any other goal"
+        )
+
+    pack, unpack = _make_packers(workspace, n)
+    mirror = _make_mirror(workspace, n)
+
+    # Both initial controllers are seeded, covering either robot moving first;
+    # the relabelling covers either moving last, so one seeding does both.
+    seeds = _seed_fwd(workspace, [robot_a, robot_b], pack, build_parent=need_path)
+    visited, parent, frontier = seeds["visited"], seeds["parent"], seeds["frontier"]
+
+    layer = 0
+    while frontier:
+        best = None  # (meeting_sid, mirror_sid, total)
+        for sid in frontier:
+            mirror_sid = mirror(sid)
+            mirror_layer = visited.get(mirror_sid)
+            if mirror_layer is None:
+                continue
+            total = layer + mirror_layer
+            if best is None or total < best[2]:
+                best = (sid, mirror_sid, total)
+
+        if best is not None:
+            meeting_sid, mirror_sid, total = best
+            if not need_path:
+                return {"switches": total, "path": None, "visited": None}
+            path = _reconstruct_fwd(parent, meeting_sid, workspace, unpack) + _mirror_tail(
+                parent, mirror_sid, workspace, unpack
+            )
+            return {"switches": total, "path": path, "visited": dict(visited)}
+
+        layer += 1
+        frontier = _expand_layer(
+            workspace,
+            frontier,
+            visited,
+            parent,
+            layer,
+            n,
+            "fwd",
+            pack,
+            unpack,
+            build_parent=need_path,
+        )
+    return None
 
 
 # ---------------------------------------------------------------------------

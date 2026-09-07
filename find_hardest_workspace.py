@@ -15,7 +15,7 @@ import shutil
 import threading
 import time
 
-from src.bfs import bfs_bidirectional, pack_cells_mask
+from src.bfs import bfs_mirror, pack_cells_mask
 from src.canonical import (
     Canonicalizer,
     all_adjacent_placements,
@@ -61,10 +61,15 @@ def _solve_payload(payload):
     Used by the batch-parallel solver pool in dig_search.
     Payload: (rows, cols, n, free_cells, pos_a, pos_b, goal_a, goal_b)
     Returns: (solvable, switches)
+
+    Every candidate here swaps the two robots (`dig_search` sets the goal to
+    `pos_b, pos_a`), so the single-tree mirror search always applies — worth
+    having in the hot loop, since it holds one BFS tree in memory instead of
+    two under the same per-worker budget.
     """
     rows, cols, n, free_cells, pos_a, pos_b, goal_a, goal_b = payload
     ws = _build_workspace(rows, cols, set(free_cells), pos_a, pos_b, n)
-    out = bfs_bidirectional(ws, goal_a, goal_b, need_path=False)
+    out = bfs_mirror(ws, goal_a, goal_b, need_path=False)
     return (False, None) if out is None else (True, out["switches"])
 
 
@@ -435,7 +440,7 @@ def dig_search(
                     for p in need_solve_payloads:
                         _rows, _cols, _n, fk, _pa, _pb, _ga, _gb = p
                         sync_tiles_to(fk)  # fk is a set; sync_tiles_to never mutates it
-                        out = bfs_bidirectional(shared_ws, goal_a, goal_b, need_path=False)
+                        out = bfs_mirror(shared_ws, goal_a, goal_b, need_path=False)
                         batch_results.append(
                             (False, None) if out is None else (True, out["switches"])
                         )

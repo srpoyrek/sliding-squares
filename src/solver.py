@@ -8,7 +8,7 @@ Returns minimum switches and the actual command path.
 
 from __future__ import annotations
 
-from src.bfs import bfs_bidirectional
+from src.bfs import bfs_bidirectional, bfs_mirror
 from src.workspace import Workspace
 
 
@@ -29,23 +29,44 @@ class SolverResult:
 
 
 class Solver:
-    def __init__(self, workspace: Workspace, goal_a: tuple[int, int], goal_b: tuple[int, int]):
+    def __init__(
+        self,
+        workspace: Workspace,
+        goal_a: tuple[int, int],
+        goal_b: tuple[int, int],
+        strategy: str = "mirror",
+    ):
+        """`strategy` selects the search. "mirror" grows one forward tree and
+        reads every backward distance off it via the A<->B relabelling;
+        "bidirectional" grows the older forward/backward pair and is kept so
+        the two can be cross-checked against each other. The mirror search
+        applies only when the goal is the start with the robots exchanged —
+        with any other goal `solve` falls back to bidirectional whatever the
+        setting, since `bfs_mirror` rejects such a goal outright."""
         self.ws = workspace
         self.goal_a = goal_a
         self.goal_b = goal_b
+        self.strategy = strategy
 
     def solve(self, need_path: bool = True) -> SolverResult:
         result = SolverResult()
 
-        # Bidirectional BFS: seeds BOTH initial controllers in forward layer 0
-        # and BOTH final controllers in backward layer 0, so we get min-switches
-        # over any choice of first/last mover in a single run.
+        # Both searches seed BOTH initial controllers, so min-switches over any
+        # choice of first mover comes out of a single run; the mirror search
+        # gets the last mover from the same seeding via the relabelling, the
+        # bidirectional one from seeding both final controllers backwards.
         #
         # need_path=False is the fast path for callers that only need
         # (solvable, switches) — it skips path reconstruction, the visited-dict
         # copy, and the first-mover inference below. Used by find_hardest, which
         # solves millions of candidates and discards the path.
-        out = bfs_bidirectional(self.ws, self.goal_a, self.goal_b, need_path=need_path)
+        start_a = self.ws.robot_a.position()
+        start_b = self.ws.robot_b.position()
+        swapped_goal = self.goal_a == start_b and self.goal_b == start_a
+        if self.strategy == "mirror" and swapped_goal:
+            out = bfs_mirror(self.ws, self.goal_a, self.goal_b, need_path=need_path)
+        else:
+            out = bfs_bidirectional(self.ws, self.goal_a, self.goal_b, need_path=need_path)
         if out is None:
             return result
 
