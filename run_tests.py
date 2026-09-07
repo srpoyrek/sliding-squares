@@ -36,7 +36,7 @@ import traceback
 
 from src.directories import get_plots_dir, get_testcases_dir
 from src.grid import Grid
-from src.report import build_run, write_global_index, write_local_report, write_run
+from src.report import build_run, control_turns, write_global_index, write_local_report, write_run
 from src.robot import Robot
 from src.simplify import RECIPES, describe_recipes, run_simplification
 from src.solver import Solver
@@ -103,7 +103,7 @@ def _write_recipe_index(simplified_dir, test_name, switches, statuses) -> None:
     walls_before = next((s["walls_before"] for s in statuses if "walls_before" in s), "?")
     lines = [
         f"{test_name} — simplification recipes",
-        f"original: {walls_before} walls, {switches} control switches",
+        f"original: {walls_before} walls, {control_turns(switches)} control turns",
         "",
         "Each subfolder is one recipe, holding its own summary.png, solved",
         "sequence and simplification.txt. Ranked by fewest walls surviving.",
@@ -311,7 +311,7 @@ def _print_simplification(simp: dict) -> None:
     if n_uncross:
         breakdown += f", uncrossable={n_uncross}"
     print(
-        f"         {tag} -> switches={simp.get('new_switches')} (preserved), "
+        f"         {tag} -> turns={simp.get('new_switches')} (preserved), "
         f"walls {walls_before} -> {walls_after} "
         f"(-{simp.get('removed', 0)} {breakdown}, {pct:.1f}%) -> {simp.get('plot_dir')}",
         flush=True,

@@ -172,6 +172,21 @@ def _turns(grid, snapshots, titles) -> list[dict]:
     return out
 
 
+def control_turns(switches: int) -> int:
+    """The reported control count for a solve of ``switches`` switches.
+
+    Control is counted from the first assignment: whichever robot moves first is
+    A, that is turn 0, and each switch adds one. So a solve the search reports as
+    N switches is N+1 control turns, and the layers the validator produces run
+    0..N to match.
+
+    Every number a report shows passes through here, so the search's internal
+    count and the published one cannot drift apart. Comparisons stay on the raw
+    value — shifting both sides by one leaves PRESERVED/FAILED unchanged.
+    """
+    return switches + 1
+
+
 def palette() -> dict:
     """The board colours, taken from ``visualizer`` so page and PNG cannot drift.
 
@@ -264,7 +279,7 @@ def build_run(
             "rows": grid.rows,
             "cols": grid.cols,
             "n": robot_a.n,
-            "switches": switches,
+            "switches": control_turns(switches),
             "solver_seconds": solver_seconds,
             "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         },
@@ -412,6 +427,36 @@ def _index_row(run_path: str) -> dict:
     return row
 
 
+def _chart_points(rows: list[dict]) -> list[dict]:
+    """One point per test for the charts: robot size against difficulty.
+
+    ``holes`` is read from the test name — the fixtures are named
+    ``<n>x<n>_robot_holes`` / ``..._no_holes``, and whether a workspace has
+    interior obstacles is the variable those pairs exist to isolate.
+
+    ``walls_after`` is the best *preserving* recipe's result, i.e. the fewest
+    obstacles the workspace has been shown to need while still costing the same
+    number of switches.
+    """
+    points = []
+    for row in rows:
+        if row.get("error"):
+            continue
+        name = row["name"]
+        best = row.get("best") or {}
+        points.append(
+            {
+                "name": name,
+                "n": row["n"],
+                "holes": "no_holes" not in name and "holes" in name,
+                "switches": row["switches"],
+                "walls_before": best.get("walls_before"),
+                "walls_after": best.get("walls_after"),
+            }
+        )
+    return sorted(points, key=lambda p: (p["holes"], p["n"]))
+
+
 def _leaderboard(rows: list[dict]) -> list[dict]:
     """Every recipe ranked across all tests, strongest reduction first.
 
@@ -464,6 +509,9 @@ def write_global_index(tests_dir: str) -> str | None:
     page = _ENV.get_template("index.html.j2").render(
         rows=rows,
         leaderboard=_leaderboard(rows),
+        # Marked safe in the template: it is JSON, not markup.
+        chart_json=json.dumps(_chart_points(rows), separators=(",", ":")).replace("</", "<\\/"),
+        palette=palette(),
         report_filename=REPORT_FILENAME,
     )
     dest = os.path.join(tests_dir, REPORT_FILENAME)

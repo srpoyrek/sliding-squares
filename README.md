@@ -185,7 +185,13 @@ xdg-open plots/tests/index.html   # Linux
 | `plots/tests/index.html` | Every run in one table — grid, robot size, switches, recipe verdicts, and the **best recipe** for that test: every recipe leaving the fewest walls *while preserving the switch count*, each linked to its own page. Recipes tie often, so all winners are listed rather than one being picked arbitrarily; they are ordered so the result with more walls freed by the placement rule reads first, those being lossless by construction. A failed recipe usually leaves fewer walls, but it has changed the problem, so it cannot win |
 | `plots/tests/<name>/index.html` | One run, end to end (below) |
 
-The index also carries a **Recipes ranked** table: every recipe across every
+The index also carries two **robot-size charts** — minimum control switches, and
+obstacles remaining after simplification — each plotted against robot size with
+holed and hole-free workspaces as separate series, so the cost of interior
+obstacles is visible at a glance. They are inline SVG, drawn from the same
+`run.json` data, so the page stays self-contained.
+
+And a **Recipes ranked** table: every recipe across every
 test, ordered by mean wall reduction, with how often it preserved the switch
 count and how often it was the best on a test. The average counts only runs
 where the recipe held — including a failure would flatter it, since a broken
@@ -206,9 +212,9 @@ The per-test page holds:
 - **The path split at each `S`**, so the moves belonging to each switch read
   separately rather than running together in one string.
 - **A thumbnail per switch**, the whole solution at a glance.
-- **The blocker heatmap** — each wall shaded and labelled by how often it was in
-  contact with a robot face. Untouched walls stay black; that split is exactly
-  what the recipes act on.
+- **The blocker heatmap** — each wall shaded and labelled by how often a robot
+  face was in contact with it. Walls with no contact are left unshaded, and that
+  split is what every contact-driven recipe acts on.
 - **A side-by-side comparison.** Two dropdowns pick any two of the original and
   its simplified variants; both boards **step together**, so the same switch
   number shows on each and you can watch where the two solutions diverge. Their

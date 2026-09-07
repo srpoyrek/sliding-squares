@@ -23,7 +23,14 @@ from __future__ import annotations
 import os
 
 from src.grid import Grid
-from src.report import build_run, encode_grid, encode_sequence, write_local_report, write_run
+from src.report import (
+    build_run,
+    control_turns,
+    encode_grid,
+    encode_sequence,
+    write_local_report,
+    write_run,
+)
 from src.robot import Robot
 from src.solver import Solver
 from src.validator import Validator
@@ -467,7 +474,9 @@ def run_simplification(
         "crop": [off_r, off_c],
         "walls_before": walls_before,
         "walls_after": walls_after,
-        "target_switches": target_switches,
+        # Reported as control turns; the comparisons below stay on the raw
+        # count, and shifting both sides leaves PRESERVED/FAILED unchanged.
+        "target_switches": control_turns(target_switches),
     }
 
     # Only skip plotting when nothing changed at all. Cropping shrinks the grid
@@ -476,18 +485,19 @@ def run_simplification(
     if removed_total == 0 and walls_after == walls_before:
         status["note"] = "no walls eligible for removal"
         status["preserved"] = True
-        status["new_switches"] = target_switches
+        status["new_switches"] = control_turns(target_switches)
         return status
 
     # Verify the simplification with one solver call.
     res = Solver(simplified, goal_a, goal_b).solve()
-    status["new_switches"] = res.switches if res.solvable else None
+    status["new_switches"] = control_turns(res.switches) if res.solvable else None
     status["preserved"] = res.solvable and res.switches == target_switches
     if not res.solvable:
         status["note"] = "simplified workspace is unsolvable"
     elif not status["preserved"]:
         status["note"] = (
-            f"switches changed from {target_switches} to {res.switches} "
+            f"control turns changed from {control_turns(target_switches)} to "
+            f"{control_turns(res.switches)} "
             "(removed walls were not all redundant)"
         )
 
@@ -543,9 +553,12 @@ def run_simplification(
             )
 
     if status["preserved"]:
-        outcome = f"PRESERVED — switches stayed at {target_switches}"
+        outcome = f"PRESERVED — control turns stayed at {control_turns(target_switches)}"
     elif res.solvable:
-        outcome = f"FAILED — switches changed from {target_switches} to {res.switches}"
+        outcome = (
+            f"FAILED — control turns changed from {control_turns(target_switches)} "
+            f"to {control_turns(res.switches)}"
+        )
     else:
         outcome = "FAILED — simplified workspace is unsolvable"
 
@@ -570,7 +583,7 @@ def run_simplification(
         ("status", outcome),
         ("grid", f"{ws.grid.rows} x {ws.grid.cols}"),
         ("robot size", f"{ws.robot_a.n} x {ws.robot_a.n}"),
-        ("original switches", target_switches),
+        ("original control turns", control_turns(target_switches)),
         (
             "simplified switches",
             res.switches if res.solvable else "unsolvable",

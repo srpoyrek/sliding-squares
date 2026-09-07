@@ -87,8 +87,8 @@ variants. Both step together, so the same switch number is shown on each.</p>
 
 <h2 id="hhead">Blocker heatmap</h2>
 <p class="muted" id="hhint">How often each wall was in contact with a robot face.
-Bright walls are load-bearing; black walls were never touched, and are what the
-recipes remove first.</p>
+Shaded walls are load-bearing; unshaded ones were never touched, and are what
+the contact-driven recipes remove first.</p>
 <div id="heat"></div>
 
 <h2 id="rhead">Simplification recipes</h2>
@@ -185,11 +185,6 @@ function board(walls, rows, cols, a, b, size, opts={}){
 }
 
 const el = id => document.getElementById(id);
-
-// The original grid with every wall classified against a recipe's result:
-// kept (still a wall), removed (freed), or cropped away entirely. Drawn on the
-// ORIGINAL geometry so the two are directly comparable -- a cropped result has
-// different dimensions, and `crop` is the [top, left] offset that aligns them.
 
 // Solve time is carried as seconds and given its unit here, so the page never
 // shows a bare number whose scale you have to guess.
