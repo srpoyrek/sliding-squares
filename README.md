@@ -169,11 +169,17 @@ The per-test page holds:
 - **The blocker heatmap** — each wall shaded and labelled by how often it was in
   contact with a robot face. Untouched walls stay black; that split is exactly
   what the recipes act on.
+- **A side-by-side comparison.** Two dropdowns pick any two of the original and
+  its simplified variants; both boards **step together**, so the same switch
+  number shows on each and you can watch where the two solutions diverge. Their
+  **heatmaps sit beneath**, so you can see which walls each solution actually
+  leans on. A variant that solves in fewer switches simply holds at its final
+  state once the longer one continues. Hidden when the run had no recipes.
 - **The simplification recipes** — the full stats table (walls before/after, the
   black / orange / uncrossable breakdown, total removed, switches, verdict).
-  Clicking a row **plays that recipe inline**; its **page** column opens the
-  recipe's own standalone report at
-  `plots/tests/<name>/simplified/<recipe>/index.html`, which has the same
+  Clicking a row plays that recipe's solution inline; its **page** column opens
+  the recipe's own standalone report at
+  `plots/tests/<name>/simplified/<recipe>/index.html`, which carries the same
   player, heatmap and path for the simplified workspace and links back here.
   Recipes are hidden entirely when the run had none.
 

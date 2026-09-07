@@ -224,14 +224,18 @@ def _heat(grid, snapshots) -> dict:
 
 
 def encode_sequence(grid, snapshots, titles) -> dict:
-    """A validated path as ``{frames, turns}``, the pair every player needs.
+    """A validated path as ``{frames, turns, heat}`` — all a player needs.
 
     Shared by the main solve and by each simplification recipe, so a recipe's
-    solution is browsable in the same way as the original instead of being
-    reachable only as a folder of images. ``grid`` is needed for the per-turn
-    wall-contact highlights.
+    solution is browsable exactly like the original and the two can be stepped
+    side by side. The heatmap is included here rather than computed separately
+    so a recipe carries its own, making the comparison meaningful.
     """
-    return {"frames": _frames(snapshots, titles), "turns": _turns(grid, snapshots, titles)}
+    return {
+        "frames": _frames(snapshots, titles),
+        "turns": _turns(grid, snapshots, titles),
+        "heat": _heat(grid, snapshots),
+    }
 
 
 def build_run(
@@ -275,9 +279,9 @@ def build_run(
         # strings; leaving it a list made the record's own type depend on the
         # caller, and any consumer doing string work on it broke.
         "path": "".join(path) if isinstance(path, (list, tuple)) else (path or ""),
-        "frames": _frames(snapshots, titles),
-        "turns": _turns(grid, snapshots, titles),
-        "heat": _heat(grid, snapshots),
+        # One call, so a run and a recipe are encoded by exactly the same code
+        # and the comparison view can treat them interchangeably.
+        **encode_sequence(grid, snapshots, titles),
         "recipes": recipes or [],
     }
 

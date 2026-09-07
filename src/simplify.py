@@ -422,6 +422,10 @@ def run_simplification(
         "removed_black": len(removed_black),
         "removed_orange": len(removed_orange),
         "removed_uncrossable": len(removed_uncrossable),
+        # Rows/cols peeled off the top and left. Recorded because a cropped
+        # result has different dimensions from the original, so this offset is
+        # what maps a simplified coordinate back onto the workspace it came from.
+        "crop": [off_r, off_c],
         "walls_before": walls_before,
         "walls_after": walls_after,
         "target_switches": target_switches,
