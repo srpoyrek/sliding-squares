@@ -32,7 +32,7 @@ The `pre-commit` hooks run on every commit:
 ```
 sliding-squares/
 ├── src/
-│   ├── bfs.py              # Layered BFS — both unidirectional and bidirectional
+│   ├── bfs.py              # Layered BFS — mirror (default), bidirectional, unidirectional
 │   ├── lru.py              # LRU cache backing the bfs memoization
 │   ├── grid.py             # Grid representation (free, boundary, hole tiles)
 │   ├── robot.py            # n×n square robot representation
@@ -40,16 +40,18 @@ sliding-squares/
 │   ├── workspace.py        # Grid + robots + movement rules; build-from-free-cells + placement queries
 │   ├── canonical.py        # Spatial symmetries, canonical keys, touching-placement enumeration, Canonicalizer
 │   ├── frontier.py         # Frontier helpers for grow/dig searches (initial_frontier, extend_frontier)
-│   ├── solver.py           # Solver wrapping bidirectional BFS
+│   ├── solver.py           # Solver wrapping the BFS — mirror by default, switchable
 │   ├── validator.py        # Step-by-step path execution and validation
 │   ├── simplify.py         # Workspace simplification — strip redundant walls, preserve switch count
 │   ├── visualizer.py       # Matplotlib visualization (grids, sequences, BFS frontiers, proof rendering)
 │   ├── report.py           # run.json + the HTML reports built from it
 │   ├── benchmark.py        # BFS comparison — measurement, benchmark.json, its report
-│   ├── templates/          # Jinja2 templates for those reports
+│   ├── templates/          # Jinja2 templates for every generated page
 │   │   ├── report.html.j2  #   one run: player, heatmap, recipes
 │   │   ├── index.html.j2   #   the table over every run
-│   │   └── benchmark.html.j2 # the BFS comparison: strategies, charts, per-case tables
+│   │   ├── benchmark.html.j2 # the BFS comparison: charts, per-case tables, how each search works
+│   │   ├── gallery.html.j2 #   every fixture x every simplify recipe
+│   │   └── site.html.j2    #   the landing page linking the report trees
 │   ├── path_resolver.py    # Compact path notation parser (e.g. "12R2US")
 │   ├── test_case.py        # Base class for test cases
 │   └── directories.py      # Path management utilities
@@ -85,9 +87,11 @@ The solver runs a **single-tree layered breadth-first search** over the state sp
 
 1. **Layered structure.** Each BFS layer represents states reachable with exactly *k* control switches. Within a layer, `flood_fill` explores all positions the controlled robot can reach without switching.
 2. **Relabelling symmetry.** The two robots are identical squares and the grid never moves, so exchanging their labels is a symmetry of *every* workspace — no geometric symmetry of the walls is required. Because the goal is the start with the robots exchanged, that relabelling carries the start onto the goal, and the states *l* switches from the goal are exactly the relabelling of the states *l* switches from the start. The backward half of a search is therefore the forward half relabelled, the same size at every layer.
-3. **Mirror meeting.** Only the forward tree is built. A state's distance to the goal is read out of the same `visited` map by looking up its relabelling, so the tree, its parent pointers and its frontier are built once instead of twice. Both initial controllers are seeded in layer 0, which covers either robot moving first — and, under the relabelling, either moving last. The second half of the solution is the route to the meeting state's relabelling played backwards: reversed, with each direction inverted. Commands name no robot, so the string needs no further translation.
+3. **Mirror meeting.** Only the forward tree is built. A state's distance to the goal is read out of the same `visited` map by looking up its relabelling, so the tree, its parent pointers and its frontier are built once instead of twice. Both initial controllers are seeded in layer 0, which covers either robot moving first — and, under the relabelling, either moving last.
 4. **Memoization.** Per-process LRU caches in `bfs.py` (`_USABLE_CACHE`, `_PARENT_MAP_CACHE`, `_VALID_POS_CACHE`) memoize flood-fill results and valid-position sets. Keys include a `free_key` (an int bitmask where bit `r*cols + c` is set iff cell `(r,c)` is free — ~300× smaller than a frozenset and O(1) to hash), so cached entries are pure functions of their inputs and safely reused across every solve call within a worker. Cache caps are **auto-sized to the grid and the memory budget** (see [Memory budget](#memory-budget) below). Because the caches are pure memoization, they are fully disposable: under memory pressure they are cleared and shrunk (forcing recomputation, never a wrong answer).
-5. **Optimality.** Layer *h* makes exactly two totals newly reachable — 2*h*−1 (relabelling one layer back) and 2*h* (relabelling in this layer). The whole layer is scanned and the smallest total taken before the layer is left, which is what keeps the answer minimal: arriving at layer *h* with nothing found already proves the optimum is at least 2*h*−1, so the first total found there is that optimum. Path reconstruction backtracks through parent pointers to produce a command sequence.
+5. **Optimality.** Layer *h* makes exactly two totals newly reachable — 2*h*−1 (relabelling one layer back) and 2*h* (relabelling in this layer). The whole layer is scanned and the smallest total taken before the layer is left, which is what keeps the answer minimal: arriving at layer *h* with nothing found already proves the optimum is at least 2*h*−1, so the first total found there is that optimum.
+6. **Reconstruction.** Both halves are backtracked through the parent pointers as **segments** — one robot walking while the other stands still — and joined *before* either becomes moves. The halves meet inside a segment rather than between two: the first half walks a robot into the meeting square and the second walks the same robot, around the same stationary partner, back out of it. Those two are merged into one segment and planned as a single shortest route, so the path is minimal in moves as well as in switches. Rendering the halves separately instead would detour through the meeting square and imply a switch that is not in the count.
+7. **First mover.** Each search reports which robot moves in layer 0 alongside the path. Commands name no robot, so a replay has to be told who holds control at step 0 and then follow the switches; reading it off the first *move* command is wrong whenever the layer-0 segment is empty, because the path then opens with a switch and the first robot to move is the second to hold control.
 
 Commands: `U` (up), `D` (down), `L` (left), `R` (right), `S` (switch control).
 
@@ -163,18 +167,24 @@ Two HTML views are built from it automatically. **Where they land:**
 
 ```
 plots/
-└── tests/
-    ├── index.html                      <- START HERE: every run, one table
-    ├── 3x3_robot_holes/
-    │   ├── run.json                    <- the encoded record
-    │   ├── index.html                  <- this run: transitions, heatmap, recipes
-    │   ├── png_from_json/              <- only if you run render_run.py
-    │   └── simplified/
-    │       └── <recipe>/
-    │           ├── run.json            <- that recipe's own record
-    │           └── index.html          <- its own report, linked from above
-    └── 4x4_robot_holes/
-        └── ...
+├── index.html                          <- START HERE: landing page, links the trees
+├── tests/
+│   ├── index.html                      <- every run, one table
+│   ├── 3x3_robot_holes/
+│   │   ├── run.json                    <- the encoded record
+│   │   ├── index.html                  <- this run: transitions, heatmap, recipes
+│   │   ├── png_from_json/              <- only if you run render_run.py
+│   │   └── simplified/
+│   │       └── <recipe>/
+│   │           ├── run.json            <- that recipe's own record
+│   │           └── index.html          <- its own report, linked from above
+│   └── 4x4_robot_holes/
+│       └── ...
+├── gallery/
+│   └── index.html                      <- only if you run make_gallery.py
+└── benchmark/
+    ├── benchmark.json                  <- the comparison record
+    └── index.html                      <- only if you run benchmark_bfs.py
 ```
 
 The per-test folder is the test's name with spaces replaced by underscores.
@@ -188,6 +198,8 @@ xdg-open plots/tests/index.html   # Linux
 
 | File | What it is |
 |---|---|
+| `plots/index.html` | The landing page. Links the report trees; the BFS-comparison card appears once that page has been built. Rewritten by both `make_gallery.py` and `benchmark_bfs.py`, so it reflects what is on disk rather than the order they were run in |
+| `plots/benchmark/index.html` | The [BFS comparison](#bfs-comparison) |
 | `plots/tests/index.html` | Every run in one table — grid, robot size, switches, recipe verdicts, and the **best recipe** for that test: every recipe leaving the fewest walls *while preserving the switch count*, each linked to its own page. Recipes tie often, so all winners are listed rather than one being picked arbitrarily; they are ordered so the result with more walls freed by the placement rule reads first, those being lossless by construction. A failed recipe usually leaves fewer walls, but it has changed the problem, so it cannot win |
 | `plots/tests/<name>/index.html` | One run, end to end (below) |
 
@@ -306,9 +318,10 @@ state count is where the searches actually differ.
 the page shows the fastest warm time, since that is the least noisy number.
 
 `plots/benchmark/benchmark.json` is the record; the page is rendered from it, so
-regenerate rather than editing either by hand. The run also relinks
-`plots/tests/index.html` so the comparison is reachable from the test index
-whichever order the two scripts were run in.
+regenerate rather than editing either by hand. The run also rewrites the landing
+page `plots/index.html`, which links the comparison only once the page exists —
+so the card is there whichever order `benchmark_bfs.py` and `make_gallery.py`
+were run in.
 
 ### Verify the simplification
 
@@ -360,7 +373,7 @@ Enable it once under **Settings → Pages → Source: GitHub Actions**. Then:
 | [Landing page](https://srpoyrek.github.io/sliding-squares/) | Links to the report trees |
 | [Test runs](https://srpoyrek.github.io/sliding-squares/tests/index.html) | Every test case, its solved sequence, heatmap and recipe comparison |
 | [Recipe gallery](https://srpoyrek.github.io/sliding-squares/gallery/index.html) | What each simplification recipe does to corner, edge and junction layouts |
-| [BFS comparison](https://srpoyrek.github.io/sliding-squares/benchmark/index.html) | The three searches side by side — how each works with its pros and cons, states held, solve time, peak memory, and the switch-count cross-check |
+| [BFS comparison](https://srpoyrek.github.io/sliding-squares/benchmark/index.html) | The three searches side by side — charts and per-case tables for states held, execution time and peak memory, the switch-count cross-check, and for each search why it works that way, its algorithm step by step, and what it costs |
 
 CI runs the benchmark with `--repeat 2 --timeout 180`. A shared runner is not a
 benchmarking machine, so treat the published timings as indicative; `states` is
@@ -421,7 +434,9 @@ Several pieces are factored into `src/` so other tools can import them:
 - [`src/canonical.py`](src/canonical.py) — touching-placement enumeration (`all_touching_placements` covers full-edge, partial-edge, and corner contacts; `all_adjacent_placements` is full-edge only), `pick_central_placements`, and the **`Canonicalizer`** class. `Canonicalizer(rows, cols, n)` turns a workspace (free cells + the two robot positions) into one key that is identical under D4 rotation/flip/mirror and the A↔B label swap; use `.dedup_placements(...)` or `.unique_touching(...)` to collapse symmetric duplicates.
 - [`src/frontier.py`](src/frontier.py) — `initial_frontier` / `extend_frontier` for growing or digging a free region cell by cell.
 - [`src/simplify.py`](src/simplify.py) — `run_simplification(...)`, the wall-removal pass behind `run_tests.py --simplified`.
-- [`src/report.py`](src/report.py) — `build_run(...)` / `write_run(...)` encode a solve as `run.json`; `write_local_report(...)` and `write_global_index(...)` render the HTML from it; `encode_grid`, `encode_sequence` and `palette()` are the pieces `simplify.py` and `render_run.py` reuse.
+- [`src/report.py`](src/report.py) — `build_run(...)` / `write_run(...)` encode a solve as `run.json`; `write_local_report(...)` and `write_global_index(...)` render the HTML from it, and `write_site_index(...)` writes the landing page (called by both `make_gallery.py` and `benchmark_bfs.py`, so whichever runs last relinks correctly); `encode_grid`, `encode_sequence` and `palette()` are the pieces `simplify.py` and `render_run.py` reuse.
+- [`src/benchmark.py`](src/benchmark.py) — `discover_cases(...)` / `run_benchmark(...)` measure the searches against each other one spawned process at a time, `write_benchmark(...)` / `write_benchmark_report(...)` emit `benchmark.json` and its page. `VARIANTS` and `VARIANT_DOCS` are the single definition of which searches exist and what each one does.
+- [`src/bfs.py`](src/bfs.py) — `bfs_mirror` / `bfs_bidirectional` / `bfs` are the three searches, all returning `{switches, path, visited, initial_mover}` so a caller can replay a path without guessing who moves first.
 - [`src/workspace.py`](src/workspace.py) — `Workspace.from_free_cells(...)` builds a wall-filled grid with only the given cells carved free; `Workspace.valid_block_positions` / `Workspace.extend_valid` answer n×n placement queries over a free-cell set.
 
 ## Test Cases
