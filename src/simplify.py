@@ -67,58 +67,19 @@ def _count_walls(grid):
     return sum(1 for r in range(grid.rows) for c in range(grid.cols) if grid.tiles[r][c] != 0)
 
 
-def _orange_peak_keepers(face_counts):
-    """Touched-wall cells to KEEP when thinning each side down to its peak.
+def _orange_relative_keepers(face_counts, n):
+    """Touched-wall cells to KEEP when thinning each side to a robot-proof picket.
 
-    Split the touched walls into per-face straight edges: a cell pressed on
-    its E/W face belongs to a vertical edge (group by column, consecutive
-    rows); on its N/S face, a horizontal edge (group by row, consecutive
-    cols). On each edge the cells tied for the highest per-face contact count
-    form one blocking surface; since a single wall in the robot's path is
-    enough to stop it, keep only the CENTER of that tie and drop the rest. A
-    cell touched on two faces belongs to two edges and survives if it is the
-    kept center of either.
+    Split the touched walls into per-face straight edges: a cell pressed on its
+    E/W face belongs to a vertical edge (group by column, consecutive rows); on
+    its N/S face, a horizontal edge (group by row, consecutive cols). On each
+    edge, keep every local-max plateau's center, and force-keep a cell whenever
+    n-1 have been dropped since the last kept one (the counter resets on every
+    kept cell). Keeping only the plateau center collapses a run of same-hit
+    walls to one central wall, while the gap rule still backfills enough walls
+    that an n×n robot cannot cross.
 
     `face_counts` maps (row, col, wall_face) -> contacts on that one face.
-    """
-    edges: dict = {}
-    for (r, c, face), cnt in face_counts.items():
-        if face in ("E", "W"):  # vertical wall: cells share a column
-            edges.setdefault((face, c), []).append((r, r, c, cnt))
-        else:  # "N"/"S" horizontal wall: cells share a row
-            edges.setdefault((face, r), []).append((c, r, c, cnt))
-
-    def _keep_run(run, out):
-        # The cells tied at this run's peak contact are one blocking surface;
-        # the robot hits it at the center of its side, so keep only the center
-        # of the tie (one wall is enough to block) and drop the rest.
-        peak = max(item[3] for item in run)
-        tied = [item for item in run if item[3] == peak]
-        center = tied[len(tied) // 2]
-        out.append((center[1], center[2]))
-
-    keepers: list = []
-    for cells in edges.values():
-        cells.sort()
-        run = [cells[0]]
-        for prev, cur in zip(cells, cells[1:]):
-            if cur[0] == prev[0] + 1:
-                run.append(cur)
-            else:
-                _keep_run(run, keepers)
-                run = [cur]
-        _keep_run(run, keepers)
-    return keepers
-
-
-def _orange_relative_keepers(face_counts, n):
-    """Like the peak keeper, but on each per-face edge also keep enough cells
-    that no gap exceeds n-1 (an n×n robot can't cross). Walk the edge keeping
-    every local-max plateau's center, and force-keep a cell whenever n-1 have
-    been dropped since the last kept one (the counter resets on every kept
-    cell). Keeping only the plateau center collapses a run of same-hit walls
-    to one central wall, while the gap rule still backfills enough walls that a
-    big robot can't cross.
     """
     edges: dict = {}
     for (r, c, face), cnt in face_counts.items():
@@ -205,12 +166,10 @@ def _prune_uncrossable(tiles, n, protected: set | frozenset = frozenset()):
 
 def mode_name(
     remove_black=True,
-    remove_alternate_orange=False,
-    keep_orange_peaks=False,
     keep_relative_robot_size=False,
     prune_uncrossable=False,
 ):
-    """Folder name for one simplification recipe, e.g. "black_peaks_uncrossable".
+    """Folder name for one simplification recipe, e.g. "black_relative_uncrossable".
 
     Each recipe writes into its own <plot_dir>/simplified/<mode>/ so runs with
     different strategies sit side by side instead of overwriting each other.
@@ -218,12 +177,8 @@ def mode_name(
     parts = []
     if remove_black:
         parts.append("black")
-    if keep_orange_peaks:
-        parts.append("peaks")
-    elif keep_relative_robot_size:
+    if keep_relative_robot_size:
         parts.append("relative")
-    elif remove_alternate_orange:
-        parts.append("alternate")
     if prune_uncrossable:
         parts.append("uncrossable")
     return "_".join(parts) or "crop_only"
@@ -236,21 +191,6 @@ def mode_name(
 # --list-recipes and written into each run's simplification.txt and summary.png,
 # so a folder is never an unexplained name.
 RECIPES: dict[str, dict] = {
-    "black": {
-        "doc": "Baseline. Drop only the walls the solution never touched; keep "
-        "every touched wall as-is.",
-        "kwargs": {},
-    },
-    "black_alternate": {
-        "doc": "Baseline + drop every other touched wall in row-major order. "
-        "Crude control: thins without looking at where contact happened.",
-        "kwargs": {"remove_alternate_orange": True},
-    },
-    "black_peaks": {
-        "doc": "Baseline + on each straight run of touched wall, keep only the "
-        "cell the robot pressed hardest. Most aggressive heuristic.",
-        "kwargs": {"keep_orange_peaks": True},
-    },
     "black_relative": {
         "doc": "Baseline + keep contact peaks plus enough extra cells that no "
         "gap along a run exceeds n-1, so an n x n robot still cannot slip past.",
@@ -261,11 +201,6 @@ RECIPES: dict[str, dict] = {
         "opens no new n x n robot placement. Thins lines to a picket at spacing "
         "n without guessing.",
         "kwargs": {"prune_uncrossable": True},
-    },
-    "black_peaks_uncrossable": {
-        "doc": "black_peaks, then the exact pass on whatever survived. The "
-        "smallest wall set of the set, but inherits the peak heuristic's risk.",
-        "kwargs": {"keep_orange_peaks": True, "prune_uncrossable": True},
     },
     "black_relative_uncrossable": {
         "doc": "black_relative, then the exact pass. The spacing rule and the "
@@ -333,8 +268,6 @@ def simplify_workspace(
     ws,
     contact_counts,
     face_counts=None,
-    remove_alternate_orange=False,
-    keep_orange_peaks=False,
     keep_relative_robot_size=False,
     prune_uncrossable=False,
     protected=None,
@@ -343,16 +276,13 @@ def simplify_workspace(
     """Wall-removal simplification driven by the contact heatmap.
 
     All black walls (contact count == 0) are removed. Touched "orange" walls
-    (contact count > 0) are thinned, by at most one strategy:
+    (contact count > 0) are thinned only when asked:
 
-      - `keep_orange_peaks`: split the touched walls into per-face straight
-        edges and, on each, keep only the center of the cells tied for that
-        edge's highest per-face contact count (one wall is enough to block the
-        robot), removing the rest (needs `face_counts`).
-      - `remove_alternate_orange`: remove every other orange wall in
-        row-major order (the first cell, then skip every second).
+      - `keep_relative_robot_size`: on each per-face edge keep every contact
+        plateau's center, plus enough extra cells that no gap exceeds n-1, so an
+        n*n robot still cannot slip past (needs `face_counts`).
 
-    If both are set, `keep_orange_peaks` wins; with neither, orange is kept.
+    Without it, every touched wall is kept.
 
     `prune_uncrossable` then runs the exact pass on whatever survived: every
     wall the n*n robot can never cross is freed, which the solver provably
@@ -376,15 +306,9 @@ def simplify_workspace(
     ]
 
     removed_orange = []
-    if keep_orange_peaks:
-        keepers = set(_orange_peak_keepers(face_counts or {}))
-        removed_orange = [cell for cell in orange_cells if cell not in keepers]
-    elif keep_relative_robot_size:
+    if keep_relative_robot_size:
         keepers = set(_orange_relative_keepers(face_counts or {}, ws.robot_a.n))
         removed_orange = [cell for cell in orange_cells if cell not in keepers]
-    elif remove_alternate_orange:
-        orange_cells.sort()
-        removed_orange = orange_cells[::2]
 
     # Remove black (zero-contact) walls — unless asked to keep them — plus the
     # thinned orange. On a maximally-hard workspace every untouched wall is still
@@ -445,8 +369,6 @@ def run_simplification(
     plot_dir,
     target_switches,
     test_name,
-    remove_alternate_orange=False,
-    keep_orange_peaks=False,
     keep_relative_robot_size=False,
     prune_uncrossable=False,
     remove_black=True,
@@ -469,8 +391,6 @@ def run_simplification(
     walls_before = _count_walls(ws.grid)
     mode = mode_name(
         remove_black=remove_black,
-        remove_alternate_orange=remove_alternate_orange,
-        keep_orange_peaks=keep_orange_peaks,
         keep_relative_robot_size=keep_relative_robot_size,
         prune_uncrossable=prune_uncrossable,
     )
@@ -486,8 +406,6 @@ def run_simplification(
         ws,
         counts,
         face_counts=face_counts,
-        remove_alternate_orange=remove_alternate_orange,
-        keep_orange_peaks=keep_orange_peaks,
         keep_relative_robot_size=keep_relative_robot_size,
         prune_uncrossable=prune_uncrossable,
         remove_black=remove_black,

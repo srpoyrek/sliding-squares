@@ -1,8 +1,0 @@
-Status: PRESERVED — switches stayed at 3
-Recipe: black
-  Baseline. Drop only the walls the solution never touched; keep every touched wall as-is.
-Walls before: 11
-Walls after:  2
-Black walls removed (4): [(0, 0), (0, 4), (2, 0), (2, 4)]
-Orange walls removed (0): []
-Uncrossable walls removed (0): []

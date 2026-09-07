@@ -8,7 +8,8 @@ After each test passes we run every simplification recipe in simplify.RECIPES
   1. Aggregates the blocker heatmap from the validated solution.
   2. Removes black walls (zero contact) unless the recipe keeps them, and thins
      the touched "orange" walls by its chosen strategy — every other one,
-     per-edge contact peaks, or peaks plus robot-size spacing.
+     keeping contact plateaus plus enough spacing that an n×n robot still
+     cannot cross.
   3. Optionally frees every wall the robot could never cross (exact, lossless).
   4. Crops all-wall borders and runs the solver once on the result.
   5. Saves the simplified workspace, a solved sequence and a comparison summary
@@ -20,7 +21,7 @@ Usage:
     python run_tests.py                          # run every test, no simplify
     python run_tests.py <name>                   # filter tests by substring
     python run_tests.py --simplified             # + EVERY simplify recipe
-    python run_tests.py --simplified uncrossable black_peaks   # a subset
+    python run_tests.py --simplified uncrossable black_relative   # a subset
     python run_tests.py 3x3 --simplified         # both filters at once
 """
 

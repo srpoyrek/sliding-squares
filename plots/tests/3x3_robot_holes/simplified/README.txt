@@ -6,25 +6,12 @@ sequence and simplification.txt. Ranked by fewest walls surviving.
 
 recipe                       walls  removed  status
 ------------------------------------------------------------------------
-black_peaks                     17      208  FAILED (7)
-black_peaks_uncrossable         17      208  FAILED (7)
 black_relative                  22      199  PRESERVED
 black_uncrossable               22      182  PRESERVED
 black_relative_uncrossable      22      199  PRESERVED
 uncrossable                     29      124  PRESERVED
-black_alternate                 30      188  FAILED (3)
-black                           58      146  PRESERVED
 
 Simplification recipes (folder name -> what it does):
-
-  black                       Baseline. Drop only the walls the solution never touched; keep
-                              every touched wall as-is.
-
-  black_alternate             Baseline + drop every other touched wall in row-major order.
-                              Crude control: thins without looking at where contact happened.
-
-  black_peaks                 Baseline + on each straight run of touched wall, keep only the
-                              cell the robot pressed hardest. Most aggressive heuristic.
 
   black_relative              Baseline + keep contact peaks plus enough extra cells that no gap
                               along a run exceeds n-1, so an n x n robot still cannot slip
@@ -33,10 +20,6 @@ Simplification recipes (folder name -> what it does):
   black_uncrossable           Baseline + exact pass: free every remaining wall whose removal
                               opens no new n x n robot placement. Thins lines to a picket at
                               spacing n without guessing.
-
-  black_peaks_uncrossable     black_peaks, then the exact pass on whatever survived. The
-                              smallest wall set of the set, but inherits the peak heuristic's
-                              risk.
 
   black_relative_uncrossable  black_relative, then the exact pass. The spacing rule and the
                               placement rule agree on straight runs, so this mostly shows what

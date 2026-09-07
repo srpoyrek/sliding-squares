@@ -87,7 +87,7 @@ Commands: `U` (up), `D` (down), `L` (left), `R` (right), `S` (switch control).
 python run_tests.py                        # run every test case
 python run_tests.py 3x3                    # only tests whose name contains "3x3"
 python run_tests.py --simplified           # every test, every simplify recipe
-python run_tests.py 4x4_robot_holes --simplified uncrossable black_peaks
+python run_tests.py 4x4_robot_holes --simplified uncrossable black_relative
 ```
 
 | Flag | Default | Purpose |
@@ -103,20 +103,16 @@ The recipes, defined in `simplify.RECIPES` — each writes to its own folder:
 
 | Recipe | Removes never-touched walls | Thins touched walls by | Frees uncrossable walls |
 |---|---|---|---|
-| `black` | ✓ | — (keeps every touched wall) | — |
-| `black_alternate` | ✓ | every other one, row-major | — |
-| `black_peaks` | ✓ | per-face-edge contact peak | — |
-| `black_relative` | ✓ | peaks + spacing so no gap exceeds n−1 | — |
+| `black_relative` | ✓ | contact plateaus + spacing so no gap exceeds n−1 | — |
 | `black_uncrossable` | ✓ | — | ✓ |
-| `black_peaks_uncrossable` | ✓ | per-face-edge contact peak | ✓ |
-| `black_relative_uncrossable` | ✓ | peaks + spacing | ✓ |
+| `black_relative_uncrossable` | ✓ | plateaus + spacing | ✓ |
 | `uncrossable` | — | — | ✓ (**provably lossless**) |
 
 **The simplification pass** removes walls that aren't load-bearing and crops all-wall borders, then **re-solves to verify the minimum switch count is unchanged.** A wall the robots never touch ("black") is always removed; touched ("orange") walls are thinned according to the chosen mode.
 
 `--uncrossable` adds an *exact* pass on top: the solver sees the grid only through the set of legal n×n robot placements, so a wall whose removal opens no new placement is invisible to it and can be freed with the state space — and therefore the switch count — provably unchanged. This is what thins a straight line of walls down to a picket at spacing n while keeping the corners the robot could round; the spacing is derived from the robot size, so a 1×1 robot keeps every wall and a 5×5 robot keeps every fifth.
 
-Each recipe writes into its own folder, `plots/tests/<name>/simplified/<mode>/`, so strategies sit side by side instead of overwriting each other — `black`, `black_peaks`, `black_uncrossable`, `uncrossable`, and so on. Results are a before/after image, a solved sequence, and `simplification.txt`, which reads **PRESERVED** if the switch count held or **FAILED** if a removed wall turned out to be load-bearing.
+Each recipe writes into its own folder, `plots/tests/<name>/simplified/<mode>/`, so strategies sit side by side instead of overwriting each other — `black_relative`, `black_uncrossable`, `uncrossable`, and so on. Results are that recipe's own `run.json` and `index.html`, plus `simplification.txt`, which reads **PRESERVED** if the switch count held or **FAILED** if a removed wall turned out to be load-bearing.
 
 ### Reports
 
