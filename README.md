@@ -83,23 +83,35 @@ Commands: `U` (up), `D` (down), `L` (left), `R` (right), `S` (switch control).
 [`run_tests.py`](run_tests.py) solves each test case, validates the resulting path, and writes the solved sequence to `plots/tests/<name>/`. With no arguments it runs every test case; pass a substring to filter.
 
 ```bash
-python run_tests.py                       # run every test case
+python run_tests.py                        # run every test case
 python run_tests.py 3x3                    # only tests whose name contains "3x3"
-python run_tests.py 4x4_robot_holes --simplified --keep-relative-robot-size
+python run_tests.py --simplified           # every test, every simplify recipe
+python run_tests.py 4x4_robot_holes --simplified uncrossable black_peaks
 ```
 
 | Flag | Default | Purpose |
 |---|---|---|
 | `name` (positional) | all | Substring filter — run only tests whose name contains it |
-| `--simplified` | off | After solving, also run the wall-simplification pass (below). Without it, behaviour is unchanged: solve + plot only |
-| `--keep-all-orange` | (default mode) | Simplify: keep every *touched* wall; remove only never-touched walls + crop |
-| `--keep-relative-robot-size` | — | Simplify: keep contact peaks plus enough cells that no gap exceeds n−1 (an n×n robot still can't cross) |
-| `--keep-peaks` | — | Simplify: keep only the peak-contact cell per face-edge |
-| `--alternate` | — | Simplify: remove every other touched wall |
+| `--simplified` | off | After solving, also run the wall-simplification recipes (below). Bare `--simplified` runs **every** recipe; name recipes after it to run a subset. Without the flag, behaviour is unchanged: solve + plot only |
 
-The four simplify modes are mutually exclusive and only take effect together with `--simplified`.
+The recipes, defined in `simplify.RECIPES` — each writes to its own folder:
 
-**The simplification pass** removes walls that aren't load-bearing and crops all-wall borders, then **re-solves to verify the minimum switch count is unchanged.** A wall the robots never touch ("black") is always removed; touched ("orange") walls are thinned according to the chosen mode. Results — a before/after image, a solved sequence, and `simplification.txt` — land in `plots/tests/<name>/simplified/`. The report reads **PRESERVED** if the switch count held, or **FAILED** if a removed wall turned out to be load-bearing.
+| Recipe | Removes never-touched walls | Thins touched walls by | Frees uncrossable walls |
+|---|---|---|---|
+| `black` | ✓ | — (keeps every touched wall) | — |
+| `black_alternate` | ✓ | every other one, row-major | — |
+| `black_peaks` | ✓ | per-face-edge contact peak | — |
+| `black_relative` | ✓ | peaks + spacing so no gap exceeds n−1 | — |
+| `black_uncrossable` | ✓ | — | ✓ |
+| `black_peaks_uncrossable` | ✓ | per-face-edge contact peak | ✓ |
+| `black_relative_uncrossable` | ✓ | peaks + spacing | ✓ |
+| `uncrossable` | — | — | ✓ (**provably lossless**) |
+
+**The simplification pass** removes walls that aren't load-bearing and crops all-wall borders, then **re-solves to verify the minimum switch count is unchanged.** A wall the robots never touch ("black") is always removed; touched ("orange") walls are thinned according to the chosen mode.
+
+`--uncrossable` adds an *exact* pass on top: the solver sees the grid only through the set of legal n×n robot placements, so a wall whose removal opens no new placement is invisible to it and can be freed with the state space — and therefore the switch count — provably unchanged. This is what thins a straight line of walls down to a picket at spacing n while keeping the corners the robot could round; the spacing is derived from the robot size, so a 1×1 robot keeps every wall and a 5×5 robot keeps every fifth.
+
+Each recipe writes into its own folder, `plots/tests/<name>/simplified/<mode>/`, so strategies sit side by side instead of overwriting each other — `black`, `black_peaks`, `black_uncrossable`, `uncrossable`, and so on. Results are a before/after image, a solved sequence, and `simplification.txt`, which reads **PRESERVED** if the switch count held or **FAILED** if a removed wall turned out to be load-bearing.
 
 ### Run demos
 

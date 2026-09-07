@@ -18,7 +18,7 @@ class TestResult:
     plot_path: Optional[str] = None
     error: Optional[str] = None
     time: Optional[float] = None
-    simplification: Optional[dict] = None
+    simplification: Optional[list] = None  # one status dict per recipe run
 
     def __repr__(self):
         status = "PASS" if self.passed else "FAIL"

@@ -3,21 +3,25 @@ run_tests.py
 ------------
 Discovers all test cases in testcases/ and runs them.
 
-After each test passes we run a batch simplification pass:
-  1. Aggregate the blocker heatmap from the validated solution.
-  2. Remove all black walls (zero contact). Optionally also thin the touched
-     "orange" walls: --alternate strips every other one (row-major), while
-     --keep-peaks keeps only each wall segment's highest-contact cell.
-  3. Run the solver once on the simplified grid.
-  4. If switches are preserved, save the simplified workspace into
-     <plot_dir>/simplified/ alongside a comparison summary image.
-  5. If switches changed, report it and skip saving.
+After each test passes we run every simplification recipe in simplify.RECIPES
+(or the subset named on the command line). Each recipe:
+  1. Aggregates the blocker heatmap from the validated solution.
+  2. Removes black walls (zero contact) unless the recipe keeps them, and thins
+     the touched "orange" walls by its chosen strategy — every other one,
+     per-edge contact peaks, or peaks plus robot-size spacing.
+  3. Optionally frees every wall the robot could never cross (exact, lossless).
+  4. Crops all-wall borders and runs the solver once on the result.
+  5. Saves the simplified workspace, a solved sequence and a comparison summary
+     into <plot_dir>/simplified/<recipe>/ — one folder per recipe, so the
+     strategies sit side by side on the same test instead of overwriting.
+  6. Reports PRESERVED or FAILED per recipe.
 
 Usage:
-    python run_tests.py                       # run every test
-    python run_tests.py <name>                # filter by substring
-    python run_tests.py --alternate           # also strip every-other orange
-    python run_tests.py --keep-peaks          # thin orange to per-segment peaks
+    python run_tests.py                          # run every test, no simplify
+    python run_tests.py <name>                   # filter tests by substring
+    python run_tests.py --simplified             # + EVERY simplify recipe
+    python run_tests.py --simplified uncrossable black_peaks   # a subset
+    python run_tests.py 3x3 --simplified         # both filters at once
 """
 
 from __future__ import annotations
@@ -33,7 +37,7 @@ import traceback
 from src.directories import get_plots_dir, get_testcases_dir
 from src.grid import Grid
 from src.robot import Robot
-from src.simplify import run_simplification
+from src.simplify import RECIPES, run_simplification
 from src.solver import Solver
 from src.test_case import TestCase, TestResult
 from src.validator import Validator
@@ -73,10 +77,10 @@ def discover_test_cases() -> list[type]:
 def run_one(args) -> TestResult:
     """Run a single test by class name.
 
-    `args` is (cls_name, simplified, remove_alternate_orange, keep_orange_peaks,
-    keep_relative_robot_size).
+    `args` is (cls_name, recipes) where `recipes` is a list of names from
+    simplify.RECIPES to run after the test passes (empty list = skip).
     """
-    cls_name, simplified, remove_alternate_orange, keep_orange_peaks, keep_relative = args
+    cls_name, recipes = args
     sys.path.insert(0, BASE_DIR)
     sys.path.insert(0, get_testcases_dir())
 
@@ -133,26 +137,29 @@ def run_one(args) -> TestResult:
         result.plot_path = plot_dir
         result.passed = True
 
-        # Simplification pass — only when explicitly requested via --simplified.
-        # Validator mutated `ws.robot_a/b`, so rebuild from the test case to get
-        # fresh starting positions.
-        if simplified:
-            try:
-                ws2, goal_a2, goal_b2 = tc.setup()
-                result.simplification = run_simplification(  # type: ignore[attr-defined]
-                    ws2,
-                    goal_a2,
-                    goal_b2,
-                    vr,
-                    plot_dir,
-                    solver_result.switches,
-                    tc.name,
-                    remove_alternate_orange=remove_alternate_orange,
-                    keep_orange_peaks=keep_orange_peaks,
-                    keep_relative_robot_size=keep_relative,
-                )
-            except Exception as e:
-                result.simplification = {"error": f"{type(e).__name__}: {e}"}  # type: ignore[attr-defined]
+        # Simplification passes — only when requested via --simplified. Each
+        # recipe writes to its own <plot_dir>/simplified/<mode>/ folder, so they
+        # can all run against the same solved test and be compared side by side.
+        # Validator mutated `ws.robot_a/b`, and so does each pass, so the
+        # workspace is rebuilt from the test case for every recipe.
+        if recipes:
+            result.simplification = []
+            for recipe in recipes:
+                try:
+                    ws2, goal_a2, goal_b2 = tc.setup()
+                    status = run_simplification(
+                        ws2,
+                        goal_a2,
+                        goal_b2,
+                        vr,
+                        plot_dir,
+                        solver_result.switches,
+                        tc.name,
+                        **RECIPES[recipe],
+                    )
+                except Exception as e:
+                    status = {"mode": recipe, "error": f"{type(e).__name__}: {e}"}
+                result.simplification.append(status)
 
     except Exception as e:
         result.error = f"{type(e).__name__}: {e}"
@@ -161,16 +168,22 @@ def run_one(args) -> TestResult:
     return result
 
 
+def _print_simplifications(simps: list) -> None:
+    for simp in simps:
+        _print_simplification(simp)
+
+
 def _print_simplification(simp: dict) -> None:
+    tag = f"simplify[{simp.get('mode', '?')}]"
     if "error" in simp:
-        print(f"         simplify -> ERROR: {simp['error']}", flush=True)
+        print(f"         {tag} -> ERROR: {simp['error']}", flush=True)
         return
     if simp.get("note") and simp.get("removed", 0) == 0:
-        print(f"         simplify -> {simp['note']}", flush=True)
+        print(f"         {tag} -> {simp['note']}", flush=True)
         return
     if not simp.get("preserved", False):
         print(
-            f"         simplify -> FAILED: {simp.get('note', 'unknown')}; "
+            f"         {tag} -> FAILED: {simp.get('note', 'unknown')}; "
             f"would have removed {simp.get('removed', 0)} wall(s) "
             f"-> {simp.get('plot_dir')}",
             flush=True,
@@ -180,19 +193,22 @@ def _print_simplification(simp: dict) -> None:
     walls_after = simp.get("walls_after", 0)
     n_black = simp.get("removed_black", 0)
     n_orange = simp.get("removed_orange", 0)
+    n_uncross = simp.get("removed_uncrossable", 0)
     pct = 100.0 * simp.get("removed", 0) / walls_before if walls_before else 0.0
     breakdown = f"black={n_black}"
     if n_orange:
         breakdown += f", orange={n_orange}"
+    if n_uncross:
+        breakdown += f", uncrossable={n_uncross}"
     print(
-        f"         simplify -> switches={simp.get('new_switches')} (preserved), "
+        f"         {tag} -> switches={simp.get('new_switches')} (preserved), "
         f"walls {walls_before} -> {walls_after} "
         f"(-{simp.get('removed', 0)} {breakdown}, {pct:.1f}%) -> {simp.get('plot_dir')}",
         flush=True,
     )
 
 
-def run_all(simplified, remove_alternate_orange, keep_orange_peaks, keep_relative):
+def run_all(recipes):
     wall_start = time.time()
     classes = discover_test_cases()
 
@@ -200,14 +216,14 @@ def run_all(simplified, remove_alternate_orange, keep_orange_peaks, keep_relativ
         print("No test cases found in testcases/")
         return
 
-    print(f"Found {len(classes)} test case(s)\n")
+    print(f"Found {len(classes)} test case(s)")
+    if recipes:
+        print(f"Simplification recipes ({len(recipes)}): {', '.join(recipes)}")
+    print()
     print("=" * 60)
 
     results = []
-    jobs = [
-        (cls.__name__, simplified, remove_alternate_orange, keep_orange_peaks, keep_relative)
-        for cls in classes
-    ]
+    jobs = [(cls.__name__, recipes) for cls in classes]
     with mp.get_context("spawn").Pool(processes=min(8, mp.cpu_count())) as pool:
         for r in pool.imap_unordered(run_one, jobs):
             results.append(r)
@@ -215,7 +231,7 @@ def run_all(simplified, remove_alternate_orange, keep_orange_peaks, keep_relativ
             if r.plot_path:
                 print(f"         plot -> {r.plot_path}", flush=True)
             if r.simplification:
-                _print_simplification(r.simplification)
+                _print_simplifications(r.simplification)
 
     passed = [r for r in results if r.passed]
     failed = [r for r in results if not r.passed]
@@ -242,38 +258,29 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--simplified",
-        action="store_true",
-        help="Run the wall-simplification pass after each test. Without this "
-        "flag, run_tests.py only solves and plots (its original behaviour).",
-    )
-    orange_mode = parser.add_mutually_exclusive_group()
-    orange_mode.add_argument(
-        "--alternate",
-        action="store_true",
-        help="In addition to removing all black walls, also remove every "
-        "other orange wall (touched walls, alternating in row-major order). "
-        "Default: only black walls are removed.",
-    )
-    orange_mode.add_argument(
-        "--keep-peaks",
-        action="store_true",
-        help="In addition to removing all black walls, thin each touched wall "
-        "edge down to its peak cell(s) — the cells tied for that edge's highest "
-        "per-face contact count — removing the rest.",
-    )
-    orange_mode.add_argument(
-        "--keep-all-orange",
-        action="store_true",
-        help="Keep every touched (orange) wall regardless of contact count; "
-        "only black walls are removed (and the grid cropped).",
-    )
-    orange_mode.add_argument(
-        "--keep-relative-robot-size",
-        action="store_true",
-        help="Thin orange but keep peaks plus enough cells that no gap exceeds "
-        "robot_size - 1, so the robot can't cross the boundary.",
+        nargs="*",
+        metavar="RECIPE",
+        default=None,
+        help="Run the wall-simplification passes after each test. Bare "
+        "--simplified runs EVERY recipe (" + ", ".join(RECIPES) + "), each "
+        "writing to its own plots/tests/<name>/simplified/<recipe>/ folder so "
+        "they can be compared side by side. Name recipes to run a subset. "
+        "Without the flag, run_tests.py only solves and plots.",
     )
     args = parser.parse_args()
+
+    # None = flag absent; [] = bare --simplified, meaning every recipe.
+    if args.simplified is None:
+        recipes = []
+    elif args.simplified:
+        unknown = [r for r in args.simplified if r not in RECIPES]
+        if unknown:
+            print(f"Unknown recipe(s): {', '.join(unknown)}")
+            print(f"Available: {', '.join(RECIPES)}")
+            sys.exit(1)
+        recipes = list(args.simplified)
+    else:
+        recipes = list(RECIPES)
 
     if args.name:
         name = args.name.lower()
@@ -283,19 +290,11 @@ if __name__ == "__main__":
             print(f"No test case matching '{args.name}'")
             sys.exit(1)
         for cls in matched:
-            r = run_one(
-                (
-                    cls.__name__,
-                    args.simplified,
-                    args.alternate,
-                    args.keep_peaks,
-                    args.keep_relative_robot_size,
-                )
-            )
+            r = run_one((cls.__name__, recipes))
             print(r)
             if r.plot_path:
                 print(f"         plot -> {r.plot_path}")
             if r.simplification:
-                _print_simplification(r.simplification)
+                _print_simplifications(r.simplification)
     else:
-        run_all(args.simplified, args.alternate, args.keep_peaks, args.keep_relative_robot_size)
+        run_all(recipes)

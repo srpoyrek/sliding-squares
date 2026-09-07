@@ -6,8 +6,13 @@ Reusable workspace-simplification pass.
 Given a solved workspace and its validated solution, this strips the workspace
 down to the walls that actually matter while preserving the minimum control-
 switch count: it removes all untouched ("black") walls, optionally thins the
-touched ("orange") walls, crops all-wall borders, and re-solves to verify the
-switch count is unchanged.
+touched ("orange") walls, optionally frees every wall the robot could never
+cross, crops all-wall borders, and re-solves to verify the switch count is
+unchanged.
+
+Each recipe writes into its own <plot_dir>/simplified/<mode>/ folder — see
+`mode_name` — so strategies can be compared side by side instead of
+overwriting each other.
 
 Moved out of run_tests.py so both the test runner and the hardest-workspace
 generator can reuse it. Public entry point: `run_simplification`.
@@ -67,9 +72,11 @@ def _orange_peak_keepers(face_counts):
     Split the touched walls into per-face straight edges: a cell pressed on
     its E/W face belongs to a vertical edge (group by column, consecutive
     rows); on its N/S face, a horizontal edge (group by row, consecutive
-    cols). On each edge keep the cell(s) tied for the highest per-face contact
-    count and drop the rest. A cell touched on two faces belongs to two edges
-    and survives if it is a peak of either.
+    cols). On each edge the cells tied for the highest per-face contact count
+    form one blocking surface; since a single wall in the robot's path is
+    enough to stop it, keep only the CENTER of that tie and drop the rest. A
+    cell touched on two faces belongs to two edges and survives if it is the
+    kept center of either.
 
     `face_counts` maps (row, col, wall_face) -> contacts on that one face.
     """
@@ -81,8 +88,13 @@ def _orange_peak_keepers(face_counts):
             edges.setdefault((face, r), []).append((c, r, c, cnt))
 
     def _keep_run(run, out):
+        # The cells tied at this run's peak contact are one blocking surface;
+        # the robot hits it at the center of its side, so keep only the center
+        # of the tie (one wall is enough to block) and drop the rest.
         peak = max(item[3] for item in run)
-        out.extend((item[1], item[2]) for item in run if item[3] == peak)
+        tied = [item for item in run if item[3] == peak]
+        center = tied[len(tied) // 2]
+        out.append((center[1], center[2]))
 
     keepers: list = []
     for cells in edges.values():
@@ -101,8 +113,11 @@ def _orange_peak_keepers(face_counts):
 def _orange_relative_keepers(face_counts, n):
     """Like the peak keeper, but on each per-face edge also keep enough cells
     that no gap exceeds n-1 (an n×n robot can't cross). Walk the edge keeping
-    every local peak, and force-keep a cell whenever n-1 have been dropped
-    since the last kept one (the counter resets on every kept cell).
+    every local-max plateau's center, and force-keep a cell whenever n-1 have
+    been dropped since the last kept one (the counter resets on every kept
+    cell). Keeping only the plateau center collapses a run of same-hit walls
+    to one central wall, while the gap rule still backfills enough walls that a
+    big robot can't cross.
     """
     edges: dict = {}
     for (r, c, face), cnt in face_counts.items():
@@ -111,14 +126,24 @@ def _orange_relative_keepers(face_counts, n):
         else:
             edges.setdefault((face, r), []).append((c, r, c, cnt))
 
+    def _is_peak(counts, i):
+        # A local maximum, but on a flat plateau of equal counts (one blocking
+        # surface) only the plateau's center qualifies — so a same-hit run
+        # collapses to a single central wall rather than keeping every cell.
+        left = right = i
+        while left > 0 and counts[left - 1] == counts[i]:
+            left -= 1
+        while right < len(counts) - 1 and counts[right + 1] == counts[i]:
+            right += 1
+        rises_left = left == 0 or counts[left - 1] < counts[i]
+        rises_right = right == len(counts) - 1 or counts[right + 1] < counts[i]
+        return rises_left and rises_right and i == (left + right) // 2
+
     def _keep_run(run, out):
         counts = [it[3] for it in run]
         since = 0
         for i, it in enumerate(run):
-            is_peak = (i == 0 or counts[i - 1] <= counts[i]) and (
-                i == len(run) - 1 or counts[i + 1] <= counts[i]
-            )
-            if is_peak or since >= n - 1:
+            if _is_peak(counts, i) or since >= n - 1:
                 out.append((it[1], it[2]))
                 since = 0
             else:
@@ -136,6 +161,92 @@ def _orange_relative_keepers(face_counts, n):
                 run = [cur]
         _keep_run(run, keepers)
     return keepers
+
+
+def _prune_uncrossable(tiles, n, protected: set | frozenset = frozenset()):
+    """Free every wall the robot can never cross. Mutates `tiles`.
+
+    The solver sees the grid only through the set of legal n*n placements
+    (bfs.flood_fill builds `valid_positions` from the tiles; nothing downstream
+    re-reads them). So a wall whose removal opens no new placement is invisible
+    to the solver — freeing it leaves the state space, the path and the switch
+    count bit-identical. Lossless by construction, no re-solve needed.
+
+    That is what thins a line of walls down to the ones that matter: with n=2,
+    freeing an interior wall still leaves its neighbours blocking every 2x2
+    footprint covering it, so it goes; freeing the next one WOULD open a 2x2,
+    so it stays. What survives is a picket at spacing n, plus the corners where
+    the robot could round the end. The spacing is derived from n, not assumed —
+    a 1x1 robot keeps every wall, a 5x5 robot keeps every fifth.
+
+    One sweep is a fixed point: freeing cells only ever ADDS placements, so a
+    wall that fails the test now can never pass it later.
+    """
+    rows, cols = len(tiles), len(tiles[0])
+    removed = []
+    for wr in range(rows):
+        for wc in range(cols):
+            if tiles[wr][wc] == 0 or (wr, wc) in protected:
+                continue
+            if not any(
+                all(
+                    (r, c) == (wr, wc) or tiles[r][c] == 0
+                    for r in range(tr, tr + n)
+                    for c in range(tc, tc + n)
+                )
+                for tr in range(max(0, wr - n + 1), min(wr, rows - n) + 1)
+                for tc in range(max(0, wc - n + 1), min(wc, cols - n) + 1)
+            ):
+                tiles[wr][wc] = 0
+                removed.append((wr, wc))
+    return removed
+
+
+def mode_name(
+    remove_black=True,
+    remove_alternate_orange=False,
+    keep_orange_peaks=False,
+    keep_relative_robot_size=False,
+    prune_uncrossable=False,
+):
+    """Folder name for one simplification recipe, e.g. "black_peaks_uncrossable".
+
+    Each recipe writes into its own <plot_dir>/simplified/<mode>/ so runs with
+    different strategies sit side by side instead of overwriting each other.
+    """
+    parts = []
+    if remove_black:
+        parts.append("black")
+    if keep_orange_peaks:
+        parts.append("peaks")
+    elif keep_relative_robot_size:
+        parts.append("relative")
+    elif remove_alternate_orange:
+        parts.append("alternate")
+    if prune_uncrossable:
+        parts.append("uncrossable")
+    return "_".join(parts) or "crop_only"
+
+
+# Every simplification recipe worth running, keyed by the folder it writes to
+# (the key is exactly what `mode_name` returns for its kwargs). `run_tests.py
+# --simplified` runs the whole set by default so the strategies can be compared
+# on the same test; pass names to run a subset.
+RECIPES: dict[str, dict] = {
+    "black": {},
+    "black_alternate": {"remove_alternate_orange": True},
+    "black_peaks": {"keep_orange_peaks": True},
+    "black_relative": {"keep_relative_robot_size": True},
+    "black_uncrossable": {"prune_uncrossable": True},
+    "black_peaks_uncrossable": {"keep_orange_peaks": True, "prune_uncrossable": True},
+    "black_relative_uncrossable": {
+        "keep_relative_robot_size": True,
+        "prune_uncrossable": True,
+    },
+    # The only provably lossless recipe: nothing removed but walls the robot
+    # could never cross, so the switch count cannot move.
+    "uncrossable": {"remove_black": False, "prune_uncrossable": True},
+}
 
 
 def _crop_bounds(tiles):
@@ -174,6 +285,7 @@ def simplify_workspace(
     remove_alternate_orange=False,
     keep_orange_peaks=False,
     keep_relative_robot_size=False,
+    prune_uncrossable=False,
     protected=None,
     remove_black=True,
 ):
@@ -183,17 +295,24 @@ def simplify_workspace(
     (contact count > 0) are thinned, by at most one strategy:
 
       - `keep_orange_peaks`: split the touched walls into per-face straight
-        edges and, on each, keep only the peak cell(s) — every cell tied for
-        that edge's highest per-face contact count — removing the rest
-        (needs `face_counts`).
+        edges and, on each, keep only the center of the cells tied for that
+        edge's highest per-face contact count (one wall is enough to block the
+        robot), removing the rest (needs `face_counts`).
       - `remove_alternate_orange`: remove every other orange wall in
         row-major order (the first cell, then skip every second).
 
     If both are set, `keep_orange_peaks` wins; with neither, orange is kept.
+
+    `prune_uncrossable` then runs the exact pass on whatever survived: every
+    wall the n*n robot can never cross is freed, which the solver provably
+    cannot notice. It composes with any of the above, or stands alone as the
+    only lossless recipe (`remove_black=False`, no orange strategy).
+
     Cells in `protected` are exempt from all removal (e.g. walls the robots
     rest against at their start/goal positions).
 
-    Returns (simplified_workspace, removed_black, removed_orange).
+    Returns (simplified_ws, removed_black, removed_orange, removed_uncrossable,
+    (crop_top, crop_left)).
     """
     rows, cols = ws.grid.rows, ws.grid.cols
     new_tiles = [row[:] for row in ws.grid.tiles]
@@ -243,13 +362,28 @@ def simplify_workspace(
     # Crop fully-wall outer borders, shifting the robots into the smaller grid.
     top, bottom, left, right = _crop_bounds(ws.grid.tiles)
     cropped = [row[left : cols - right] for row in new_tiles[top : rows - bottom]]
+
+    # Exact pass, last: whatever walls are left, free the ones the robot could
+    # never cross anyway. Runs after the heuristic removals (freeing a cell can
+    # only ever make a neighbouring wall matter MORE, so this stays sound
+    # whatever ran before it) and after the crop, so the grid edge — which
+    # bounds the robot exactly like a wall — is already doing its job instead of
+    # this thinning a border that is about to be sliced off. Coordinates come
+    # back in cropped space, so map them to the original grid for the report.
     n = ws.robot_a.n
+    removed_uncrossable = []
+    if prune_uncrossable:
+        shifted = {(r - top, c - left) for r, c in protected}
+        removed_uncrossable = [
+            (r + top, c + left) for r, c in _prune_uncrossable(cropped, n, shifted)
+        ]
+
     cropped_ws = Workspace(
         Grid(cropped),
         Robot(ws.robot_a.label, n, ws.robot_a.row - top, ws.robot_a.col - left),
         Robot(ws.robot_b.label, n, ws.robot_b.row - top, ws.robot_b.col - left),
     )
-    return cropped_ws, removed_black, removed_orange, (top, left)
+    return cropped_ws, removed_black, removed_orange, removed_uncrossable, (top, left)
 
 
 def run_simplification(
@@ -263,32 +397,52 @@ def run_simplification(
     remove_alternate_orange=False,
     keep_orange_peaks=False,
     keep_relative_robot_size=False,
+    prune_uncrossable=False,
     remove_black=True,
 ):
-    """Run the simplification pass; save results into <plot_dir>/simplified/.
+    """Run one simplification recipe; save results into
+    <plot_dir>/simplified/<mode>/, where <mode> names the recipe (see
+    `mode_name`) so different strategies sit side by side.
+
     Returns a status dict for the result summary.
     """
     counts, face_counts = _aggregate_wall_counts(ws.grid, vr.snapshots)
     walls_before = _count_walls(ws.grid)
+    mode = mode_name(
+        remove_black=remove_black,
+        remove_alternate_orange=remove_alternate_orange,
+        keep_orange_peaks=keep_orange_peaks,
+        keep_relative_robot_size=keep_relative_robot_size,
+        prune_uncrossable=prune_uncrossable,
+    )
 
-    simplified, removed_black, removed_orange, (off_r, off_c) = simplify_workspace(
+    (
+        simplified,
+        removed_black,
+        removed_orange,
+        removed_uncrossable,
+        (off_r, off_c),
+    ) = simplify_workspace(
         ws,
         counts,
         face_counts=face_counts,
         remove_alternate_orange=remove_alternate_orange,
         keep_orange_peaks=keep_orange_peaks,
         keep_relative_robot_size=keep_relative_robot_size,
+        prune_uncrossable=prune_uncrossable,
         remove_black=remove_black,
     )
     goal_a = (goal_a[0] - off_r, goal_a[1] - off_c)
     goal_b = (goal_b[0] - off_r, goal_b[1] - off_c)
     walls_after = _count_walls(simplified.grid)
-    removed_total = len(removed_black) + len(removed_orange)
+    removed_total = len(removed_black) + len(removed_orange) + len(removed_uncrossable)
 
     status: dict = {
+        "mode": mode,
         "removed": removed_total,
         "removed_black": len(removed_black),
         "removed_orange": len(removed_orange),
+        "removed_uncrossable": len(removed_uncrossable),
         "walls_before": walls_before,
         "walls_after": walls_after,
         "target_switches": target_switches,
@@ -317,7 +471,7 @@ def run_simplification(
 
     # Always save the attempted simplification — success or failure — so the
     # user can inspect what was removed and why.
-    sub_dir = os.path.join(plot_dir, "simplified")
+    sub_dir = os.path.join(plot_dir, "simplified", mode)
     os.makedirs(sub_dir, exist_ok=True)
 
     # Capture starting positions before validator mutates the workspace.
@@ -345,16 +499,20 @@ def run_simplification(
     with open(os.path.join(sub_dir, "simplification.txt"), "w") as f:
         f.write(
             f"Status: {outcome}\n"
+            f"Mode: {mode}\n"
             f"Walls before: {walls_before}\n"
             f"Walls after:  {walls_after}\n"
             f"Black walls removed ({len(removed_black)}): {removed_black}\n"
             f"Orange walls removed ({len(removed_orange)}): {removed_orange}\n"
+            f"Uncrossable walls removed ({len(removed_uncrossable)}): "
+            f"{removed_uncrossable}\n"
         )
 
     # Comparison summary image: original | simplified | stats.
     pct = 100.0 * removed_total / walls_before if walls_before else 0.0
     stats = [
         ("test", test_name),
+        ("mode", mode),
         ("status", outcome),
         ("grid", f"{ws.grid.rows} x {ws.grid.cols}"),
         ("robot size", f"{ws.robot_a.n} x {ws.robot_a.n}"),
@@ -367,6 +525,7 @@ def run_simplification(
         ("walls after", walls_after),
         ("removed black", len(removed_black)),
         ("removed orange", len(removed_orange)),
+        ("removed uncrossable", len(removed_uncrossable)),
         ("total removed", f"{removed_total} ({pct:.1f}%)"),
     ]
     summary_a = Robot(simplified.robot_a.label, simplified.robot_a.n, *start_a)
