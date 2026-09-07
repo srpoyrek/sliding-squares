@@ -37,7 +37,7 @@ import traceback
 from src.directories import get_plots_dir, get_testcases_dir
 from src.grid import Grid
 from src.robot import Robot
-from src.simplify import RECIPES, run_simplification
+from src.simplify import RECIPES, describe_recipes, run_simplification
 from src.solver import Solver
 from src.test_case import TestCase, TestResult
 from src.validator import Validator
@@ -72,6 +72,46 @@ def discover_test_cases() -> list[type]:
             if issubclass(obj, TestCase) and obj is not TestCase:
                 cases.append(obj)
     return cases
+
+
+def _write_recipe_index(simplified_dir, test_name, switches, statuses) -> None:
+    """Write simplified/README.txt — the map for the sibling recipe folders.
+
+    Without it a reader lands on eight same-looking directories with no way to
+    tell what each one did or which won, so this names every recipe, explains
+    it, and ranks them by how few walls survived.
+    """
+    os.makedirs(simplified_dir, exist_ok=True)
+    walls_before = next((s["walls_before"] for s in statuses if "walls_before" in s), "?")
+    lines = [
+        f"{test_name} — simplification recipes",
+        f"original: {walls_before} walls, {switches} control switches",
+        "",
+        "Each subfolder is one recipe, holding its own summary.png, solved",
+        "sequence and simplification.txt. Ranked by fewest walls surviving.",
+        "",
+        f"{'recipe'.ljust(28)}{'walls'.rjust(6)}{'removed'.rjust(9)}  status",
+        "-" * 72,
+    ]
+
+    def rank(s):
+        return s.get("walls_after", 10**9)
+
+    for s in sorted(statuses, key=rank):
+        name = s.get("mode", "?")
+        if "error" in s:
+            lines.append(f"{name.ljust(28)}{'—'.rjust(6)}{'—'.rjust(9)}  ERROR: {s['error']}")
+            continue
+        state = "PRESERVED" if s.get("preserved") else f"FAILED ({s.get('new_switches')})"
+        lines.append(
+            f"{name.ljust(28)}{str(s.get('walls_after', '?')).rjust(6)}"
+            f"{str(s.get('removed', '?')).rjust(9)}  {state}"
+        )
+    lines.append("")
+    lines.append(describe_recipes())
+
+    with open(os.path.join(simplified_dir, "README.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
 
 
 def run_one(args) -> TestResult:
@@ -155,11 +195,18 @@ def run_one(args) -> TestResult:
                         plot_dir,
                         solver_result.switches,
                         tc.name,
-                        **RECIPES[recipe],
+                        **RECIPES[recipe]["kwargs"],
                     )
                 except Exception as e:
                     status = {"mode": recipe, "error": f"{type(e).__name__}: {e}"}
                 result.simplification.append(status)
+
+            _write_recipe_index(
+                os.path.join(plot_dir, "simplified"),
+                tc.name,
+                solver_result.switches,
+                result.simplification,
+            )
 
     except Exception as e:
         result.error = f"{type(e).__name__}: {e}"
@@ -219,6 +266,8 @@ def run_all(recipes):
     print(f"Found {len(classes)} test case(s)")
     if recipes:
         print(f"Simplification recipes ({len(recipes)}): {', '.join(recipes)}")
+        print("  what each does: python run_tests.py --list-recipes")
+        print("  per-test ranking: plots/tests/<name>/simplified/README.txt")
     print()
     print("=" * 60)
 
@@ -267,7 +316,16 @@ if __name__ == "__main__":
         "they can be compared side by side. Name recipes to run a subset. "
         "Without the flag, run_tests.py only solves and plots.",
     )
+    parser.add_argument(
+        "--list-recipes",
+        action="store_true",
+        help="Print every simplification recipe and what it does, then exit.",
+    )
     args = parser.parse_args()
+
+    if args.list_recipes:
+        print(describe_recipes())
+        sys.exit(0)
 
     # None = flag absent; [] = bare --simplified, meaning every recipe.
     if args.simplified is None:

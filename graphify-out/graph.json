@@ -9,7 +9,7 @@
       "source_file": "demo_solver.py",
       "source_location": "L1",
       "id": "demo_solver_py",
-      "community": 24,
+      "community": 27,
       "norm_label": "demo_solver.py"
     },
     {
@@ -306,7 +306,7 @@
       "source_file": "run_tests.py",
       "source_location": "L1",
       "id": "run_tests_py",
-      "community": 5,
+      "community": 4,
       "norm_label": "run_tests.py"
     },
     {
@@ -315,7 +315,7 @@
       "source_file": "run_tests.py",
       "source_location": "L51",
       "id": "run_tests_build_workspace_from_tiles",
-      "community": 11,
+      "community": 9,
       "norm_label": "_build_workspace_from_tiles()"
     },
     {
@@ -324,43 +324,52 @@
       "source_file": "run_tests.py",
       "source_location": "L63",
       "id": "run_tests_discover_test_cases",
-      "community": 5,
+      "community": 4,
       "norm_label": "discover_test_cases()"
+    },
+    {
+      "label": "_write_recipe_index()",
+      "file_type": "code",
+      "source_file": "run_tests.py",
+      "source_location": "L77",
+      "id": "run_tests_write_recipe_index",
+      "community": 4,
+      "norm_label": "_write_recipe_index()"
     },
     {
       "label": "run_one()",
       "file_type": "code",
       "source_file": "run_tests.py",
-      "source_location": "L77",
+      "source_location": "L117",
       "id": "run_tests_run_one",
-      "community": 11,
+      "community": 4,
       "norm_label": "run_one()"
     },
     {
       "label": "_print_simplifications()",
       "file_type": "code",
       "source_file": "run_tests.py",
-      "source_location": "L171",
+      "source_location": "L218",
       "id": "run_tests_print_simplifications",
-      "community": 5,
+      "community": 4,
       "norm_label": "_print_simplifications()"
     },
     {
       "label": "_print_simplification()",
       "file_type": "code",
       "source_file": "run_tests.py",
-      "source_location": "L176",
+      "source_location": "L223",
       "id": "run_tests_print_simplification",
-      "community": 5,
+      "community": 4,
       "norm_label": "_print_simplification()"
     },
     {
       "label": "run_all()",
       "file_type": "code",
       "source_file": "run_tests.py",
-      "source_location": "L211",
+      "source_location": "L258",
       "id": "run_tests_run_all",
-      "community": 5,
+      "community": 4,
       "norm_label": "run_all()"
     },
     {
@@ -369,7 +378,7 @@
       "source_file": "run_tests.py",
       "source_location": "L1",
       "id": "run_tests_rationale_1",
-      "community": 11,
+      "community": 9,
       "norm_label": "run_tests.py ------------ discovers all test cases in testcases/ and runs them."
     },
     {
@@ -378,16 +387,25 @@
       "source_file": "run_tests.py",
       "source_location": "L52",
       "id": "run_tests_rationale_52",
-      "community": 11,
+      "community": 9,
       "norm_label": "fresh workspace with the given tile layout, robots at ref_ws's start."
+    },
+    {
+      "label": "Write simplified/README.txt \u2014 the map for the sibling recipe folders.      Witho",
+      "file_type": "rationale",
+      "source_file": "run_tests.py",
+      "source_location": "L78",
+      "id": "run_tests_rationale_78",
+      "community": 9,
+      "norm_label": "write simplified/readme.txt \u2014 the map for the sibling recipe folders.      witho"
     },
     {
       "label": "Run a single test by class name.      `args` is (cls_name, recipes) where `recip",
       "file_type": "rationale",
       "source_file": "run_tests.py",
-      "source_location": "L78",
-      "id": "run_tests_rationale_78",
-      "community": 11,
+      "source_location": "L118",
+      "id": "run_tests_rationale_118",
+      "community": 9,
       "norm_label": "run a single test by class name.      `args` is (cls_name, recipes) where `recip"
     },
     {
@@ -396,7 +414,7 @@
       "source_file": "scripts\\ai-context\\build_all.py",
       "source_location": "L1",
       "id": "scripts_ai_context_build_all_py",
-      "community": 14,
+      "community": 17,
       "norm_label": "build_all.py"
     },
     {
@@ -405,7 +423,7 @@
       "source_file": "scripts\\ai-context\\build_all.py",
       "source_location": "L30",
       "id": "build_all_run",
-      "community": 14,
+      "community": 17,
       "norm_label": "_run()"
     },
     {
@@ -414,7 +432,7 @@
       "source_file": "scripts\\ai-context\\build_all.py",
       "source_location": "L36",
       "id": "build_all_main",
-      "community": 14,
+      "community": 17,
       "norm_label": "main()"
     },
     {
@@ -549,7 +567,7 @@
       "source_file": "scripts\\ai-context\\handoff.py",
       "source_location": "L1",
       "id": "scripts_ai_context_handoff_py",
-      "community": 13,
+      "community": 16,
       "norm_label": "handoff.py"
     },
     {
@@ -558,7 +576,7 @@
       "source_file": "scripts\\ai-context\\handoff.py",
       "source_location": "L40",
       "id": "handoff_read_surveys",
-      "community": 13,
+      "community": 16,
       "norm_label": "read_surveys()"
     },
     {
@@ -567,7 +585,7 @@
       "source_file": "scripts\\ai-context\\handoff.py",
       "source_location": "L56",
       "id": "handoff_main",
-      "community": 13,
+      "community": 16,
       "norm_label": "main()"
     },
     {
@@ -576,7 +594,7 @@
       "source_file": "scripts\\ai-context\\handoff.py",
       "source_location": "L41",
       "id": "handoff_rationale_41",
-      "community": 13,
+      "community": 16,
       "norm_label": "every survey in ``folder``, concatenated newest-implementation-point first."
     },
     {
@@ -603,7 +621,7 @@
       "source_file": "scripts\\ai-context\\pack.py",
       "source_location": "L1",
       "id": "scripts_ai_context_pack_py",
-      "community": 3,
+      "community": 6,
       "norm_label": "pack.py"
     },
     {
@@ -612,7 +630,7 @@
       "source_file": "scripts\\ai-context\\pack.py",
       "source_location": "L29",
       "id": "pack_git",
-      "community": 3,
+      "community": 6,
       "norm_label": "_git()"
     },
     {
@@ -621,7 +639,7 @@
       "source_file": "scripts\\ai-context\\pack.py",
       "source_location": "L34",
       "id": "pack_changed_files",
-      "community": 3,
+      "community": 6,
       "norm_label": "_changed_files()"
     },
     {
@@ -630,7 +648,7 @@
       "source_file": "scripts\\ai-context\\pack.py",
       "source_location": "L41",
       "id": "pack_expand",
-      "community": 3,
+      "community": 6,
       "norm_label": "_expand()"
     },
     {
@@ -639,7 +657,7 @@
       "source_file": "scripts\\ai-context\\pack.py",
       "source_location": "L48",
       "id": "pack_pack",
-      "community": 3,
+      "community": 6,
       "norm_label": "_pack()"
     },
     {
@@ -648,7 +666,7 @@
       "source_file": "scripts\\ai-context\\pack.py",
       "source_location": "L66",
       "id": "pack_main",
-      "community": 3,
+      "community": 6,
       "norm_label": "main()"
     },
     {
@@ -657,7 +675,7 @@
       "source_file": "scripts\\ai-context\\pack.py",
       "source_location": "L35",
       "id": "pack_rationale_35",
-      "community": 3,
+      "community": 6,
       "norm_label": "files you're currently working on: tracked changes vs head + new untracked."
     },
     {
@@ -666,7 +684,7 @@
       "source_file": "scripts\\ai-context\\pack.py",
       "source_location": "L42",
       "id": "pack_rationale_42",
-      "community": 3,
+      "community": 6,
       "norm_label": "a plain directory becomes `<dir>/**` so repomix matches the files under it."
     },
     {
@@ -693,7 +711,7 @@
       "source_file": "scripts\\graphify\\precommit_hook.py",
       "source_location": "L1",
       "id": "scripts_graphify_precommit_hook_py",
-      "community": 3,
+      "community": 6,
       "norm_label": "precommit_hook.py"
     },
     {
@@ -702,7 +720,7 @@
       "source_file": "scripts\\graphify\\precommit_hook.py",
       "source_location": "L34",
       "id": "precommit_hook_staged_python_files",
-      "community": 3,
+      "community": 6,
       "norm_label": "staged_python_files()"
     },
     {
@@ -711,7 +729,7 @@
       "source_file": "scripts\\graphify\\precommit_hook.py",
       "source_location": "L45",
       "id": "precommit_hook_main",
-      "community": 3,
+      "community": 6,
       "norm_label": "main()"
     },
     {
@@ -720,7 +738,7 @@
       "source_file": "scripts\\graphify\\precommit_hook.py",
       "source_location": "L35",
       "id": "precommit_hook_rationale_35",
-      "community": 3,
+      "community": 6,
       "norm_label": "return paths of .py files staged for commit (any status)."
     },
     {
@@ -1341,7 +1359,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L1",
       "id": "src_directories_py",
-      "community": 5,
+      "community": 4,
       "norm_label": "directories.py"
     },
     {
@@ -1350,7 +1368,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L24",
       "id": "directories_get_src_dir",
-      "community": 5,
+      "community": 4,
       "norm_label": "get_src_dir()"
     },
     {
@@ -1359,7 +1377,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L29",
       "id": "directories_get_project_root",
-      "community": 5,
+      "community": 4,
       "norm_label": "get_project_root()"
     },
     {
@@ -1368,7 +1386,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L37",
       "id": "directories_get_plots_dir",
-      "community": 5,
+      "community": 4,
       "norm_label": "get_plots_dir()"
     },
     {
@@ -1377,7 +1395,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L44",
       "id": "directories_get_data_dir",
-      "community": 5,
+      "community": 4,
       "norm_label": "get_data_dir()"
     },
     {
@@ -1386,7 +1404,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L51",
       "id": "directories_get_testcases_dir",
-      "community": 5,
+      "community": 4,
       "norm_label": "get_testcases_dir()"
     },
     {
@@ -1395,7 +1413,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L61",
       "id": "directories_plots_path",
-      "community": 5,
+      "community": 4,
       "norm_label": "plots_path()"
     },
     {
@@ -1404,7 +1422,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L66",
       "id": "directories_data_path",
-      "community": 5,
+      "community": 4,
       "norm_label": "data_path()"
     },
     {
@@ -1413,7 +1431,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L71",
       "id": "directories_testcases_path",
-      "community": 5,
+      "community": 4,
       "norm_label": "testcases_path()"
     },
     {
@@ -1422,7 +1440,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L1",
       "id": "directories_rationale_1",
-      "community": 5,
+      "community": 4,
       "norm_label": "directories.py -------- central place for all project directory paths.  ever"
     },
     {
@@ -1431,7 +1449,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L25",
       "id": "directories_rationale_25",
-      "community": 5,
+      "community": 4,
       "norm_label": "absolute path to src/ (where this file lives)."
     },
     {
@@ -1440,7 +1458,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L30",
       "id": "directories_rationale_30",
-      "community": 5,
+      "community": 4,
       "norm_label": "absolute path to the project root (one level above src/)."
     },
     {
@@ -1449,7 +1467,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L38",
       "id": "directories_rationale_38",
-      "community": 5,
+      "community": 4,
       "norm_label": "absolute path to plots/. created if it doesn't exist."
     },
     {
@@ -1458,7 +1476,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L45",
       "id": "directories_rationale_45",
-      "community": 5,
+      "community": 4,
       "norm_label": "absolute path to data/. created if it doesn't exist."
     },
     {
@@ -1467,7 +1485,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L52",
       "id": "directories_rationale_52",
-      "community": 5,
+      "community": 4,
       "norm_label": "absolute path to testcases/. created if it doesn't exist."
     },
     {
@@ -1476,7 +1494,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L62",
       "id": "directories_rationale_62",
-      "community": 5,
+      "community": 4,
       "norm_label": "full path for a file in plots/.  e.g. plots_path('start.png')"
     },
     {
@@ -1485,7 +1503,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L67",
       "id": "directories_rationale_67",
-      "community": 5,
+      "community": 4,
       "norm_label": "full path for a file in data/.  e.g. data_path('grid_01.json')"
     },
     {
@@ -1494,7 +1512,7 @@
       "source_file": "src\\directories.py",
       "source_location": "L72",
       "id": "directories_rationale_72",
-      "community": 5,
+      "community": 4,
       "norm_label": "full path for a file in testcases/.  e.g. testcases_path('test.json')"
     },
     {
@@ -1557,7 +1575,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L1",
       "id": "src_grid_py",
-      "community": 17,
+      "community": 19,
       "norm_label": "grid.py"
     },
     {
@@ -1566,7 +1584,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L18",
       "id": "grid_grid",
-      "community": 8,
+      "community": 5,
       "norm_label": "grid"
     },
     {
@@ -1584,7 +1602,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L61",
       "id": "grid_grid_add_hole",
-      "community": 8,
+      "community": 5,
       "norm_label": ".add_hole()"
     },
     {
@@ -1593,7 +1611,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L68",
       "id": "grid_grid_add_boundary",
-      "community": 8,
+      "community": 5,
       "norm_label": ".add_boundary()"
     },
     {
@@ -1602,7 +1620,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L75",
       "id": "grid_grid_add_rect_boundary",
-      "community": 8,
+      "community": 5,
       "norm_label": ".add_rect_boundary()"
     },
     {
@@ -1611,7 +1629,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L88",
       "id": "grid_grid_get_holes",
-      "community": 15,
+      "community": 20,
       "norm_label": ".get_holes()"
     },
     {
@@ -1620,7 +1638,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L92",
       "id": "grid_grid_get_boundaries",
-      "community": 18,
+      "community": 21,
       "norm_label": ".get_boundaries()"
     },
     {
@@ -1629,7 +1647,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L96",
       "id": "grid_grid_get_all_obstacles",
-      "community": 19,
+      "community": 18,
       "norm_label": ".get_all_obstacles()"
     },
     {
@@ -1638,7 +1656,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L102",
       "id": "grid_grid_in_bounds",
-      "community": 9,
+      "community": 10,
       "norm_label": ".in_bounds()"
     },
     {
@@ -1647,7 +1665,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L106",
       "id": "grid_grid_is_free",
-      "community": 9,
+      "community": 10,
       "norm_label": ".is_free()"
     },
     {
@@ -1656,7 +1674,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L110",
       "id": "grid_grid_is_boundary",
-      "community": 9,
+      "community": 10,
       "norm_label": ".is_boundary()"
     },
     {
@@ -1665,7 +1683,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L114",
       "id": "grid_grid_is_hole",
-      "community": 9,
+      "community": 10,
       "norm_label": ".is_hole()"
     },
     {
@@ -1674,7 +1692,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L118",
       "id": "grid_grid_is_obstacle",
-      "community": 9,
+      "community": 10,
       "norm_label": ".is_obstacle()"
     },
     {
@@ -1683,7 +1701,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L124",
       "id": "grid_grid_display",
-      "community": 16,
+      "community": 22,
       "norm_label": ".display()"
     },
     {
@@ -1692,7 +1710,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L134",
       "id": "grid_grid_repr",
-      "community": 8,
+      "community": 5,
       "norm_label": ".__repr__()"
     },
     {
@@ -1701,7 +1719,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L1",
       "id": "grid_rationale_1",
-      "community": 17,
+      "community": 19,
       "norm_label": "grid.py ------- the physical environment \u2014 a 2d map of free tiles and obstacle"
     },
     {
@@ -1710,7 +1728,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L19",
       "id": "grid_rationale_19",
-      "community": 8,
+      "community": 5,
       "norm_label": "2d grid of tiles.       0 = free       1 = boundary (perimeter wall)      -1"
     },
     {
@@ -1719,7 +1737,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L62",
       "id": "grid_rationale_62",
-      "community": 8,
+      "community": 5,
       "norm_label": "set a rectangle of cells as internal holes/islands."
     },
     {
@@ -1728,7 +1746,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L69",
       "id": "grid_rationale_69",
-      "community": 8,
+      "community": 5,
       "norm_label": "set a rectangle of cells as boundary \u2014 same as add_hole but marks as boundary."
     },
     {
@@ -1737,7 +1755,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L76",
       "id": "grid_rationale_76",
-      "community": 8,
+      "community": 5,
       "norm_label": "draw the full perimeter of the grid as boundary."
     },
     {
@@ -1746,7 +1764,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L89",
       "id": "grid_rationale_89",
-      "community": 15,
+      "community": 20,
       "norm_label": "return set of all hole cell positions (row, col)."
     },
     {
@@ -1755,7 +1773,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L93",
       "id": "grid_rationale_93",
-      "community": 18,
+      "community": 21,
       "norm_label": "return set of all boundary cell positions (row, col)."
     },
     {
@@ -1764,7 +1782,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L97",
       "id": "grid_rationale_97",
-      "community": 19,
+      "community": 18,
       "norm_label": "return set of all obstacle positions \u2014 both holes and boundaries."
     },
     {
@@ -1773,7 +1791,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L103",
       "id": "grid_rationale_103",
-      "community": 9,
+      "community": 10,
       "norm_label": "is (row, col) within the grid?"
     },
     {
@@ -1782,7 +1800,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L107",
       "id": "grid_rationale_107",
-      "community": 9,
+      "community": 10,
       "norm_label": "is (row, col) in bounds and not an obstacle?"
     },
     {
@@ -1791,7 +1809,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L111",
       "id": "grid_rationale_111",
-      "community": 9,
+      "community": 10,
       "norm_label": "is (row, col) a boundary wall?"
     },
     {
@@ -1800,7 +1818,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L115",
       "id": "grid_rationale_115",
-      "community": 9,
+      "community": 10,
       "norm_label": "is (row, col) an internal hole / island?"
     },
     {
@@ -1809,7 +1827,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L119",
       "id": "grid_rationale_119",
-      "community": 9,
+      "community": 10,
       "norm_label": "is (row, col) out of bounds or any kind of obstacle?"
     },
     {
@@ -1818,7 +1836,7 @@
       "source_file": "src\\grid.py",
       "source_location": "L125",
       "id": "grid_rationale_125",
-      "community": 16,
+      "community": 22,
       "norm_label": "print the raw grid. '.' = free, '#' = boundary, 'o' = hole."
     },
     {
@@ -2250,7 +2268,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L1",
       "id": "src_robot_py",
-      "community": 20,
+      "community": 23,
       "norm_label": "robot.py"
     },
     {
@@ -2268,7 +2286,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L26",
       "id": "robot_robot_init",
-      "community": 22,
+      "community": 24,
       "norm_label": ".__init__()"
     },
     {
@@ -2286,7 +2304,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L44",
       "id": "robot_robot_cells",
-      "community": 21,
+      "community": 25,
       "norm_label": ".cells()"
     },
     {
@@ -2295,7 +2313,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L50",
       "id": "robot_robot_clone",
-      "community": 23,
+      "community": 26,
       "norm_label": ".clone()"
     },
     {
@@ -2331,7 +2349,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L1",
       "id": "robot_rationale_1",
-      "community": 20,
+      "community": 23,
       "norm_label": "robot.py -------- a single n\u00d7n square robot.  knows only:   - its label"
     },
     {
@@ -2349,7 +2367,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L27",
       "id": "robot_rationale_27",
-      "community": 22,
+      "community": 24,
       "norm_label": "label : name, e.g. 'a' or 'b'         n     : edge length in tiles         row"
     },
     {
@@ -2367,7 +2385,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L45",
       "id": "robot_rationale_45",
-      "community": 21,
+      "community": 25,
       "norm_label": "all (row, col) tiles this robot occupies."
     },
     {
@@ -2376,7 +2394,7 @@
       "source_file": "src\\robot.py",
       "source_location": "L51",
       "id": "robot_rationale_51",
-      "community": 23,
+      "community": 26,
       "norm_label": "return an independent copy of this robot."
     },
     {
@@ -2385,7 +2403,7 @@
       "source_file": "src\\simplify.py",
       "source_location": "L1",
       "id": "src_simplify_py",
-      "community": 10,
+      "community": 8,
       "norm_label": "simplify.py"
     },
     {
@@ -2394,7 +2412,7 @@
       "source_file": "src\\simplify.py",
       "source_location": "L37",
       "id": "simplify_aggregate_wall_counts",
-      "community": 10,
+      "community": 8,
       "norm_label": "_aggregate_wall_counts()"
     },
     {
@@ -2403,7 +2421,7 @@
       "source_file": "src\\simplify.py",
       "source_location": "L65",
       "id": "simplify_count_walls",
-      "community": 10,
+      "community": 8,
       "norm_label": "_count_walls()"
     },
     {
@@ -2412,7 +2430,7 @@
       "source_file": "src\\simplify.py",
       "source_location": "L69",
       "id": "simplify_orange_peak_keepers",
-      "community": 10,
+      "community": 8,
       "norm_label": "_orange_peak_keepers()"
     },
     {
@@ -2421,7 +2439,7 @@
       "source_file": "src\\simplify.py",
       "source_location": "L113",
       "id": "simplify_orange_relative_keepers",
-      "community": 10,
+      "community": 8,
       "norm_label": "_orange_relative_keepers()"
     },
     {
@@ -2430,7 +2448,7 @@
       "source_file": "src\\simplify.py",
       "source_location": "L166",
       "id": "simplify_prune_uncrossable",
-      "community": 10,
+      "community": 8,
       "norm_label": "_prune_uncrossable()"
     },
     {
@@ -2439,34 +2457,43 @@
       "source_file": "src\\simplify.py",
       "source_location": "L205",
       "id": "simplify_mode_name",
-      "community": 10,
+      "community": 8,
       "norm_label": "mode_name()"
+    },
+    {
+      "label": "describe_recipes()",
+      "file_type": "code",
+      "source_file": "src\\simplify.py",
+      "source_location": "L284",
+      "id": "simplify_describe_recipes",
+      "community": 4,
+      "norm_label": "describe_recipes()"
     },
     {
       "label": "_crop_bounds()",
       "file_type": "code",
       "source_file": "src\\simplify.py",
-      "source_location": "L252",
+      "source_location": "L302",
       "id": "simplify_crop_bounds",
-      "community": 10,
+      "community": 8,
       "norm_label": "_crop_bounds()"
     },
     {
       "label": "simplify_workspace()",
       "file_type": "code",
       "source_file": "src\\simplify.py",
-      "source_location": "L281",
+      "source_location": "L331",
       "id": "simplify_simplify_workspace",
-      "community": 10,
+      "community": 8,
       "norm_label": "simplify_workspace()"
     },
     {
       "label": "run_simplification()",
       "file_type": "code",
       "source_file": "src\\simplify.py",
-      "source_location": "L389",
+      "source_location": "L439",
       "id": "simplify_run_simplification",
-      "community": 10,
+      "community": 8,
       "norm_label": "run_simplification()"
     },
     {
@@ -2475,7 +2502,7 @@
       "source_file": "src\\simplify.py",
       "source_location": "L1",
       "id": "simplify_rationale_1",
-      "community": 4,
+      "community": 3,
       "norm_label": "simplify.py ----------- reusable workspace-simplification pass.  given a solved"
     },
     {
@@ -2484,7 +2511,7 @@
       "source_file": "src\\simplify.py",
       "source_location": "L38",
       "id": "simplify_rationale_38",
-      "community": 4,
+      "community": 3,
       "norm_label": "count wall contact at every step, for both robots \u2014 including the     initial pl"
     },
     {
@@ -2493,7 +2520,7 @@
       "source_file": "src\\simplify.py",
       "source_location": "L70",
       "id": "simplify_rationale_70",
-      "community": 4,
+      "community": 3,
       "norm_label": "touched-wall cells to keep when thinning each side down to its peak.      split"
     },
     {
@@ -2502,7 +2529,7 @@
       "source_file": "src\\simplify.py",
       "source_location": "L114",
       "id": "simplify_rationale_114",
-      "community": 4,
+      "community": 3,
       "norm_label": "like the peak keeper, but on each per-face edge also keep enough cells     that"
     },
     {
@@ -2511,7 +2538,7 @@
       "source_file": "src\\simplify.py",
       "source_location": "L167",
       "id": "simplify_rationale_167",
-      "community": 4,
+      "community": 3,
       "norm_label": "free every wall the robot can never cross. mutates `tiles`.      the solver sees"
     },
     {
@@ -2520,34 +2547,43 @@
       "source_file": "src\\simplify.py",
       "source_location": "L212",
       "id": "simplify_rationale_212",
-      "community": 4,
+      "community": 3,
       "norm_label": "folder name for one simplification recipe, e.g. \"black_peaks_uncrossable\"."
+    },
+    {
+      "label": "Human-readable listing of RECIPES, for --list-recipes.",
+      "file_type": "rationale",
+      "source_file": "src\\simplify.py",
+      "source_location": "L285",
+      "id": "simplify_rationale_285",
+      "community": 3,
+      "norm_label": "human-readable listing of recipes, for --list-recipes."
     },
     {
       "label": "Fully-wall rows/cols to peel from each side: (top, bottom, left, right).     The",
       "file_type": "rationale",
       "source_file": "src\\simplify.py",
-      "source_location": "L253",
-      "id": "simplify_rationale_253",
-      "community": 4,
+      "source_location": "L303",
+      "id": "simplify_rationale_303",
+      "community": 3,
       "norm_label": "fully-wall rows/cols to peel from each side: (top, bottom, left, right).     the"
     },
     {
       "label": "Wall-removal simplification driven by the contact heatmap.      All black walls",
       "file_type": "rationale",
       "source_file": "src\\simplify.py",
-      "source_location": "L292",
-      "id": "simplify_rationale_292",
-      "community": 4,
+      "source_location": "L342",
+      "id": "simplify_rationale_342",
+      "community": 3,
       "norm_label": "wall-removal simplification driven by the contact heatmap.      all black walls"
     },
     {
       "label": "Run one simplification recipe; save results into     <plot_dir>/simplified/<mode",
       "file_type": "rationale",
       "source_file": "src\\simplify.py",
-      "source_location": "L403",
-      "id": "simplify_rationale_403",
-      "community": 4,
+      "source_location": "L453",
+      "id": "simplify_rationale_453",
+      "community": 3,
       "norm_label": "run one simplification recipe; save results into     <plot_dir>/simplified/<mode"
     },
     {
@@ -2556,7 +2592,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L1",
       "id": "src_solver_py",
-      "community": 3,
+      "community": 8,
       "norm_label": "solver.py"
     },
     {
@@ -2565,7 +2601,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L15",
       "id": "solver_solverresult",
-      "community": 3,
+      "community": 8,
       "norm_label": "solverresult"
     },
     {
@@ -2574,7 +2610,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L16",
       "id": "solver_solverresult_init",
-      "community": 3,
+      "community": 8,
       "norm_label": ".__init__()"
     },
     {
@@ -2583,7 +2619,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L22",
       "id": "solver_solverresult_repr",
-      "community": 3,
+      "community": 8,
       "norm_label": ".__repr__()"
     },
     {
@@ -2592,7 +2628,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L31",
       "id": "solver_solver",
-      "community": 4,
+      "community": 3,
       "norm_label": "solver"
     },
     {
@@ -2601,7 +2637,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L32",
       "id": "solver_solver_init",
-      "community": 4,
+      "community": 3,
       "norm_label": ".__init__()"
     },
     {
@@ -2610,7 +2646,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L37",
       "id": "solver_solver_solve",
-      "community": 3,
+      "community": 8,
       "norm_label": ".solve()"
     },
     {
@@ -2619,7 +2655,7 @@
       "source_file": "src\\solver.py",
       "source_location": "L1",
       "id": "solver_rationale_1",
-      "community": 3,
+      "community": 8,
       "norm_label": "solver.py --------- uses bfs to find the minimum number of control switches t"
     },
     {
@@ -2700,7 +2736,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L1",
       "id": "src_test_case_py",
-      "community": 11,
+      "community": 9,
       "norm_label": "test_case.py"
     },
     {
@@ -2709,7 +2745,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L15",
       "id": "test_case_testresult",
-      "community": 11,
+      "community": 9,
       "norm_label": "testresult"
     },
     {
@@ -2718,7 +2754,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L23",
       "id": "test_case_testresult_repr",
-      "community": 11,
+      "community": 9,
       "norm_label": ".__repr__()"
     },
     {
@@ -2727,7 +2763,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L33",
       "id": "test_case_testcase",
-      "community": 6,
+      "community": 9,
       "norm_label": "testcase"
     },
     {
@@ -2736,7 +2772,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L53",
       "id": "test_case_testcase_setup",
-      "community": 6,
+      "community": 9,
       "norm_label": ".setup()"
     },
     {
@@ -2745,7 +2781,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L1",
       "id": "test_case_rationale_1",
-      "community": 11,
+      "community": 9,
       "norm_label": "test_case.py ------------ base class for all test cases. every test case in t"
     },
     {
@@ -2754,7 +2790,7 @@
       "source_file": "src\\test_case.py",
       "source_location": "L34",
       "id": "test_case_rationale_34",
-      "community": 6,
+      "community": 9,
       "norm_label": "subclass this and implement setup().      minimal example:          class my"
     },
     {
@@ -2763,7 +2799,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L1",
       "id": "src_validator_py",
-      "community": 3,
+      "community": 6,
       "norm_label": "validator.py"
     },
     {
@@ -2772,7 +2808,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L18",
       "id": "validator_validationresult",
-      "community": 3,
+      "community": 6,
       "norm_label": "validationresult"
     },
     {
@@ -2781,7 +2817,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L19",
       "id": "validator_validationresult_init",
-      "community": 3,
+      "community": 6,
       "norm_label": ".__init__()"
     },
     {
@@ -2790,7 +2826,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L28",
       "id": "validator_validationresult_repr",
-      "community": 3,
+      "community": 6,
       "norm_label": ".__repr__()"
     },
     {
@@ -2799,7 +2835,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L37",
       "id": "validator_validator",
-      "community": 4,
+      "community": 3,
       "norm_label": "validator"
     },
     {
@@ -2808,7 +2844,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L38",
       "id": "validator_validator_init",
-      "community": 4,
+      "community": 3,
       "norm_label": ".__init__()"
     },
     {
@@ -2817,7 +2853,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L43",
       "id": "validator_validator_run",
-      "community": 3,
+      "community": 6,
       "norm_label": ".run()"
     },
     {
@@ -2826,7 +2862,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L93",
       "id": "validator_validator_plot",
-      "community": 5,
+      "community": 4,
       "norm_label": "._plot()"
     },
     {
@@ -2835,7 +2871,7 @@
       "source_file": "src\\validator.py",
       "source_location": "L1",
       "id": "validator_rationale_1",
-      "community": 3,
+      "community": 6,
       "norm_label": "validator.py ------------ given a workspace, a path, and goal positions: vali"
     },
     {
@@ -2979,7 +3015,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L1",
       "id": "visualizer_rationale_1",
-      "community": 4,
+      "community": 3,
       "norm_label": "visualizer.py ------------- renders the grid and robots using matplotlib. com"
     },
     {
@@ -2988,7 +3024,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L24",
       "id": "visualizer_rationale_24",
-      "community": 4,
+      "community": 3,
       "norm_label": "import matplotlib on first use and bind module-level `plt` / `patches`."
     },
     {
@@ -2997,7 +3033,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L53",
       "id": "visualizer_rationale_53",
-      "community": 4,
+      "community": 3,
       "norm_label": "draw the grid and any robots on top.      parameters     ----------     grid"
     },
     {
@@ -3006,7 +3042,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L133",
       "id": "visualizer_rationale_133",
-      "community": 4,
+      "community": 3,
       "norm_label": "collapse snapshots into one entry per movement segment (between switches)."
     },
     {
@@ -3015,7 +3051,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L194",
       "id": "visualizer_rationale_194",
-      "community": 4,
+      "community": 3,
       "norm_label": "for an n*n robot whose top-left is (r, c), determine what's touching     each o"
     },
     {
@@ -3024,7 +3060,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L241",
       "id": "visualizer_rationale_241",
-      "community": 4,
+      "community": 3,
       "norm_label": "back-compat shim: compute contact at the moving robot's current position."
     },
     {
@@ -3033,7 +3069,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L246",
       "id": "visualizer_rationale_246",
-      "community": 4,
+      "community": 3,
       "norm_label": "reconstruct (row, col) robot top-left positions at each intermediate step     d"
     },
     {
@@ -3042,7 +3078,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L255",
       "id": "visualizer_rationale_255",
-      "community": 4,
+      "community": 3,
       "norm_label": "aggregate contact across every step in the turn (not just the endpoint).     re"
     },
     {
@@ -3051,7 +3087,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L279",
       "id": "visualizer_rationale_279",
-      "community": 4,
+      "community": 3,
       "norm_label": "draw a thick colored line on one side (n/s/e/w) of an n*n robot block."
     },
     {
@@ -3060,7 +3096,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L431",
       "id": "visualizer_rationale_431",
-      "community": 4,
+      "community": 3,
       "norm_label": "draw one panel per turn (between control switches).      each panel shows:"
     },
     {
@@ -3069,7 +3105,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L548",
       "id": "visualizer_rationale_548",
-      "community": 4,
+      "community": 3,
       "norm_label": "aggregate view across all turns: color each wall cell by how many times     it"
     },
     {
@@ -3078,7 +3114,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L605",
       "id": "visualizer_rationale_605",
-      "community": 4,
+      "community": 3,
       "norm_label": "render a side-by-side summary. `panels` is a list of     (grid, robots, panel_t"
     },
     {
@@ -3087,7 +3123,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L656",
       "id": "visualizer_rationale_656",
-      "community": 4,
+      "community": 3,
       "norm_label": "draw all states in a bfs frontier on a single plot.     each state = one panel"
     },
     {
@@ -3096,7 +3132,7 @@
       "source_file": "src\\visualizer.py",
       "source_location": "L756",
       "id": "visualizer_rationale_756",
-      "community": 4,
+      "community": 3,
       "norm_label": "solve `ws_template`, validate the path, and render the solution sequence     in"
     },
     {
@@ -3114,7 +3150,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L39",
       "id": "workspace_workspace",
-      "community": 4,
+      "community": 3,
       "norm_label": "workspace"
     },
     {
@@ -3123,7 +3159,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L44",
       "id": "workspace_workspace_init",
-      "community": 4,
+      "community": 3,
       "norm_label": ".__init__()"
     },
     {
@@ -3141,7 +3177,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L63",
       "id": "workspace_workspace_free_cells",
-      "community": 2,
+      "community": 7,
       "norm_label": ".free_cells()"
     },
     {
@@ -3168,7 +3204,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L121",
       "id": "workspace_workspace_robot_fits_at",
-      "community": 9,
+      "community": 10,
       "norm_label": ".robot_fits_at()"
     },
     {
@@ -3177,7 +3213,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L134",
       "id": "workspace_workspace_robots_overlap",
-      "community": 3,
+      "community": 13,
       "norm_label": ".robots_overlap()"
     },
     {
@@ -3186,7 +3222,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L150",
       "id": "workspace_workspace_can_move",
-      "community": 3,
+      "community": 13,
       "norm_label": ".can_move()"
     },
     {
@@ -3195,7 +3231,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L173",
       "id": "workspace_workspace_do_move",
-      "community": 3,
+      "community": 13,
       "norm_label": ".do_move()"
     },
     {
@@ -3240,7 +3276,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L40",
       "id": "workspace_rationale_40",
-      "community": 8,
+      "community": 7,
       "norm_label": "combines a grid with two robots and enforces movement rules."
     },
     {
@@ -3249,7 +3285,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L54",
       "id": "workspace_rationale_54",
-      "community": 7,
+      "community": 5,
       "norm_label": "build a wall-filled rows*cols workspace with only `free_cells` carved         f"
     },
     {
@@ -3258,7 +3294,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L64",
       "id": "workspace_rationale_64",
-      "community": 2,
+      "community": 7,
       "norm_label": "the set of free (non-obstacle) cells in this workspace's grid."
     },
     {
@@ -3267,7 +3303,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L76",
       "id": "workspace_rationale_76",
-      "community": 8,
+      "community": 5,
       "norm_label": "all top-left positions where an n*n block fits entirely in free_cells."
     },
     {
@@ -3276,7 +3312,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L94",
       "id": "workspace_rationale_94",
-      "community": 7,
+      "community": 5,
       "norm_label": "incrementally update valid block positions after one cell is dug free."
     },
     {
@@ -3285,7 +3321,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L122",
       "id": "workspace_rationale_122",
-      "community": 9,
+      "community": 10,
       "norm_label": "would robot fit at (row, col) without hitting any obstacle or wall?         doe"
     },
     {
@@ -3294,7 +3330,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L137",
       "id": "workspace_rationale_137",
-      "community": 3,
+      "community": 13,
       "norm_label": "would two robots overlap?         each robot has its own size (n_a, n_b) \u2014 they"
     },
     {
@@ -3303,7 +3339,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L151",
       "id": "workspace_rationale_151",
-      "community": 3,
+      "community": 13,
       "norm_label": "can `robot` move one step in `direction`?         checks: grid fit + no collisi"
     },
     {
@@ -3312,7 +3348,7 @@
       "source_file": "src\\workspace.py",
       "source_location": "L174",
       "id": "workspace_rationale_174",
-      "community": 3,
+      "community": 13,
       "norm_label": "move `robot` one step in `direction` if valid.         returns true if move was"
     },
     {
@@ -3339,7 +3375,7 @@
       "source_file": "src\\__init__.py",
       "source_location": "L1",
       "id": "src_init_py",
-      "community": 25,
+      "community": 28,
       "norm_label": "__init__.py"
     },
     {
@@ -3348,7 +3384,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_1x1_robot_no_holes_py",
-      "community": 6,
+      "community": 14,
       "norm_label": "1x1_robot_no_holes.py"
     },
     {
@@ -3357,7 +3393,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L20",
       "id": "1x1_robot_no_holes_onebyonenoholes",
-      "community": 6,
+      "community": 14,
       "norm_label": "onebyonenoholes"
     },
     {
@@ -3366,7 +3402,7 @@
       "source_file": "",
       "source_location": "",
       "id": "testcase",
-      "community": 6,
+      "community": 11,
       "norm_label": "testcase"
     },
     {
@@ -3375,7 +3411,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L23",
       "id": "1x1_robot_no_holes_onebyonenoholes_setup",
-      "community": 6,
+      "community": 14,
       "norm_label": ".setup()"
     },
     {
@@ -3384,7 +3420,7 @@
       "source_file": "testcases\\1x1_robot_no_holes.py",
       "source_location": "L1",
       "id": "1x1_robot_no_holes_rationale_1",
-      "community": 6,
+      "community": 14,
       "norm_label": "1x1_robot_no_holes.py ------------------- trivial 1x1 swap with a pocket."
     },
     {
@@ -3393,7 +3429,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_2x2_robot_holes_py",
-      "community": 6,
+      "community": 11,
       "norm_label": "2x2_robot_holes.py"
     },
     {
@@ -3402,7 +3438,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L21",
       "id": "2x2_robot_holes_twobytwoholes",
-      "community": 6,
+      "community": 11,
       "norm_label": "twobytwoholes"
     },
     {
@@ -3411,7 +3447,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L24",
       "id": "2x2_robot_holes_twobytwoholes_setup",
-      "community": 8,
+      "community": 5,
       "norm_label": ".setup()"
     },
     {
@@ -3420,7 +3456,7 @@
       "source_file": "testcases\\2x2_robot_holes.py",
       "source_location": "L1",
       "id": "2x2_robot_holes_rationale_1",
-      "community": 6,
+      "community": 11,
       "norm_label": "2x2_robot_holes.py ------------------- test case for a 2x2 robot scenario with"
     },
     {
@@ -3429,7 +3465,7 @@
       "source_file": "testcases\\2x2_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_2x2_robot_no_holes_py",
-      "community": 8,
+      "community": 5,
       "norm_label": "2x2_robot_no_holes.py"
     },
     {
@@ -3438,7 +3474,7 @@
       "source_file": "testcases\\2x2_robot_no_holes.py",
       "source_location": "L21",
       "id": "2x2_robot_no_holes_twobytwonoholes",
-      "community": 8,
+      "community": 5,
       "norm_label": "twobytwonoholes"
     },
     {
@@ -3447,7 +3483,7 @@
       "source_file": "testcases\\2x2_robot_no_holes.py",
       "source_location": "L24",
       "id": "2x2_robot_no_holes_twobytwonoholes_setup",
-      "community": 8,
+      "community": 5,
       "norm_label": ".setup()"
     },
     {
@@ -3456,7 +3492,7 @@
       "source_file": "testcases\\2x2_robot_no_holes.py",
       "source_location": "L1",
       "id": "2x2_robot_no_holes_rationale_1",
-      "community": 8,
+      "community": 5,
       "norm_label": "2x2_robot_no_holes.py ------------------- test case for a 2x2 robot scenario w"
     },
     {
@@ -3465,7 +3501,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_3x3_robot_holes_py",
-      "community": 6,
+      "community": 11,
       "norm_label": "3x3_robot_holes.py"
     },
     {
@@ -3474,7 +3510,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L21",
       "id": "3x3_robot_holes_threebythreeholes",
-      "community": 6,
+      "community": 11,
       "norm_label": "threebythreeholes"
     },
     {
@@ -3483,7 +3519,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L24",
       "id": "3x3_robot_holes_threebythreeholes_setup",
-      "community": 8,
+      "community": 5,
       "norm_label": ".setup()"
     },
     {
@@ -3492,7 +3528,7 @@
       "source_file": "testcases\\3x3_robot_holes.py",
       "source_location": "L1",
       "id": "3x3_robot_holes_rationale_1",
-      "community": 6,
+      "community": 11,
       "norm_label": "3x3_robot_holes.py ------------------- test case for a 3x3 robot scenario with"
     },
     {
@@ -3537,7 +3573,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L1",
       "id": "testcases_4x4_robot_holes_py",
-      "community": 6,
+      "community": 9,
       "norm_label": "4x4_robot_holes.py"
     },
     {
@@ -3546,7 +3582,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L21",
       "id": "4x4_robot_holes_fourbyfourholes",
-      "community": 6,
+      "community": 9,
       "norm_label": "fourbyfourholes"
     },
     {
@@ -3555,7 +3591,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L24",
       "id": "4x4_robot_holes_fourbyfourholes_setup",
-      "community": 8,
+      "community": 5,
       "norm_label": ".setup()"
     },
     {
@@ -3564,7 +3600,7 @@
       "source_file": "testcases\\4x4_robot_holes.py",
       "source_location": "L1",
       "id": "4x4_robot_holes_rationale_1",
-      "community": 6,
+      "community": 9,
       "norm_label": "4x4_robot_holes.py ------------------- test case for a 4x4 robot scenario with"
     },
     {
@@ -3573,7 +3609,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_4x4_robot_no_holes_py",
-      "community": 7,
+      "community": 11,
       "norm_label": "4x4_robot_no_holes.py"
     },
     {
@@ -3582,7 +3618,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L21",
       "id": "4x4_robot_no_holes_fourbyfournoholes",
-      "community": 7,
+      "community": 11,
       "norm_label": "fourbyfournoholes"
     },
     {
@@ -3591,7 +3627,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L24",
       "id": "4x4_robot_no_holes_fourbyfournoholes_setup",
-      "community": 7,
+      "community": 11,
       "norm_label": ".setup()"
     },
     {
@@ -3600,7 +3636,7 @@
       "source_file": "testcases\\4x4_robot_no_holes.py",
       "source_location": "L1",
       "id": "4x4_robot_no_holes_rationale_1",
-      "community": 7,
+      "community": 11,
       "norm_label": "4x4_robot_no_holes.py ------------------- test case for a 4x4 robot scenario w"
     },
     {
@@ -3609,7 +3645,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L1",
       "id": "testcases_5x5_robot_no_holes_py",
-      "community": 6,
+      "community": 15,
       "norm_label": "5x5_robot_no_holes.py"
     },
     {
@@ -3618,7 +3654,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L21",
       "id": "5x5_robot_no_holes_fivebyfivenoholes",
-      "community": 6,
+      "community": 15,
       "norm_label": "fivebyfivenoholes"
     },
     {
@@ -3627,7 +3663,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L24",
       "id": "5x5_robot_no_holes_fivebyfivenoholes_setup",
-      "community": 6,
+      "community": 15,
       "norm_label": ".setup()"
     },
     {
@@ -3636,7 +3672,7 @@
       "source_file": "testcases\\5x5_robot_no_holes.py",
       "source_location": "L1",
       "id": "5x5_robot_no_holes_rationale_1",
-      "community": 6,
+      "community": 15,
       "norm_label": "5x5_robot_no_holes.py ------------------- test case for a 5x5 robot scenario w"
     }
   ],
@@ -5136,6 +5172,18 @@
       "source_location": "L77",
       "weight": 1.0,
       "_src": "run_tests_py",
+      "_tgt": "run_tests_write_recipe_index",
+      "source": "run_tests_py",
+      "target": "run_tests_write_recipe_index",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "run_tests.py",
+      "source_location": "L117",
+      "weight": 1.0,
+      "_src": "run_tests_py",
       "_tgt": "run_tests_run_one",
       "source": "run_tests_py",
       "target": "run_tests_run_one",
@@ -5145,7 +5193,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L171",
+      "source_location": "L218",
       "weight": 1.0,
       "_src": "run_tests_py",
       "_tgt": "run_tests_print_simplifications",
@@ -5157,7 +5205,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L176",
+      "source_location": "L223",
       "weight": 1.0,
       "_src": "run_tests_py",
       "_tgt": "run_tests_print_simplification",
@@ -5169,7 +5217,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L211",
+      "source_location": "L258",
       "weight": 1.0,
       "_src": "run_tests_py",
       "_tgt": "run_tests_run_all",
@@ -5241,7 +5289,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L213",
+      "source_location": "L260",
       "weight": 1.0,
       "_src": "run_tests_run_all",
       "_tgt": "run_tests_discover_test_cases",
@@ -5262,14 +5310,26 @@
       "target": "directories_get_testcases_dir"
     },
     {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "run_tests.py",
+      "source_location": "L204",
+      "weight": 1.0,
+      "_src": "run_tests_run_one",
+      "_tgt": "run_tests_write_recipe_index",
+      "source": "run_tests_write_recipe_index",
+      "target": "run_tests_run_one",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
       "source_location": "L78",
       "weight": 1.0,
       "_src": "run_tests_rationale_78",
-      "_tgt": "run_tests_run_one",
-      "source": "run_tests_run_one",
+      "_tgt": "run_tests_write_recipe_index",
+      "source": "run_tests_write_recipe_index",
       "target": "run_tests_rationale_78",
       "confidence_score": 1.0
     },
@@ -5278,7 +5338,43 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L85",
+      "source_location": "L101",
+      "weight": 1.0,
+      "_src": "run_tests_write_recipe_index",
+      "_tgt": "lru_lrucache_get",
+      "source": "run_tests_write_recipe_index",
+      "target": "lru_lrucache_get"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "run_tests.py",
+      "source_location": "L111",
+      "weight": 1.0,
+      "_src": "run_tests_write_recipe_index",
+      "_tgt": "simplify_describe_recipes",
+      "source": "run_tests_write_recipe_index",
+      "target": "simplify_describe_recipes"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "run_tests.py",
+      "source_location": "L118",
+      "weight": 1.0,
+      "_src": "run_tests_rationale_118",
+      "_tgt": "run_tests_run_one",
+      "source": "run_tests_run_one",
+      "target": "run_tests_rationale_118",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "run_tests.py",
+      "source_location": "L125",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "directories_get_testcases_dir",
@@ -5290,7 +5386,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L103",
+      "source_location": "L143",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "test_case_testresult",
@@ -5302,7 +5398,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L106",
+      "source_location": "L146",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "5x5_robot_no_holes_fivebyfivenoholes_setup",
@@ -5314,7 +5410,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L109",
+      "source_location": "L149",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "solver_solver_solve",
@@ -5326,7 +5422,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L109",
+      "source_location": "L149",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "solver_solver",
@@ -5338,7 +5434,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L121",
+      "source_location": "L161",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "validator_validator_run",
@@ -5350,7 +5446,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L121",
+      "source_location": "L161",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "validator_validator",
@@ -5362,7 +5458,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L126",
+      "source_location": "L166",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "directories_get_plots_dir",
@@ -5374,7 +5470,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L130",
+      "source_location": "L170",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "visualizer_draw_sequence",
@@ -5386,7 +5482,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L150",
+      "source_location": "L190",
       "weight": 1.0,
       "_src": "run_tests_run_one",
       "_tgt": "simplify_run_simplification",
@@ -5397,7 +5493,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L173",
+      "source_location": "L220",
       "weight": 1.0,
       "_src": "run_tests_print_simplifications",
       "_tgt": "run_tests_print_simplification",
@@ -5409,7 +5505,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "run_tests.py",
-      "source_location": "L234",
+      "source_location": "L283",
       "weight": 1.0,
       "_src": "run_tests_run_all",
       "_tgt": "run_tests_print_simplifications",
@@ -5422,7 +5518,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "run_tests.py",
-      "source_location": "L177",
+      "source_location": "L224",
       "weight": 1.0,
       "_src": "run_tests_print_simplification",
       "_tgt": "lru_lrucache_get",
@@ -5469,7 +5565,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L88",
+      "source_location": "L128",
       "weight": 0.8,
       "_src": "run_tests_rationale_1",
       "_tgt": "test_case_testcase",
@@ -5481,7 +5577,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L88",
+      "source_location": "L128",
       "weight": 0.8,
       "_src": "run_tests_rationale_1",
       "_tgt": "test_case_testresult",
@@ -5553,7 +5649,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L88",
+      "source_location": "L128",
       "weight": 0.8,
       "_src": "run_tests_rationale_52",
       "_tgt": "test_case_testcase",
@@ -5565,7 +5661,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L88",
+      "source_location": "L128",
       "weight": 0.8,
       "_src": "run_tests_rationale_52",
       "_tgt": "test_case_testresult",
@@ -5637,7 +5733,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L88",
+      "source_location": "L128",
       "weight": 0.8,
       "_src": "run_tests_rationale_78",
       "_tgt": "test_case_testcase",
@@ -5649,7 +5745,7 @@
       "relation": "uses",
       "confidence": "INFERRED",
       "source_file": "run_tests.py",
-      "source_location": "L88",
+      "source_location": "L128",
       "weight": 0.8,
       "_src": "run_tests_rationale_78",
       "_tgt": "test_case_testresult",
@@ -5678,6 +5774,90 @@
       "_src": "run_tests_rationale_78",
       "_tgt": "workspace_workspace",
       "source": "run_tests_rationale_78",
+      "target": "workspace_workspace",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "run_tests.py",
+      "source_location": "L38",
+      "weight": 0.8,
+      "_src": "run_tests_rationale_118",
+      "_tgt": "grid_grid",
+      "source": "run_tests_rationale_118",
+      "target": "grid_grid",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "run_tests.py",
+      "source_location": "L39",
+      "weight": 0.8,
+      "_src": "run_tests_rationale_118",
+      "_tgt": "robot_robot",
+      "source": "run_tests_rationale_118",
+      "target": "robot_robot",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "run_tests.py",
+      "source_location": "L41",
+      "weight": 0.8,
+      "_src": "run_tests_rationale_118",
+      "_tgt": "solver_solver",
+      "source": "run_tests_rationale_118",
+      "target": "solver_solver",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "run_tests.py",
+      "source_location": "L128",
+      "weight": 0.8,
+      "_src": "run_tests_rationale_118",
+      "_tgt": "test_case_testcase",
+      "source": "run_tests_rationale_118",
+      "target": "test_case_testcase",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "run_tests.py",
+      "source_location": "L128",
+      "weight": 0.8,
+      "_src": "run_tests_rationale_118",
+      "_tgt": "test_case_testresult",
+      "source": "run_tests_rationale_118",
+      "target": "test_case_testresult",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "run_tests.py",
+      "source_location": "L43",
+      "weight": 0.8,
+      "_src": "run_tests_rationale_118",
+      "_tgt": "validator_validator",
+      "source": "run_tests_rationale_118",
+      "target": "validator_validator",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "run_tests.py",
+      "source_location": "L45",
+      "weight": 0.8,
+      "_src": "run_tests_rationale_118",
+      "_tgt": "workspace_workspace",
+      "source": "run_tests_rationale_118",
       "target": "workspace_workspace",
       "confidence_score": 0.5
     },
@@ -8699,10 +8879,10 @@
       "source_file": "src\\simplify.py",
       "source_location": "L25",
       "weight": 0.8,
-      "_src": "simplify_rationale_253",
+      "_src": "simplify_rationale_285",
       "_tgt": "grid_grid",
       "source": "grid_grid",
-      "target": "simplify_rationale_253",
+      "target": "simplify_rationale_285",
       "confidence_score": 0.5
     },
     {
@@ -8711,10 +8891,10 @@
       "source_file": "src\\simplify.py",
       "source_location": "L25",
       "weight": 0.8,
-      "_src": "simplify_rationale_292",
+      "_src": "simplify_rationale_303",
       "_tgt": "grid_grid",
       "source": "grid_grid",
-      "target": "simplify_rationale_292",
+      "target": "simplify_rationale_303",
       "confidence_score": 0.5
     },
     {
@@ -8723,10 +8903,22 @@
       "source_file": "src\\simplify.py",
       "source_location": "L25",
       "weight": 0.8,
-      "_src": "simplify_rationale_403",
+      "_src": "simplify_rationale_342",
       "_tgt": "grid_grid",
       "source": "grid_grid",
-      "target": "simplify_rationale_403",
+      "target": "simplify_rationale_342",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L25",
+      "weight": 0.8,
+      "_src": "simplify_rationale_453",
+      "_tgt": "grid_grid",
+      "source": "grid_grid",
+      "target": "simplify_rationale_453",
       "confidence_score": 0.5
     },
     {
@@ -9250,7 +9442,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src\\simplify.py",
-      "source_location": "L382",
+      "source_location": "L432",
       "weight": 1.0,
       "_src": "simplify_simplify_workspace",
       "_tgt": "grid_grid",
@@ -9910,12 +10102,24 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src\\simplify.py",
-      "source_location": "L324",
+      "source_location": "L374",
       "weight": 1.0,
       "_src": "simplify_simplify_workspace",
       "_tgt": "lru_lrucache_get",
       "source": "lru_lrucache_get",
       "target": "simplify_simplify_workspace"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src\\simplify.py",
+      "source_location": "L468",
+      "weight": 1.0,
+      "_src": "simplify_run_simplification",
+      "_tgt": "lru_lrucache_get",
+      "source": "lru_lrucache_get",
+      "target": "simplify_run_simplification"
     },
     {
       "relation": "calls",
@@ -10751,10 +10955,10 @@
       "source_file": "src\\simplify.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "simplify_rationale_253",
+      "_src": "simplify_rationale_285",
       "_tgt": "robot_robot",
       "source": "robot_robot",
-      "target": "simplify_rationale_253",
+      "target": "simplify_rationale_285",
       "confidence_score": 0.5
     },
     {
@@ -10763,10 +10967,10 @@
       "source_file": "src\\simplify.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "simplify_rationale_292",
+      "_src": "simplify_rationale_303",
       "_tgt": "robot_robot",
       "source": "robot_robot",
-      "target": "simplify_rationale_292",
+      "target": "simplify_rationale_303",
       "confidence_score": 0.5
     },
     {
@@ -10775,10 +10979,22 @@
       "source_file": "src\\simplify.py",
       "source_location": "L26",
       "weight": 0.8,
-      "_src": "simplify_rationale_403",
+      "_src": "simplify_rationale_342",
       "_tgt": "robot_robot",
       "source": "robot_robot",
-      "target": "simplify_rationale_403",
+      "target": "simplify_rationale_342",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L26",
+      "weight": 0.8,
+      "_src": "simplify_rationale_453",
+      "_tgt": "robot_robot",
+      "source": "robot_robot",
+      "target": "simplify_rationale_453",
       "confidence_score": 0.5
     },
     {
@@ -11338,7 +11554,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src\\simplify.py",
-      "source_location": "L383",
+      "source_location": "L433",
       "weight": 1.0,
       "_src": "simplify_simplify_workspace",
       "_tgt": "robot_robot",
@@ -11350,7 +11566,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src\\simplify.py",
-      "source_location": "L531",
+      "source_location": "L584",
       "weight": 1.0,
       "_src": "simplify_run_simplification",
       "_tgt": "robot_robot",
@@ -11649,7 +11865,19 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L252",
+      "source_location": "L284",
+      "weight": 1.0,
+      "_src": "src_simplify_py",
+      "_tgt": "simplify_describe_recipes",
+      "source": "src_simplify_py",
+      "target": "simplify_describe_recipes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L302",
       "weight": 1.0,
       "_src": "src_simplify_py",
       "_tgt": "simplify_crop_bounds",
@@ -11661,7 +11889,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L281",
+      "source_location": "L331",
       "weight": 1.0,
       "_src": "src_simplify_py",
       "_tgt": "simplify_simplify_workspace",
@@ -11673,7 +11901,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L389",
+      "source_location": "L439",
       "weight": 1.0,
       "_src": "src_simplify_py",
       "_tgt": "simplify_run_simplification",
@@ -11697,7 +11925,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L409",
+      "source_location": "L459",
       "weight": 1.0,
       "_src": "simplify_run_simplification",
       "_tgt": "simplify_aggregate_wall_counts",
@@ -11721,7 +11949,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L410",
+      "source_location": "L460",
       "weight": 1.0,
       "_src": "simplify_run_simplification",
       "_tgt": "simplify_count_walls",
@@ -11733,7 +11961,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L329",
+      "source_location": "L379",
       "weight": 1.0,
       "_src": "simplify_simplify_workspace",
       "_tgt": "simplify_orange_peak_keepers",
@@ -11757,7 +11985,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L332",
+      "source_location": "L382",
       "weight": 1.0,
       "_src": "simplify_simplify_workspace",
       "_tgt": "simplify_orange_relative_keepers",
@@ -11781,7 +12009,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L378",
+      "source_location": "L428",
       "weight": 1.0,
       "_src": "simplify_simplify_workspace",
       "_tgt": "simplify_prune_uncrossable",
@@ -11805,7 +12033,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L411",
+      "source_location": "L461",
       "weight": 1.0,
       "_src": "simplify_run_simplification",
       "_tgt": "simplify_mode_name",
@@ -11826,10 +12054,22 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L285",
+      "weight": 1.0,
+      "_src": "simplify_rationale_285",
+      "_tgt": "simplify_describe_recipes",
+      "source": "simplify_describe_recipes",
+      "target": "simplify_rationale_285",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L363",
+      "source_location": "L413",
       "weight": 1.0,
       "_src": "simplify_simplify_workspace",
       "_tgt": "simplify_crop_bounds",
@@ -11841,19 +12081,19 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L253",
+      "source_location": "L303",
       "weight": 1.0,
-      "_src": "simplify_rationale_253",
+      "_src": "simplify_rationale_303",
       "_tgt": "simplify_crop_bounds",
       "source": "simplify_crop_bounds",
-      "target": "simplify_rationale_253",
+      "target": "simplify_rationale_303",
       "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L425",
+      "source_location": "L476",
       "weight": 1.0,
       "_src": "simplify_run_simplification",
       "_tgt": "simplify_simplify_workspace",
@@ -11865,12 +12105,12 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L292",
+      "source_location": "L342",
       "weight": 1.0,
-      "_src": "simplify_rationale_292",
+      "_src": "simplify_rationale_342",
       "_tgt": "simplify_simplify_workspace",
       "source": "simplify_simplify_workspace",
-      "target": "simplify_rationale_292",
+      "target": "simplify_rationale_342",
       "confidence_score": 1.0
     },
     {
@@ -11878,7 +12118,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src\\simplify.py",
-      "source_location": "L381",
+      "source_location": "L431",
       "weight": 1.0,
       "_src": "simplify_simplify_workspace",
       "_tgt": "workspace_workspace",
@@ -11889,12 +12129,12 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "src\\simplify.py",
-      "source_location": "L403",
+      "source_location": "L453",
       "weight": 1.0,
-      "_src": "simplify_rationale_403",
+      "_src": "simplify_rationale_453",
       "_tgt": "simplify_run_simplification",
       "source": "simplify_run_simplification",
-      "target": "simplify_rationale_403",
+      "target": "simplify_rationale_453",
       "confidence_score": 1.0
     },
     {
@@ -11902,7 +12142,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src\\simplify.py",
-      "source_location": "L461",
+      "source_location": "L513",
       "weight": 1.0,
       "_src": "simplify_run_simplification",
       "_tgt": "solver_solver_solve",
@@ -11914,7 +12154,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src\\simplify.py",
-      "source_location": "L461",
+      "source_location": "L513",
       "weight": 1.0,
       "_src": "simplify_run_simplification",
       "_tgt": "solver_solver",
@@ -11926,7 +12166,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src\\simplify.py",
-      "source_location": "L482",
+      "source_location": "L534",
       "weight": 1.0,
       "_src": "simplify_run_simplification",
       "_tgt": "validator_validator_run",
@@ -11938,7 +12178,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src\\simplify.py",
-      "source_location": "L482",
+      "source_location": "L534",
       "weight": 1.0,
       "_src": "simplify_run_simplification",
       "_tgt": "validator_validator",
@@ -11950,7 +12190,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src\\simplify.py",
-      "source_location": "L484",
+      "source_location": "L536",
       "weight": 1.0,
       "_src": "simplify_run_simplification",
       "_tgt": "visualizer_draw_sequence",
@@ -11962,7 +12202,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "src\\simplify.py",
-      "source_location": "L537",
+      "source_location": "L590",
       "weight": 1.0,
       "_src": "simplify_run_simplification",
       "_tgt": "visualizer_draw_summary",
@@ -12191,9 +12431,9 @@
       "source_file": "src\\simplify.py",
       "source_location": "L27",
       "weight": 0.8,
-      "_src": "simplify_rationale_253",
+      "_src": "simplify_rationale_285",
       "_tgt": "solver_solver",
-      "source": "simplify_rationale_253",
+      "source": "simplify_rationale_285",
       "target": "solver_solver",
       "confidence_score": 0.5
     },
@@ -12203,9 +12443,9 @@
       "source_file": "src\\simplify.py",
       "source_location": "L28",
       "weight": 0.8,
-      "_src": "simplify_rationale_253",
+      "_src": "simplify_rationale_285",
       "_tgt": "validator_validator",
-      "source": "simplify_rationale_253",
+      "source": "simplify_rationale_285",
       "target": "validator_validator",
       "confidence_score": 0.5
     },
@@ -12215,9 +12455,9 @@
       "source_file": "src\\simplify.py",
       "source_location": "L34",
       "weight": 0.8,
-      "_src": "simplify_rationale_253",
+      "_src": "simplify_rationale_285",
       "_tgt": "workspace_workspace",
-      "source": "simplify_rationale_253",
+      "source": "simplify_rationale_285",
       "target": "workspace_workspace",
       "confidence_score": 0.5
     },
@@ -12227,9 +12467,9 @@
       "source_file": "src\\simplify.py",
       "source_location": "L27",
       "weight": 0.8,
-      "_src": "simplify_rationale_292",
+      "_src": "simplify_rationale_303",
       "_tgt": "solver_solver",
-      "source": "simplify_rationale_292",
+      "source": "simplify_rationale_303",
       "target": "solver_solver",
       "confidence_score": 0.5
     },
@@ -12239,9 +12479,9 @@
       "source_file": "src\\simplify.py",
       "source_location": "L28",
       "weight": 0.8,
-      "_src": "simplify_rationale_292",
+      "_src": "simplify_rationale_303",
       "_tgt": "validator_validator",
-      "source": "simplify_rationale_292",
+      "source": "simplify_rationale_303",
       "target": "validator_validator",
       "confidence_score": 0.5
     },
@@ -12251,9 +12491,9 @@
       "source_file": "src\\simplify.py",
       "source_location": "L34",
       "weight": 0.8,
-      "_src": "simplify_rationale_292",
+      "_src": "simplify_rationale_303",
       "_tgt": "workspace_workspace",
-      "source": "simplify_rationale_292",
+      "source": "simplify_rationale_303",
       "target": "workspace_workspace",
       "confidence_score": 0.5
     },
@@ -12263,9 +12503,9 @@
       "source_file": "src\\simplify.py",
       "source_location": "L27",
       "weight": 0.8,
-      "_src": "simplify_rationale_403",
+      "_src": "simplify_rationale_342",
       "_tgt": "solver_solver",
-      "source": "simplify_rationale_403",
+      "source": "simplify_rationale_342",
       "target": "solver_solver",
       "confidence_score": 0.5
     },
@@ -12275,9 +12515,9 @@
       "source_file": "src\\simplify.py",
       "source_location": "L28",
       "weight": 0.8,
-      "_src": "simplify_rationale_403",
+      "_src": "simplify_rationale_342",
       "_tgt": "validator_validator",
-      "source": "simplify_rationale_403",
+      "source": "simplify_rationale_342",
       "target": "validator_validator",
       "confidence_score": 0.5
     },
@@ -12287,9 +12527,45 @@
       "source_file": "src\\simplify.py",
       "source_location": "L34",
       "weight": 0.8,
-      "_src": "simplify_rationale_403",
+      "_src": "simplify_rationale_342",
       "_tgt": "workspace_workspace",
-      "source": "simplify_rationale_403",
+      "source": "simplify_rationale_342",
+      "target": "workspace_workspace",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L27",
+      "weight": 0.8,
+      "_src": "simplify_rationale_453",
+      "_tgt": "solver_solver",
+      "source": "simplify_rationale_453",
+      "target": "solver_solver",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L28",
+      "weight": 0.8,
+      "_src": "simplify_rationale_453",
+      "_tgt": "validator_validator",
+      "source": "simplify_rationale_453",
+      "target": "validator_validator",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "src\\simplify.py",
+      "source_location": "L34",
+      "weight": 0.8,
+      "_src": "simplify_rationale_453",
+      "_tgt": "workspace_workspace",
+      "source": "simplify_rationale_453",
       "target": "workspace_workspace",
       "confidence_score": 0.5
     },

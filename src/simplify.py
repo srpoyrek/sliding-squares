@@ -231,22 +231,72 @@ def mode_name(
 # Every simplification recipe worth running, keyed by the folder it writes to
 # (the key is exactly what `mode_name` returns for its kwargs). `run_tests.py
 # --simplified` runs the whole set by default so the strategies can be compared
-# on the same test; pass names to run a subset.
+# on the same test; pass names to run a subset. `doc` is what gets printed by
+# --list-recipes and written into each run's simplification.txt and summary.png,
+# so a folder is never an unexplained name.
 RECIPES: dict[str, dict] = {
-    "black": {},
-    "black_alternate": {"remove_alternate_orange": True},
-    "black_peaks": {"keep_orange_peaks": True},
-    "black_relative": {"keep_relative_robot_size": True},
-    "black_uncrossable": {"prune_uncrossable": True},
-    "black_peaks_uncrossable": {"keep_orange_peaks": True, "prune_uncrossable": True},
-    "black_relative_uncrossable": {
-        "keep_relative_robot_size": True,
-        "prune_uncrossable": True,
+    "black": {
+        "doc": "Baseline. Drop only the walls the solution never touched; keep "
+        "every touched wall as-is.",
+        "kwargs": {},
     },
-    # The only provably lossless recipe: nothing removed but walls the robot
-    # could never cross, so the switch count cannot move.
-    "uncrossable": {"remove_black": False, "prune_uncrossable": True},
+    "black_alternate": {
+        "doc": "Baseline + drop every other touched wall in row-major order. "
+        "Crude control: thins without looking at where contact happened.",
+        "kwargs": {"remove_alternate_orange": True},
+    },
+    "black_peaks": {
+        "doc": "Baseline + on each straight run of touched wall, keep only the "
+        "cell the robot pressed hardest. Most aggressive heuristic.",
+        "kwargs": {"keep_orange_peaks": True},
+    },
+    "black_relative": {
+        "doc": "Baseline + keep contact peaks plus enough extra cells that no "
+        "gap along a run exceeds n-1, so an n x n robot still cannot slip past.",
+        "kwargs": {"keep_relative_robot_size": True},
+    },
+    "black_uncrossable": {
+        "doc": "Baseline + exact pass: free every remaining wall whose removal "
+        "opens no new n x n robot placement. Thins lines to a picket at spacing "
+        "n without guessing.",
+        "kwargs": {"prune_uncrossable": True},
+    },
+    "black_peaks_uncrossable": {
+        "doc": "black_peaks, then the exact pass on whatever survived. The "
+        "smallest wall set of the set, but inherits the peak heuristic's risk.",
+        "kwargs": {"keep_orange_peaks": True, "prune_uncrossable": True},
+    },
+    "black_relative_uncrossable": {
+        "doc": "black_relative, then the exact pass. The spacing rule and the "
+        "placement rule agree on straight runs, so this mostly shows what the "
+        "exact pass finds that the gap heuristic misses at corners.",
+        "kwargs": {"keep_relative_robot_size": True, "prune_uncrossable": True},
+    },
+    "uncrossable": {
+        "doc": "The only PROVABLY lossless recipe: nothing is removed but walls "
+        "the robot could never cross, so the state space — and therefore the "
+        "switch count — cannot move. Always reports PRESERVED.",
+        "kwargs": {"remove_black": False, "prune_uncrossable": True},
+    },
 }
+
+
+def describe_recipes():
+    """Human-readable listing of RECIPES, for --list-recipes."""
+    width = max(len(k) for k in RECIPES)
+    lines = ["Simplification recipes (folder name -> what it does):", ""]
+    for name, spec in RECIPES.items():
+        doc = spec["doc"].split()
+        line, out = f"  {name.ljust(width)}  ", []
+        for word in doc:  # wrap the doc under a hanging indent
+            if len(line) + len(word) + 1 > 96:
+                out.append(line)
+                line = " " * (width + 4)
+            line += word + " "
+        out.append(line)
+        lines.extend(s.rstrip() for s in out)
+        lines.append("")
+    return "\n".join(lines)
 
 
 def _crop_bounds(tiles):
@@ -415,6 +465,7 @@ def run_simplification(
         keep_relative_robot_size=keep_relative_robot_size,
         prune_uncrossable=prune_uncrossable,
     )
+    recipe_doc = RECIPES.get(mode, {}).get("doc", "")
 
     (
         simplified,
@@ -439,6 +490,7 @@ def run_simplification(
 
     status: dict = {
         "mode": mode,
+        "doc": recipe_doc,
         "removed": removed_total,
         "removed_black": len(removed_black),
         "removed_orange": len(removed_orange),
@@ -499,7 +551,8 @@ def run_simplification(
     with open(os.path.join(sub_dir, "simplification.txt"), "w") as f:
         f.write(
             f"Status: {outcome}\n"
-            f"Mode: {mode}\n"
+            f"Recipe: {mode}\n"
+            f"  {recipe_doc}\n"
             f"Walls before: {walls_before}\n"
             f"Walls after:  {walls_after}\n"
             f"Black walls removed ({len(removed_black)}): {removed_black}\n"
@@ -512,7 +565,7 @@ def run_simplification(
     pct = 100.0 * removed_total / walls_before if walls_before else 0.0
     stats = [
         ("test", test_name),
-        ("mode", mode),
+        ("recipe", mode),
         ("status", outcome),
         ("grid", f"{ws.grid.rows} x {ws.grid.cols}"),
         ("robot size", f"{ws.robot_a.n} x {ws.robot_a.n}"),
@@ -538,7 +591,7 @@ def run_simplification(
         panels,
         stats,
         os.path.join(sub_dir, "summary.png"),
-        title=f"{test_name}  —  {outcome}",
+        title=f"{test_name} · {mode}  —  {outcome}",
     )
 
     status["plot_dir"] = sub_dir
