@@ -45,9 +45,11 @@ sliding-squares/
 │   ├── simplify.py         # Workspace simplification — strip redundant walls, preserve switch count
 │   ├── visualizer.py       # Matplotlib visualization (grids, sequences, BFS frontiers, proof rendering)
 │   ├── report.py           # run.json + the HTML reports built from it
+│   ├── benchmark.py        # BFS comparison — measurement, benchmark.json, its report
 │   ├── templates/          # Jinja2 templates for those reports
 │   │   ├── report.html.j2  #   one run: player, heatmap, recipes
-│   │   └── index.html.j2   #   the table over every run
+│   │   ├── index.html.j2   #   the table over every run
+│   │   └── benchmark.html.j2 # the BFS comparison: strategies, charts, per-case tables
 │   ├── path_resolver.py    # Compact path notation parser (e.g. "12R2US")
 │   ├── test_case.py        # Base class for test cases
 │   └── directories.py      # Path management utilities
@@ -69,6 +71,7 @@ sliding-squares/
 │   └── test_simplify.py           # Proves the simplification passes' claims
 ├── .github/workflows/pages.yml    # Verify, build reports, publish to Pages
 ├── find_hardest_workspace.py      # Parallel search for the workspace requiring the most switches
+├── benchmark_bfs.py               # Compare the three BFS searches (see BFS comparison)
 ├── make_gallery.py                # Recipe gallery: every fixture x every recipe
 ├── render_run.py                  # run.json -> PNGs, offline (see Reports)
 ├── run_tests.py
@@ -247,6 +250,66 @@ python render_run.py plots/tests/3x3_robot_holes/run.json --out-dir figures/
 It writes to `<run-dir>/png_from_json/`, leaving any existing `switch_NN.png`
 untouched so the two can be compared side by side.
 
+### BFS comparison
+
+[`benchmark_bfs.py`](benchmark_bfs.py) runs every test case through all three
+searches in [`src/bfs.py`](src/bfs.py) and publishes the comparison to
+`plots/benchmark/index.html`.
+
+| Search | Depth | Trees | What it does |
+|---|---|---|---|
+| `mirror` | D/2 | 1 | One forward tree; each state's distance to the goal is read off that same tree through the A↔B relabelling |
+| `bidirectional` | D/2 | 2 | A forward and a backward tree, expanded in lockstep until they meet |
+| `unidirectional` | D | 1 | One forward tree, expanded the whole way to the goal — the baseline |
+
+```bash
+python benchmark_bfs.py                            # every case, every search
+python benchmark_bfs.py 3x3                        # only cases matching "3x3"
+python benchmark_bfs.py --variants mirror,bidirectional
+python benchmark_bfs.py --repeat 5 --timeout 300
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `name` (positional) | all | Substring filter — only benchmark cases whose name contains it |
+| `--variants` | all three | Comma-separated searches to compare, in table order |
+| `--repeat` | `3` | Warm repeats timed after the cold solve; the minimum and median of these are reported |
+| `--timeout` | `120` | Seconds allowed per case+search before the measurement is killed and recorded as a timeout. The unidirectional search expands to depth D rather than D/2, so it is the one that needs this |
+| `--out` | `plots/benchmark/` | Directory for `benchmark.json` and `index.html`. A custom path is not the site layout, so nothing is relinked |
+
+**All three searches are exact, so this is a correctness check as much as a
+performance one.** Their switch counts must agree and every path they return
+must validate; the page leads with whether they did, because no timing below
+that is worth reading until they do.
+
+Each measurement runs in **its own spawned process**. That gives empty flood
+caches (so whichever search runs second is not handed the first one's work), a
+`tracemalloc` peak covering that search alone, and a hard timeout for a search
+that runs away.
+
+What each measurement means:
+
+| Measurement | Unit | What it is |
+|---|---|---|
+| `turns` | count | The answer: minimum control turns to swap the robots. All three searches are exact, so this must be identical across them |
+| `states` | count of states | States held in the search's `visited` map. **The structural cost, and exact** — the same number on every machine and every run. This is the number to judge the searches by |
+| `time` | seconds | Wall clock for one solve, fastest of `--repeat` runs, with the flood caches already warm. Warm because that isolates each search's own bookkeeping from the flood fills all three share. Machine-dependent: a trend, not a constant |
+| `ram` | bytes | Most memory held at once during one solve — `tracemalloc` peak on the first solve, in a fresh process with cold caches |
+| `× bidirectional` | multiple | That search's value ÷ `bidirectional`'s, same measurement, same cases. `0.50x` is half as much; lower is better |
+
+**`ram` moves much less than `states` does**, and that is expected: `flood_fill`
+keeps its results in the LRU caches in [`src/bfs.py`](src/bfs.py), all three
+searches fill them identically, and that shared cache dominates the peak. The
+state count is where the searches actually differ.
+
+`benchmark.json` also records `cold_seconds` and `warm_median` for each run;
+the page shows the fastest warm time, since that is the least noisy number.
+
+`plots/benchmark/benchmark.json` is the record; the page is rendered from it, so
+regenerate rather than editing either by hand. The run also relinks
+`plots/tests/index.html` so the comparison is reachable from the test index
+whichever order the two scripts were run in.
+
 ### Verify the simplification
 
 The recipes make specific claims; the suite checks them rather than taking them
@@ -294,9 +357,15 @@ Enable it once under **Settings → Pages → Source: GitHub Actions**. Then:
 
 | Page | What it holds |
 |---|---|
-| [Landing page](https://srpoyrek.github.io/sliding-squares/) | Links to both trees |
+| [Landing page](https://srpoyrek.github.io/sliding-squares/) | Links to the report trees |
 | [Test runs](https://srpoyrek.github.io/sliding-squares/tests/index.html) | Every test case, its solved sequence, heatmap and recipe comparison |
 | [Recipe gallery](https://srpoyrek.github.io/sliding-squares/gallery/index.html) | What each simplification recipe does to corner, edge and junction layouts |
+| [BFS comparison](https://srpoyrek.github.io/sliding-squares/benchmark/index.html) | The three searches side by side — how each works with its pros and cons, states held, solve time, peak memory, and the switch-count cross-check |
+
+CI runs the benchmark with `--repeat 2 --timeout 180`. A shared runner is not a
+benchmarking machine, so treat the published timings as indicative; `states` is
+exact and reproducible, and the switch-count agreement between the three
+searches is the part that must hold.
 
 A pull request gets the verify and build signal without replacing what is live.
 

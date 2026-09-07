@@ -28,7 +28,7 @@ import sys
 from datetime import datetime, timezone
 
 from src.directories import get_plots_dir
-from src.report import TEMPLATE_DIR, palette
+from src.report import TEMPLATE_DIR, palette, write_site_index
 from src.simplify import RECIPES, _prune_uncrossable, simplify_workspace
 from tests.fixtures import CASES
 
@@ -229,15 +229,9 @@ def main(argv: list[str]) -> int:
     print(f"{len(CASES)} case(s) x {len(RECIPES)} recipe(s) -> {dest}")
 
     if not args.out:
-        # Landing page for the published site, linking the two report trees.
-        # Only for the default layout; a custom --out is not a site root.
-        site = os.path.join(plots, "index.html")
-        with open(site, "w", encoding="utf-8") as fh:
-            fh.write(
-                env.get_template("site.html.j2").render(
-                    generated=datetime.now(timezone.utc).isoformat(timespec="seconds")
-                )
-            )
+        # Landing page for the published site, linking the report trees. Only
+        # for the default layout; a custom --out is not a site root.
+        site = write_site_index(plots)
         print(f"site index -> {site}")
     return 0
 

@@ -33,4 +33,15 @@
   junction and degenerate layouts — the worked cases behind the test suite.</span>
 </a>
 
+{# Only linked when the benchmark has actually been built: benchmark_bfs.py is
+   a separate run, and a card pointing at a missing page is worse than none. #}
+{% if has_benchmark %}
+<a class="card" href="benchmark/index.html">
+  <b>BFS comparison</b>
+  <span class="muted">The three searches — mirror, bidirectional and
+  unidirectional — measured against each other on every test case for states
+  held, solve time and peak memory, with the switch counts cross-checked.</span>
+</a>
+{% endif %}
+
 <p class="muted">Built {{ generated }}</p>

@@ -52,6 +52,11 @@ SCHEMA_VERSION = 1
 RUN_FILENAME = "run.json"
 REPORT_FILENAME = "index.html"
 
+#: Sub-tree of plots/ holding the BFS comparison. Named here rather than in
+#: `benchmark.py` so the landing page can look for it without importing that
+#: module, which imports this one.
+BENCHMARK_DIRNAME = "benchmark"
+
 #: The markup lives in real ``.html.j2`` files rather than Python strings, so an
 #: editor highlights and lints the HTML, CSS and JS, and Jinja's autoescaping
 #: covers every interpolation instead of each call site remembering to escape.
@@ -492,6 +497,27 @@ def _leaderboard(rows: list[dict]) -> list[dict]:
         board.append(acc)
     # Reduction first; a recipe that never failed breaks a tie over one that did.
     return sorted(board, key=lambda a: (-a["avg_pct"], -a["kept"], a["mode"]))
+
+
+def write_site_index(plots_dir: str) -> str:
+    """Write ``plots/index.html`` — the landing page linking the report trees.
+
+    Lives here rather than in the script that first wrote it because more than
+    one build step needs to refresh it, and each links pages the others
+    produced. Whichever runs last has to be able to relink, or the landing page
+    ends up reflecting the order the scripts happened to be run in instead of
+    what is actually on disk — which is how the benchmark card went missing
+    when the comparison was built after the gallery.
+    """
+    os.makedirs(plots_dir, exist_ok=True)
+    page = _ENV.get_template("site.html.j2").render(
+        generated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        has_benchmark=os.path.exists(os.path.join(plots_dir, BENCHMARK_DIRNAME, REPORT_FILENAME)),
+    )
+    dest = os.path.join(plots_dir, REPORT_FILENAME)
+    with open(dest, "w", encoding="utf-8") as fh:
+        fh.write(page)
+    return dest
 
 
 def write_global_index(tests_dir: str) -> str | None:

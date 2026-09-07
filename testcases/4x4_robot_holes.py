@@ -43,6 +43,7 @@ class FourByFourHoles(TestCase):
         grid.add_hole(row=11, col=21, height=1, width=7)
         grid.add_hole(row=9, col=22, height=2, width=1)
         grid.add_hole(row=8, col=27, height=3, width=1)
+        grid.add_hole(row=16, col=17, height=1, width=15)
 
         robot_size = 4
         pos_a = (2, 26)

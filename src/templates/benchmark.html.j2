@@ -1,0 +1,302 @@
+<!doctype html>
+{#
+  BFS comparison over every test case.
+  Rendered by src.benchmark.write_benchmark_report from benchmark.json with:
+  data, charts, colors, blurbs, baseline, healthy.
+  Autoescaping is on, so case names and error text are safe to interpolate.
+#}
+<meta charset="utf-8">
+<title>sliding-squares — BFS comparison</title>
+<style>
+ :root{--bg:#fff;--fg:#1a1a1a;--muted:#666;--line:#ddd;--ok:#1a7f37;--bad:#b3261e;
+       --card:#fafafa;--winbg:#e6f4ea}
+ @media (prefers-color-scheme:dark){:root{--bg:#24262b;--fg:#f2f2f2;--muted:#a9adb5;
+       --line:#3d414a;--card:#2d3038;--ok:#4ac26b;--bad:#f4776a;--winbg:#1e3626}}
+ /* Charts keep a light face in both themes: the labels and guides are tuned
+    for dark-on-light, and a chart that inverts with the page cannot be
+    compared with one screenshotted from the other theme. */
+ .chart{background:#fff;border:1px solid var(--line);border-radius:7px;
+        max-width:100%;height:auto}
+ .chart text{fill:#5b616b;font:11px ui-sans-serif,system-ui,sans-serif}
+ .chart text.case{fill:#1a1a1a;font-weight:600}
+ .chart text.value{fill:#3a3f47}
+ .chart text.tick{fill:#8a8f98;font-size:10px}
+ .chart text.axis-label{fill:#8a8f98;font-size:10px;letter-spacing:.03em}
+ .chart line.grid{stroke:#e3e6ea;stroke-width:1}
+ .unit{font-weight:400;font-size:11px;color:var(--muted)}
+ body{margin:0;padding:24px;background:var(--bg);color:var(--fg);
+      font:14px/1.5 ui-sans-serif,system-ui,sans-serif}
+ h1{font-size:20px;margin:0 0 6px}
+ h2{font-size:16px;margin:30px 0 8px}
+ h3{font-size:14px;margin:22px 0 6px}
+ table{border-collapse:collapse;width:100%;display:block;overflow-x:auto}
+ th,td{border-bottom:1px solid var(--line);padding:6px 12px;text-align:left;white-space:nowrap}
+ th{color:var(--muted);font-weight:600;font-size:12px}
+ tr:hover td{background:var(--card)}
+ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+ /* Grouped header: the paired value/ratio columns belong to one measurement,
+    and a flat header row makes six numeric columns unreadable. */
+ .grouphead th{border-bottom:1px solid var(--line);text-align:center}
+ .grouphead th.grp{border-left:1px solid var(--line);border-right:1px solid var(--line)}
+ /* The winning cell has to be findable at a glance in a table this wide, so it
+    gets a filled chip rather than a colour change — colour alone is too weak
+    against tabular numerals, and it survives neither a greyscale print nor a
+    reader who cannot separate the two hues. */
+ td.win{background:var(--winbg);font-weight:700;color:var(--ok);
+        box-shadow:inset 2px 0 0 var(--ok)}
+ tr:hover td.win{background:var(--winbg)}
+ .winkey{background:var(--winbg);color:var(--ok);font-weight:700;
+         box-shadow:inset 2px 0 0 var(--ok);padding:1px 6px}
+ a{color:inherit} .muted{color:var(--muted)}
+ .ok{color:var(--ok);font-weight:600} .bad{color:var(--bad);font-weight:600}
+ .banner{border:1px solid var(--line);border-radius:8px;padding:12px 14px;
+         background:var(--card);margin:14px 0}
+ .banner.bad{border-color:var(--bad)}
+ .swatch{display:inline-block;width:10px;height:10px;border-radius:2px;
+         margin-right:6px;vertical-align:baseline}
+ .legend{display:flex;flex-wrap:wrap;gap:18px;margin:10px 0 6px}
+ .charts{display:flex;flex-direction:column;gap:22px}
+ .note{max-width:78ch}
+ .strategy{border:1px solid var(--line);border-radius:8px;padding:2px 18px 16px;
+           margin:14px 0;background:var(--card)}
+ .strategy h3{margin:16px 0 10px}
+ .strategy p{margin:4px 0 14px}
+ .steps{margin:4px 0 14px;padding-left:20px;max-width:78ch}
+ .steps li{margin:6px 0}
+ .pchead{font-size:11px;text-transform:uppercase;letter-spacing:.06em;
+         color:var(--muted);font-weight:600;margin-top:10px}
+</style>
+
+<h1>sliding-squares — BFS comparison</h1>
+<p class="muted note">{{ data.cases | length }} test case(s) &middot;
+{{ data.variants | length }} search(es) &middot; {{ data.repeat }} warm repeat(s)
+&middot; {{ data.timeout }}s timeout. Each measurement ran in its own process, so
+the flood caches started empty and the peak allocation is that search alone.
+Built {{ data.generated }}.</p>
+
+{# The comparison is only meaningful if the searches agree. Lead with that. #}
+{% if healthy %}
+<div class="banner">
+  <span class="ok">All searches agree.</span>
+  <span class="muted">Every variant returned the same switch count on every case,
+  and every path it produced was accepted by the validator. The timings below
+  compare three routes to the same answer.</span>
+</div>
+{% else %}
+<div class="banner bad">
+  <span class="bad">Searches disagree.</span>
+  <span class="muted">At least one case below has a switch count that differs
+  between variants, a path the validator rejected, or a variant that did not
+  finish. All three searches are exact, so a disagreement is a defect — read the
+  per-case tables before trusting any timing here.</span>
+</div>
+{% endif %}
+
+<div class="legend">
+  {% for variant in data.variants %}
+  <span><span class="swatch" style="background:{{ colors[variant] }}"></span>
+  <b>{{ variant }}</b> <span class="muted">— {{ blurbs[variant] }}</span></span>
+  {% endfor %}
+</div>
+
+<h2>Charts</h2>
+<div class="charts">
+  {% for chart in charts %}
+  <div>
+    <h3>{{ chart.title }}</h3>
+    <p class="muted note">{{ chart.subtitle }}</p>
+    <svg class="chart" viewBox="0 0 {{ chart.width }} {{ chart.height }}"
+         width="{{ chart.width }}" height="{{ chart.height }}"
+         role="img" aria-label="{{ chart.title }}, {{ chart.axis_label }}">
+      {# One axis shared by every bar in the chart, so the lengths are
+         comparable across cases and not only within one. #}
+      {% for tick in chart.grid %}
+      <line class="grid" x1="{{ tick.x }}" y1="{{ chart.plot_top }}"
+            x2="{{ tick.x }}" y2="{{ chart.plot_bottom }}"></line>
+      <text class="tick" x="{{ tick.x }}" y="{{ chart.axis_y_top }}"
+            text-anchor="middle">{{ tick.label }}</text>
+      <text class="tick" x="{{ tick.x }}" y="{{ chart.axis_y }}"
+            text-anchor="middle">{{ tick.label }}</text>
+      {% endfor %}
+      <text class="axis-label" x="0" y="{{ chart.axis_y_top }}">{{ chart.axis_label }}</text>
+      {% for group in chart.groups %}
+      <text class="case" x="0" y="{{ group.heading_y }}">{{ group.name }}</text>
+      {% for bar in group.bars %}
+      <text x="{{ chart.bar_x - 8 }}" y="{{ bar.y + chart.text_dy }}"
+            text-anchor="end">{{ bar.variant }}</text>
+      {% if not bar.missing %}
+      <rect x="{{ chart.bar_x }}" y="{{ bar.y }}" width="{{ bar.width }}"
+            height="{{ chart.bar_h }}" rx="2" fill="{{ bar.fill }}"></rect>
+      {% endif %}
+      <text class="value" x="{{ chart.bar_x + bar.width + 6 }}"
+            y="{{ bar.y + chart.text_dy }}">{{ bar.label }}</text>
+      {% endfor %}
+      {% endfor %}
+    </svg>
+  </div>
+  {% endfor %}
+</div>
+
+<h2>Totals</h2>
+<p class="muted note">Summed across every case this search and
+<code>{{ baseline }}</code> both solved, so the ratio columns compare like with
+like.</p>
+
+<table>
+  <tr class="grouphead">
+    <th rowspan="2">search</th><th rowspan="2">what it does</th>
+    <th colspan="2" class="num grp">cases</th>
+    <th colspan="2" class="num grp">memory — states held</th>
+    <th colspan="2" class="num grp">execution time</th>
+    <th colspan="2" class="num grp">memory — peak RAM</th>
+  </tr>
+  <tr>
+    <th class="num">solved</th><th class="num">failed</th>
+    <th class="num">count</th><th class="num">&times; {{ baseline }}</th>
+    <th class="num">seconds</th><th class="num">&times; {{ baseline }}</th>
+    <th class="num">bytes</th><th class="num">&times; {{ baseline }}</th>
+  </tr>
+  {% for row in data.summary %}
+  <tr>
+    <td><span class="swatch" style="background:{{ colors[row.variant] }}"></span>
+        <b>{{ row.variant }}</b></td>
+    <td class="muted" style="white-space:normal">{{ row.blurb }}</td>
+    <td class="num">{{ row.solved }}</td>
+    <td class="num">{% if row.failed %}<span class="bad">{{ row.failed }}</span>
+        {%- else -%}0{% endif %}</td>
+    <td class="num">{{ row.states | num }}</td>
+    <td class="num">{{ row.states_ratio | ratio }}</td>
+    <td class="num">{{ row.warm_min | seconds }}</td>
+    <td class="num">{{ row.warm_min_ratio | ratio }}</td>
+    <td class="num">{{ row.peak_bytes | bytes }}</td>
+    <td class="num">{{ row.peak_bytes_ratio | ratio }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>Per case</h2>
+<p class="muted note">The best value for each measurement is marked
+<span class="winkey">like this</span> in every table below. Control turns are not
+marked: all three searches are exact, so that column must be identical.</p>
+{% for case in data.cases %}
+<h3>{{ case.name }}
+  <span class="muted">— {{ case.rows }}x{{ case.cols }} grid, {{ case.n }}x{{ case.n }} robot</span>
+  {% if case.healthy %}
+  <span class="ok">&#10003; agree</span>
+  {% else %}
+  <span class="bad">&#10007; disagree</span>
+  {% endif %}
+</h3>
+<table>
+  <tr class="grouphead">
+    <th rowspan="2">search</th>
+    <th rowspan="2" class="num">control<br>turns</th>
+    <th colspan="2" class="num grp">memory — states held</th>
+    <th colspan="2" class="num grp">execution time</th>
+    <th colspan="2" class="num grp">memory — peak RAM</th>
+    <th colspan="3" class="grp">solution</th>
+  </tr>
+  <tr>
+    <th class="num">count</th><th class="num">&times; {{ baseline }}</th>
+    <th class="num">seconds</th><th class="num">&times; {{ baseline }}</th>
+    <th class="num">bytes</th><th class="num">&times; {{ baseline }}</th>
+    <th class="num">moves</th><th>moves first</th><th>replay</th>
+  </tr>
+  {% for record in case.variants %}
+  <tr>
+    <td><span class="swatch" style="background:{{ colors[record.variant] }}"></span>
+        {{ record.variant }}</td>
+    {% if record.status == 'ok' %}
+    {# Control turns, not raw switches: N switches is N+1 turns, the same
+       convention every other report on the site prints. #}
+    <td class="num">{{ record.switches + 1 }}</td>
+    <td class="num{% if record.states_best %} win{% endif %}">{{ record.states | num }}</td>
+    <td class="num muted">{{ record.states_ratio | ratio }}</td>
+    <td class="num{% if record.warm_min_best %} win{% endif %}">{{ record.warm_min | seconds }}</td>
+    <td class="num muted">{{ record.warm_min_ratio | ratio }}</td>
+    <td class="num{% if record.peak_bytes_best %} win{% endif %}">{{ record.peak_bytes | bytes }}</td>
+    <td class="num muted">{{ record.peak_bytes_ratio | ratio }}</td>
+    <td class="num">{{ record.steps | num }}</td>
+    <td>{{ record.first_mover or '—' }}</td>
+    <td>{% if record.valid %}<span class="ok">valid</span>
+        {%- else -%}<span class="bad">INVALID: {{ record.invalid_reason }}</span>{% endif %}</td>
+    {% else %}
+    <td class="bad" colspan="10">{{ record.status }}: {{ record.error or 'no result' }}</td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+</table>
+{% if not case.agree %}
+<p class="bad">Switch counts differ between searches on this case. All three are
+exact, so exactly one of them is wrong.</p>
+{% endif %}
+{% endfor %}
+
+<h2>How each search works</h2>
+<p class="muted note"><b>Depth</b> is how far it must expand before it can
+answer, where D is the number of switches in the solution. <b>Trees</b> is how
+many state sets it holds at once. Everything above follows from those two.</p>
+
+{% for variant in data.variants %}
+{% set doc = docs[variant] %}
+<div class="strategy">
+  <h3><span class="swatch" style="background:{{ colors[variant] }}"></span>{{ variant }}
+    <span class="muted">— expands to depth {{ doc.depth }}, holds {{ doc.trees }}
+    tree(s)</span></h3>
+
+  <div class="pchead">Why do it this way</div>
+  <p class="note">{{ doc.why }}</p>
+
+  <div class="pchead">The algorithm</div>
+  <ol class="steps">{% for step in doc.steps %}<li>{{ step }}</li>{% endfor %}</ol>
+
+  <div class="pchead">What it costs</div>
+  <p class="note">{{ doc.cost }}</p>
+</div>
+{% endfor %}
+
+<h2>What the columns mean</h2>
+<table>
+  <tr><th>Measurement</th><th>Unit</th><th>What it is</th></tr>
+  <tr>
+    <td><b>Control turns</b></td><td>count</td>
+    <td style="white-space:normal">The answer itself: the minimum number of turns
+    to swap the robots. All three searches are exact, so this <b>must</b> be
+    identical across them.</td>
+  </tr>
+  <tr>
+    <td><b>Memory — states held</b></td><td>count of states</td>
+    <td style="white-space:normal">How many states the search keeps in its
+    <code>visited</code> map. This is the structural cost and it is <b>exact</b> —
+    the same number on every machine, every run. It is the number to judge the
+    searches by.</td>
+  </tr>
+  <tr>
+    <td><b>Execution time</b></td><td>seconds (us / ms / s)</td>
+    <td style="white-space:normal">Wall clock for one solve, the fastest of
+    {{ data.repeat }} runs with the flood caches already warm — which isolates
+    each search's own bookkeeping from the flood fills all three share.
+    Machine-dependent: read it as a trend, not a constant.</td>
+  </tr>
+  <tr>
+    <td><b>Memory — peak RAM</b></td><td>bytes (KB / MB)</td>
+    <td style="white-space:normal">The most memory held at once during one solve,
+    from <code>tracemalloc</code>, measured on the first solve in a fresh process
+    with cold caches. It moves far less than the state count does, because most
+    of it is the shared flood cache that all three searches fill identically.</td>
+  </tr>
+  <tr>
+    <td><b>&times; {{ baseline }}</b></td><td>multiple</td>
+    <td style="white-space:normal">This search's value divided by
+    <code>{{ baseline }}</code>'s, same measurement, same cases.
+    <code>0.50x</code> is half as much, <code>2.00x</code> twice as much.
+    <b>Lower is better</b>; <code>{{ baseline }}</code> is <code>1.00x</code> by
+    definition.</td>
+  </tr>
+</table>
+
+<p class="muted note" style="margin-top:30px">
+<a href="../index.html">&larr; all reports</a> &middot;
+Record: <code>benchmark.json</code> beside this page. This page is generated from
+it — regenerate with <code>python benchmark_bfs.py</code> rather than editing
+either by hand.</p>

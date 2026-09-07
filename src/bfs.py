@@ -450,6 +450,28 @@ def _reconstruct_fwd(parent: dict, end_sid, workspace, unpack) -> list:
     return path
 
 
+def _initial_mover(parent: dict, end_sid):
+    """The robot that moved in the layer-0 segment of the path ending at
+    `end_sid`, or None if there is no such chain.
+
+    Every search reports this alongside the path, because a command string
+    cannot be replayed without it: commands name no robot, so a replay has to
+    be told who holds control at step 0 and then follows the switches. Reading
+    it off the first *move* command instead is wrong whenever the layer-0
+    segment is empty — the path then opens with a switch, and the first robot
+    to move is the second to hold control.
+    """
+    sid = end_sid
+    while True:
+        entry = parent.get(sid)
+        if not entry:
+            return None
+        prev_sid, _target_pos, mover = entry
+        if prev_sid is None:
+            return mover
+        sid = prev_sid
+
+
 def _reconstruct_bwd(bwd_parent: dict, meeting_sid, workspace, unpack) -> list:
     """Walk bwd parent from meeting forward-in-time to goal. Returns cmd list."""
     n = workspace.robot_a.n
@@ -505,20 +527,98 @@ def _make_mirror(workspace, n: int):
     return mirror
 
 
-def _mirror_tail(parent: dict, mirror_sid, workspace, unpack) -> list:
-    """Second half of a mirrored solve: the forward route to the meeting
-    state's relabelling, played backwards.
+def _fwd_segments(parent: dict, end_sid, workspace, unpack) -> list:
+    """The path to `end_sid` as segments, in forward order.
 
-    Commands name no robot — 'R' is 'R' whichever square executes it — so the
-    relabelling leaves the string alone and only the reversal applies: the
-    order flips and each direction inverts, while switches keep their places.
-    The first segment of the result is driven by the same robot that made the
-    last move of the first half, so the two halves join without an extra
-    switch and the switch count is the sum of the two layers.
+    A segment is ``(mover, source_pos, static_pos, target_pos)`` — one robot
+    walking while the other stands still. Producing segments rather than
+    commands lets the two halves of a mirrored solve be joined *before* either
+    is turned into moves, which is what keeps the join move-minimal.
     """
-    tail = _reconstruct_fwd(parent, mirror_sid, workspace, unpack)
-    tail.reverse()
-    return [_INVERSE_CMD.get(cmd, cmd) for cmd in tail]
+    robot_a = workspace.robot_a
+    start_a = robot_a.position()
+    start_b = workspace.robot_b.position()
+
+    segments = []
+    sid = end_sid
+    while True:
+        entry = parent.get(sid)
+        if not entry:
+            break
+        prev_sid, target_pos, mover = entry
+        if mover is None:
+            break
+        if prev_sid is None:
+            source_pos = start_a if mover is robot_a else start_b
+            static_pos = start_b if mover is robot_a else start_a
+        else:
+            prev_pa, prev_pb, _ = unpack(prev_sid)
+            if mover is robot_a:
+                source_pos, static_pos = prev_pa, prev_pb
+            else:
+                source_pos, static_pos = prev_pb, prev_pa
+        segments.append((mover, source_pos, static_pos, target_pos))
+        if prev_sid is None:
+            break
+        sid = prev_sid
+    segments.reverse()
+    return segments
+
+
+def _mirror_segments(parent: dict, mirror_sid, workspace, unpack) -> list:
+    """Second half of a mirrored solve, as segments.
+
+    It is the route to the meeting state's label-swapped twin, run backwards
+    with the robots exchanged: each segment keeps the squares it walks over and
+    the obstacle it walks around, but is driven by the other robot and travelled
+    in the opposite direction — so source and target swap and the mover flips.
+    """
+    robot_a = workspace.robot_a
+    robot_b = workspace.robot_b
+    swapped = []
+    for mover, source_pos, static_pos, target_pos in _fwd_segments(
+        parent, mirror_sid, workspace, unpack
+    ):
+        other = robot_b if mover is robot_a else robot_a
+        swapped.append((other, target_pos, static_pos, source_pos))
+    swapped.reverse()
+    return swapped
+
+
+def _join_at_meeting(head: list, tail: list) -> list:
+    """Splice the two halves of a mirrored solve into one segment list.
+
+    The halves meet inside a single segment, not between two: the first half
+    walks a robot *into* the meeting square and the second walks the same robot
+    *out* of it, around the same stationary partner. Left as two segments the
+    path detours through the meeting square — which costs moves the solution
+    does not need, and would also imply a switch that is not there, inflating
+    the count. Merged, the robot goes straight from where it set off to where it
+    ends up.
+    """
+    if not head or not tail:
+        return head + tail
+    mover, source_pos, static_pos, _ = head[-1]
+    tail_mover, _, tail_static, tail_target = tail[0]
+    if mover is not tail_mover or static_pos != tail_static:
+        raise AssertionError(
+            "mirrored halves do not meet inside one segment; the label swap or "
+            "the meeting test is wrong"
+        )
+    return head[:-1] + [(mover, source_pos, static_pos, tail_target)] + tail[1:]
+
+
+def _render_segments(segments: list, workspace, n: int) -> list:
+    """Segments to a command list, one shortest route per segment, switches
+    between them. Each route is a fresh flood fill, so a segment that was
+    spliced together is re-planned rather than concatenated."""
+    path = []
+    for index, (_mover, source_pos, static_pos, target_pos) in enumerate(segments):
+        if index:
+            path.append(COMMANDS["CONTROL_SWITCH"])
+        pm = flood_fill(workspace, source_pos, static_pos, n)
+        path.extend(_cmds_from_parent_map(pm, source_pos, target_pos))
+    return path
 
 
 # ---------------------------------------------------------------------------
@@ -549,6 +649,13 @@ def bfs_mirror(workspace, goal_a, goal_b, need_path=True):
     the result minimal — arriving at layer h with nothing found already proves
     the optimum is at least 2h-1, so the first total found here is that
     optimum.
+
+    The two halves are joined as segments and only then turned into moves. They
+    meet *inside* a segment — one robot walks into the meeting square and the
+    same robot walks back out of it — so rendering each half separately would
+    route the solution through that square and spend moves the answer does not
+    need. Merging first and planning the joined segment once keeps the path move
+    -minimal as well as switch-minimal.
     """
     n = workspace.robot_a.n
     robot_a = workspace.robot_a
@@ -583,10 +690,16 @@ def bfs_mirror(workspace, goal_a, goal_b, need_path=True):
             meeting_sid, mirror_sid, total = best
             if not need_path:
                 return {"switches": total, "path": None, "visited": None}
-            path = _reconstruct_fwd(parent, meeting_sid, workspace, unpack) + _mirror_tail(
-                parent, mirror_sid, workspace, unpack
+            segments = _join_at_meeting(
+                _fwd_segments(parent, meeting_sid, workspace, unpack),
+                _mirror_segments(parent, mirror_sid, workspace, unpack),
             )
-            return {"switches": total, "path": path, "visited": dict(visited)}
+            return {
+                "switches": total,
+                "path": _render_segments(segments, workspace, n),
+                "visited": dict(visited),
+                "initial_mover": segments[0][0] if segments else None,
+            }
 
         layer += 1
         frontier = _expand_layer(
@@ -605,17 +718,26 @@ def bfs_mirror(workspace, goal_a, goal_b, need_path=True):
 
 
 # ---------------------------------------------------------------------------
-# bfs — unidirectional, forward only, respects workspace._control
+# bfs — unidirectional, forward only, expands all the way to the goal
 # ---------------------------------------------------------------------------
 
 
 def bfs(workspace, goal_a, goal_b, draw=False):
+    """Forward-only layered BFS, expanding to depth D rather than meeting in
+    the middle. Kept as the baseline the other two searches are measured
+    against (see `benchmark_bfs.py`).
+
+    Both initial controllers are seeded, exactly as `bfs_mirror` and
+    `bfs_bidirectional` do, so all three answer the same question and any
+    disagreement in their switch counts is a real defect rather than a
+    difference in what was asked. `draw=True` writes a frontier image per
+    layer.
+    """
     n = workspace.robot_a.n
     robot_a = workspace.robot_a
     robot_b = workspace.robot_b
     pack, unpack = _make_packers(workspace, n)
-    initial_ctrl = workspace.get_state().control
-    seeds = _seed_fwd(workspace, [initial_ctrl], pack)
+    seeds = _seed_fwd(workspace, [robot_a, robot_b], pack)
     visited, parent, frontier = seeds["visited"], seeds["parent"], seeds["frontier"]
 
     goal_sids = {pack(goal_a, goal_b, robot_a), pack(goal_a, goal_b, robot_b)}
@@ -627,6 +749,7 @@ def bfs(workspace, goal_a, goal_b, draw=False):
                 "switches": 0,
                 "path": _reconstruct_fwd(parent, sid, workspace, unpack),
                 "visited": visited,
+                "initial_mover": _initial_mover(parent, sid),
             }
 
     switches = 0
@@ -641,6 +764,7 @@ def bfs(workspace, goal_a, goal_b, draw=False):
                     "switches": switches,
                     "path": _reconstruct_fwd(parent, sid, workspace, unpack),
                     "visited": visited,
+                    "initial_mover": _initial_mover(parent, sid),
                 }
         if draw:
             frontier_states = [State(*unpack(sid)) for sid in frontier]
@@ -747,4 +871,9 @@ def bfs_bidirectional(workspace, goal_a, goal_b, draw=False, need_path=True):
     visited = dict(fwd_visited)
     for s in bwd_visited:
         visited.setdefault(s, total)
-    return {"switches": total, "path": path, "visited": visited}
+    return {
+        "switches": total,
+        "path": path,
+        "visited": visited,
+        "initial_mover": _initial_mover(fwd_parent, meeting_sid),
+    }

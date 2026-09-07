@@ -56,6 +56,16 @@ jobs:
       - run: python -m pip install -r requirements.txt
       - name: Solve every test case and write its report
         run: python run_tests.py --simplified
+      - name: Compare the BFS searches against each other
+        # Runs before make_gallery.py, which links the benchmark from the
+        # landing page only when the page is already on disk.
+        #
+        # A shared runner is not a benchmarking machine, so the timings here are
+        # indicative; `states` is exact and reproducible, and the switch-count
+        # cross-check between the three searches is the part that must hold. The
+        # timeout keeps the unidirectional search — which expands to depth D
+        # rather than D/2 — from stalling the workflow on the larger cases.
+        run: python benchmark_bfs.py --repeat 2 --timeout 180
       - name: Render the recipe gallery and the landing page
         run: python make_gallery.py
       - name: Disable Jekyll so no path is filtered
