@@ -5,5 +5,9 @@ psutil>=5.9.0       # real RSS measurement for the memory guard in src/memory.py
 
 # Development — test, lint, format and the pre-commit hook. Not needed just to run.
 pytest>=8.0.0       # the suite in tests/ (python -m pytest)
-ruff>=0.4.4
 pre-commit>=3.5.0
+# Pinned to the same version .pre-commit-config.yaml pins, so running `ruff` by
+# hand cannot disagree with the hook. A floating pin here meant CI installed a
+# newer ruff that reformatted implicit string concatenations the pinned hook
+# had left split. Bump both together or not at all.
+ruff==0.4.4

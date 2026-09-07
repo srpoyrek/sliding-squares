@@ -33,9 +33,12 @@ jobs:
           cache: pip
       - run: python -m pip install -r requirements.txt
       - name: Lint
-        run: |
-          python -m ruff check .
-          python -m ruff format --check .
+        # Via pre-commit, not a bare `ruff`, so CI uses the exact version pinned
+        # in .pre-commit-config.yaml. Installing ruff from requirements.txt gave
+        # CI a newer release than the pinned hook, and the two formatters
+        # disagreed about implicit string concatenation — a diff no local commit
+        # could produce, and one that would flip back and forth if "fixed".
+        run: python -m pre_commit run --all-files --show-diff-on-failure
       - name: Tests
         run: python -m pytest -q
 
