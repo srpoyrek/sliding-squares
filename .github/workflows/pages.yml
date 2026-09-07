@@ -65,7 +65,7 @@ jobs:
         # cross-check between the three searches is the part that must hold. The
         # timeout keeps the unidirectional search — which expands to depth D
         # rather than D/2 — from stalling the workflow on the larger cases.
-        run: python benchmark_bfs.py --repeat 2 --timeout 180
+        run: python benchmark_bfs.py --repeat 5 --timeout 180
       - name: Render the recipe gallery and the landing page
         run: python make_gallery.py
       - name: Disable Jekyll so no path is filtered
