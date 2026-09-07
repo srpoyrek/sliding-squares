@@ -3,6 +3,12 @@
 Two n×n square robots swap positions in a grid workspace.
 Find the workspace that maximizes the minimum number of control switches.
 
+**[📊 Browse the reports](https://srpoyrek.github.io/optimal_sliding_control_squares/)** —
+every solved test case stepped switch by switch, the blocker heatmaps, and a
+[gallery](https://srpoyrek.github.io/optimal_sliding_control_squares/gallery/index.html)
+showing what each simplification recipe does. Rebuilt from `main` on every push;
+nothing generated is committed.
+
 ## Problem
 
 Given a grid workspace with obstacles, two identical n×n square robots (A and B) must exchange positions. Only one robot is "controlled" at a time — issuing a control switch command transfers control to the other robot. The solver finds the path that minimizes the number of control switches needed to complete the swap.
@@ -248,11 +254,11 @@ which is the same rule the repo applies locally.
 
 Enable it once under **Settings → Pages → Source: GitHub Actions**. Then:
 
-```
-https://<user>.github.io/<repo>/                    landing page
-https://<user>.github.io/<repo>/tests/index.html    every test run
-https://<user>.github.io/<repo>/gallery/index.html  the recipe gallery
-```
+| Page | What it holds |
+|---|---|
+| [Landing page](https://srpoyrek.github.io/optimal_sliding_control_squares/) | Links to both trees |
+| [Test runs](https://srpoyrek.github.io/optimal_sliding_control_squares/tests/index.html) | Every test case, its solved sequence, heatmap and recipe comparison |
+| [Recipe gallery](https://srpoyrek.github.io/optimal_sliding_control_squares/gallery/index.html) | What each simplification recipe does to corner, edge and junction layouts |
 
 A pull request gets the verify and build signal without replacing what is live.
 
