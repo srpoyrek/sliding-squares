@@ -49,6 +49,23 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 
 
+def _fmt_time(seconds: float) -> str:
+    """Elapsed seconds with an explicit unit, e.g. ``688.0us`` / ``1.55s``."""
+    if seconds < 1e-3:
+        return f"{seconds * 1e6:.1f}us"
+    if seconds < 1:
+        return f"{seconds * 1e3:.1f}ms"
+    return f"{seconds:.2f}s"
+
+
+def _rel(path: str) -> str:
+    """Repo-relative path. Absolute paths made the run log unreadable."""
+    try:
+        return os.path.relpath(path, BASE_DIR).replace("\\", "/")
+    except ValueError:  # different drive on Windows
+        return path
+
+
 def _build_workspace_from_tiles(tiles, ref_ws):
     """Fresh Workspace with the given tile layout, robots at ref_ws's start."""
     n = ref_ws.robot_a.n
@@ -153,12 +170,8 @@ def run_one(args) -> TestResult:
         start = time.perf_counter()
         solver_result = Solver(ws, goal_a, goal_b).solve()
         elapsed = time.perf_counter() - start
-        if elapsed < 0.001:
-            result.time = f"{elapsed*1_000_000:.1f}u"  # type: ignore
-        elif elapsed < 1:
-            result.time = f"{elapsed*1000:.1f}m"  # type: ignore
-        else:
-            result.time = f"{elapsed:.2f}"  # type: ignore
+        result.seconds = elapsed
+        result.time = _fmt_time(elapsed)
         if not solver_result.solvable:
             result.error = "Solver returned solvable=False"
             return result
@@ -245,9 +258,29 @@ def run_one(args) -> TestResult:
     return result
 
 
-def _print_simplifications(simps: list) -> None:
-    for simp in simps:
-        _print_simplification(simp)
+def _print_simplifications(simps: list, verbose: bool = False) -> None:
+    """One summary line per test, or the full per-recipe detail with --verbose.
+
+    Eight recipes across eight tests is 64 near-identical lines; what actually
+    matters at a glance is how many held, which recipe won, and which broke.
+    """
+    if verbose:
+        for simp in simps:
+            _print_simplification(simp)
+        return
+
+    ok = [s for s in simps if s.get("preserved") and "error" not in s]
+    bad = [s for s in simps if not s.get("preserved") or "error" in s]
+    # The winner is the recipe that survived while leaving the fewest walls.
+    best = min(ok, key=lambda s: s.get("walls_after", 10**9), default=None)
+    parts = [f"recipes: {len(ok)}/{len(simps)} preserved"]
+    if best:
+        before, after = best.get("walls_before", 0), best.get("walls_after", 0)
+        pct = 100.0 * (before - after) / before if before else 0.0
+        parts.append(f"best {best['mode']} {before}->{after} walls (-{pct:.0f}%)")
+    if bad:
+        parts.append("failed: " + ", ".join(s.get("mode", "?") for s in bad))
+    print("         " + "  ·  ".join(parts), flush=True)
 
 
 def _print_simplification(simp: dict) -> None:
@@ -285,14 +318,27 @@ def _print_simplification(simp: dict) -> None:
     )
 
 
+def _print_result(r, verbose: bool = False) -> None:
+    """One test's outcome: a headline line, then its recipe summary."""
+    status = "PASS" if r.passed else "FAIL"
+    head = f"[{status}] {r.name:<22} {r.time or '-':>8}"
+    if r.report_path:
+        head += f"  {_rel(r.report_path)}"
+    print(head, flush=True)
+    if r.error:
+        print(f"         error: {r.error}", flush=True)
+    if r.simplification:
+        _print_simplifications(r.simplification, verbose)
+
+
 def _write_index() -> None:
     """Refresh plots/tests/index.html — the one page listing every run."""
     dest = write_global_index(os.path.join(get_plots_dir(), "tests"))
     if dest:
-        print(f"\nindex -> {dest}", flush=True)
+        print(f"\nOpen: {_rel(dest)}", flush=True)
 
 
-def run_all(recipes, want_png=False):
+def run_all(recipes, want_png=False, verbose=False):
     wall_start = time.time()
     classes = discover_test_cases()
 
@@ -300,26 +346,18 @@ def run_all(recipes, want_png=False):
         print("No test cases found in testcases/")
         return
 
-    print(f"Found {len(classes)} test case(s)")
+    print(f"{len(classes)} test(s)", end="")
     if recipes:
-        print(f"Simplification recipes ({len(recipes)}): {', '.join(recipes)}")
-        print("  what each does: python run_tests.py --list-recipes")
-        print("  per-test ranking: plots/tests/<name>/simplified/README.txt")
-    print()
-    print("=" * 60)
+        print(f" · {len(recipes)} simplify recipe(s) each", end="")
+        print("  (--list-recipes for what they do, -v for per-recipe detail)", end="")
+    print("\n" + "=" * 60)
 
     results = []
     jobs = [(cls.__name__, recipes, want_png) for cls in classes]
     with mp.get_context("spawn").Pool(processes=min(8, mp.cpu_count())) as pool:
         for r in pool.imap_unordered(run_one, jobs):
             results.append(r)
-            print(r, flush=True)
-            if r.plot_path:
-                print(f"         plot -> {r.plot_path}", flush=True)
-            if r.report_path:
-                print(f"         report -> {r.report_path}", flush=True)
-            if r.simplification:
-                _print_simplifications(r.simplification)
+            _print_result(r, verbose)
 
     passed = [r for r in results if r.passed]
     failed = [r for r in results if not r.passed]
@@ -331,10 +369,14 @@ def run_all(recipes, want_png=False):
         for r in failed:
             print(f"  {r.name}: {r.error}")
 
-    times = [r.time for r in results if r.time is not None]
-    if times:
-        print(f"\nSlowest: {max(times)}s  Fastest: {min(times)}s")
-    print(f"\nTotal wall time: {round(time.time() - wall_start, 2)}s")
+    # Sorted on the raw float. Ranking the formatted strings compared "9.7ms"
+    # against "1.55s" lexicographically and called the millisecond run slower.
+    timed = [r for r in results if r.seconds is not None]
+    if timed:
+        slow = max(timed, key=lambda r: r.seconds)
+        fast = min(timed, key=lambda r: r.seconds)
+        print(f"\nSlowest: {slow.name} {slow.time}   Fastest: {fast.name} {fast.time}")
+    print(f"Total wall time: {round(time.time() - wall_start, 2)}s")
     _write_index()
 
 
@@ -360,6 +402,14 @@ if __name__ == "__main__":
         "--list-recipes",
         action="store_true",
         help="Print every simplification recipe and what it does, then exit.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Print every recipe's full result instead of one summary line per "
+        "test. Without it each test shows how many recipes held, which left the "
+        "fewest walls, and which failed.",
     )
     parser.add_argument(
         "--png",
@@ -396,14 +446,7 @@ if __name__ == "__main__":
             print(f"No test case matching '{args.name}'")
             sys.exit(1)
         for cls in matched:
-            r = run_one((cls.__name__, recipes, args.png))
-            print(r)
-            if r.plot_path:
-                print(f"         plot -> {r.plot_path}")
-            if r.report_path:
-                print(f"         report -> {r.report_path}")
-            if r.simplification:
-                _print_simplifications(r.simplification)
+            _print_result(run_one((cls.__name__, recipes, args.png)), args.verbose)
         _write_index()
     else:
-        run_all(recipes, want_png=args.png)
+        run_all(recipes, want_png=args.png, verbose=args.verbose)

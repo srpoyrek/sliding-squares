@@ -1,0 +1,8 @@
+Status: PRESERVED — switches stayed at 3
+Recipe: black_peaks_uncrossable
+  black_peaks, then the exact pass on whatever survived. The smallest wall set of the set, but inherits the peak heuristic's risk.
+Walls before: 11
+Walls after:  2
+Black walls removed (4): [(0, 0), (0, 4), (2, 0), (2, 4)]
+Orange walls removed (2): [(2, 2), (2, 3)]
+Uncrossable walls removed (0): []

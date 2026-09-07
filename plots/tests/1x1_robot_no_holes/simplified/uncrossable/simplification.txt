@@ -1,0 +1,8 @@
+Status: PRESERVED — switches stayed at 3
+Recipe: uncrossable
+  The only PROVABLY lossless recipe: nothing is removed but walls the robot could never cross, so the state space — and therefore the switch count — cannot move. Always reports PRESERVED.
+Walls before: 11
+Walls after:  2
+Black walls removed (0): []
+Orange walls removed (0): []
+Uncrossable walls removed (0): []

@@ -1,0 +1,8 @@
+Status: FAILED — switches changed from 3 to 2
+Recipe: black_alternate
+  Baseline + drop every other touched wall in row-major order. Crude control: thins without looking at where contact happened.
+Walls before: 11
+Walls after:  1
+Black walls removed (4): [(0, 0), (0, 4), (2, 0), (2, 4)]
+Orange walls removed (4): [(0, 1), (1, 0), (2, 1), (2, 3)]
+Uncrossable walls removed (0): []

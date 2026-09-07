@@ -14,7 +14,8 @@ pip install -r requirements.txt
 python -m pre_commit install
 ```
 
-Requires Python 3.8+.
+Requires Python 3.8+. Re-run the install after pulling — `jinja2` was added for
+the HTML reports, and `run_tests.py` fails at import without it.
 
 The `pre-commit` hooks run on every commit:
 
@@ -38,6 +39,9 @@ sliding-squares/
 │   ├── simplify.py         # Workspace simplification — strip redundant walls, preserve switch count
 │   ├── visualizer.py       # Matplotlib visualization (grids, sequences, BFS frontiers, proof rendering)
 │   ├── report.py           # run.json + the HTML reports built from it
+│   ├── templates/          # Jinja2 templates for those reports
+│   │   ├── report.html.j2  #   one run: player, heatmap, recipes
+│   │   └── index.html.j2   #   the table over every run
 │   ├── path_resolver.py    # Compact path notation parser (e.g. "12R2US")
 │   ├── test_case.py        # Base class for test cases
 │   └── directories.py      # Path management utilities
@@ -90,6 +94,7 @@ python run_tests.py 4x4_robot_holes --simplified uncrossable black_peaks
 |---|---|---|
 | `name` (positional) | all | Substring filter — run only tests whose name contains it |
 | `--simplified` | off | After solving, also run the wall-simplification recipes (below). Bare `--simplified` runs **every** recipe; name recipes after it to run a subset. Without the flag, behaviour is unchanged: solve + plot only |
+| `-v`, `--verbose` | off | Print every recipe's full result. Without it each test gets one summary line: how many recipes held, which left the fewest walls, and which failed |
 | `--png` | off | Also render the matplotlib images — the per-switch frames and each recipe's `summary.png`. Off by default: the HTML report (below) covers the same ground without paying matplotlib's per-frame cost, which dominates a run. Use it to cross-check the report against the images, or for paper figures |
 
 Run `python run_tests.py --list-recipes` to print the recipes and what each one does. After a run, `plots/tests/<name>/simplified/README.txt` names every recipe folder and ranks them by how few walls survived.
@@ -241,6 +246,7 @@ Several pieces are factored into `src/` so other tools can import them:
 - [`src/canonical.py`](src/canonical.py) — touching-placement enumeration (`all_touching_placements` covers full-edge, partial-edge, and corner contacts; `all_adjacent_placements` is full-edge only), `pick_central_placements`, and the **`Canonicalizer`** class. `Canonicalizer(rows, cols, n)` turns a workspace (free cells + the two robot positions) into one key that is identical under D4 rotation/flip/mirror and the A↔B label swap; use `.dedup_placements(...)` or `.unique_touching(...)` to collapse symmetric duplicates.
 - [`src/frontier.py`](src/frontier.py) — `initial_frontier` / `extend_frontier` for growing or digging a free region cell by cell.
 - [`src/simplify.py`](src/simplify.py) — `run_simplification(...)`, the wall-removal pass behind `run_tests.py --simplified`.
+- [`src/report.py`](src/report.py) — `build_run(...)` / `write_run(...)` encode a solve as `run.json`; `write_local_report(...)` and `write_global_index(...)` render the HTML from it; `encode_grid`, `encode_sequence` and `palette()` are the pieces `simplify.py` and `render_run.py` reuse.
 - [`src/workspace.py`](src/workspace.py) — `Workspace.from_free_cells(...)` builds a wall-filled grid with only the given cells carved free; `Workspace.valid_block_positions` / `Workspace.extend_valid` answer n×n placement queries over a free-cell set.
 
 ## Test Cases

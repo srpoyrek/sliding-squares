@@ -17,7 +17,8 @@ class TestResult:
     passed: bool
     plot_path: Optional[str] = None
     error: Optional[str] = None
-    time: Optional[float] = None
+    time: Optional[str] = None  # human-readable, e.g. "1.5ms" — display only
+    seconds: Optional[float] = None  # raw elapsed; sort and compare on THIS
     simplification: Optional[list] = None  # one status dict per recipe run
     report_path: Optional[str] = None  # the run's index.html (see src/report.py)
 

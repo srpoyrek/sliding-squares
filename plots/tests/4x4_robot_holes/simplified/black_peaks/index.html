@@ -1,0 +1,363 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>4x4_robot_holes · black_peaks</title>
+
+<style>
+ /* Page chrome only -- the board palette is emitted below from visualizer.py.
+    The board keeps one palette in both themes: a diagram that inverts with the
+    page is harder to compare against the PNGs, so only the chrome follows it. */
+ :root{--bg:#ffffff;--fg:#1a1a1a;--muted:#666;--line:#ddd;--ok:#1a7f37;
+       --bad:#b3261e;--card:#fafafa}
+ @media (prefers-color-scheme:dark){:root{--bg:#24262b;--fg:#f2f2f2;--muted:#a9adb5;
+       --line:#3d414a;--card:#2d3038;--ok:#4ac26b;--bad:#f4776a}}
+ body{margin:0;padding:24px;background:var(--bg);color:var(--fg);
+      font:14px/1.5 ui-sans-serif,system-ui,sans-serif}
+ h1{font-size:20px;margin:0 0 4px} h2{font-size:15px;margin:28px 0 10px}
+ .muted{color:var(--muted)} a{color:inherit}
+ .stats{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+ .stat{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+ .stat b{font-variant-numeric:tabular-nums}
+ .controls{display:flex;gap:6px;align-items:center;margin:10px 0;flex-wrap:wrap}
+ .path{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:10px 0}
+ .seg{background:var(--card);border:1px solid var(--line);border-radius:5px;
+      padding:3px 8px;font-family:ui-monospace,monospace;font-size:13px}
+ .seg b{color:var(--muted);font-weight:600;margin-right:5px}
+ .sw{color:var(--muted);font-weight:700;font-size:12px}
+ tr.pick{cursor:pointer} tr.pick:hover td{background:var(--card)}
+ tr.on td{background:var(--card);box-shadow:inset 3px 0 0 var(--a)}
+ button{font:inherit;padding:4px 10px;border:1px solid var(--line);border-radius:5px;
+        background:var(--card);color:inherit;cursor:pointer}
+ button:hover{border-color:var(--muted)}
+ input[type=range]{width:260px}
+ .strip{display:flex;flex-wrap:wrap;gap:12px}
+ .cell{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px}
+ .cell figcaption{font-size:12px;color:var(--muted);margin-top:4px;text-align:center}
+ table{border-collapse:collapse;width:100%;overflow-x:auto;display:block}
+ th,td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left;white-space:nowrap}
+ th{font-weight:600;color:var(--muted)}
+ .ok{color:var(--ok);font-weight:600}.bad{color:var(--bad);font-weight:600}
+</style>
+<style>
+ :root{--wall:#000000;--free:#ffffff;--grid:#cccccc;
+       --a:#e80d1f;--b:#122fd3;--arrow-a:#ff4639;
+       --arrow-b:#11c0df;--hot:#ff8800;--label:white}
+</style>
+
+<h1>4x4_robot_holes · black_peaks</h1>
+<div class="muted" id="sub"></div>
+<div class="stats" id="stats"></div>
+<div class="path" id="pathbox"></div>
+
+<h2>Transitions</h2>
+<div id="player"></div>
+
+<h2>Every switch</h2>
+<div class="strip" id="turns"></div>
+
+<h2 id="hhead">Blocker heatmap</h2>
+<p class="muted" id="hhint">How often each wall was in contact with a robot face.
+Bright walls are load-bearing; black walls were never touched, and are what the
+recipes remove first.</p>
+<div id="heat"></div>
+
+<h2 id="rhead">Simplification recipes</h2>
+<p class="muted" id="rhint">Click a recipe to play its own solution.</p>
+<div id="recipes"></div>
+<div id="rplayer"></div>
+
+<p class="muted"><a href="../../index.html">&larr; back</a> &middot;
+generated output, regenerated on every run &middot; <span id="gen"></span></p>
+
+<script type="application/json" id="run">{"schema":1,"meta":{"name":"4x4_robot_holes \u00b7 black_peaks","rows":21,"cols":31,"n":4,"switches":9,"solver_seconds":null,"generated":"2026-09-07T19:49:27+00:00"},"grid":{"rows":21,"cols":31,"walls":"000000000000000000000000000100000000000000000000000000010000000000000000000000000000000000010000000000000000000010000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000100000000000000000000000001000000000000000001001000000000000001000000000001000000000000100110000000000100001000000000000000000000000000000000000000000000000000000001000000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000001000000000000000000000000000000000000000000000010010000000000000000000000000000000000010000000000000000000000000000000000000000000000000"},"labels":{"a":"A","b":"B"},"start":{"a":[1,25],"b":[5,22]},"goal":{"a":[5,22],"b":[1,25]},"path":"DSDLLLLLUUSUULLLLLDDSDDRDRRRRRRDDDDDDDDDLLLLLLSUURRRURRRRRRRDDDDDDDDDDDDDDLLLLLLLLLLLLUUULSRRRRRRUUUUUUUUULLLLLLLDLLLDDSRDDDRRRRRRRRRRRRUUUUUUUUUUUUUULLLLLLULUUSUURRRRRDDSDDRRRRRUSU","frames":[{"i":0,"title":"start","a":[1,25],"b":[5,22],"moved":null},{"i":1,"title":"0: B D","a":[1,25],"b":[6,22],"moved":"B"},{"i":2,"title":"1: switch to A (sw=1)","a":[1,25],"b":[6,22],"moved":null},{"i":3,"title":"2: A D","a":[2,25],"b":[6,22],"moved":"A"},{"i":4,"title":"3: A L","a":[2,24],"b":[6,22],"moved":"A"},{"i":5,"title":"4: A L","a":[2,23],"b":[6,22],"moved":"A"},{"i":6,"title":"5: A L","a":[2,22],"b":[6,22],"moved":"A"},{"i":7,"title":"6: A L","a":[2,21],"b":[6,22],"moved":"A"},{"i":8,"title":"7: A L","a":[2,20],"b":[6,22],"moved":"A"},{"i":9,"title":"8: A U","a":[1,20],"b":[6,22],"moved":"A"},{"i":10,"title":"9: A U","a":[0,20],"b":[6,22],"moved":"A"},{"i":11,"title":"10: switch to B (sw=2)","a":[0,20],"b":[6,22],"moved":null},{"i":12,"title":"11: B U","a":[0,20],"b":[5,22],"moved":"B"},{"i":13,"title":"12: B U","a":[0,20],"b":[4,22],"moved":"B"},{"i":14,"title":"13: B L","a":[0,20],"b":[4,21],"moved":"B"},{"i":15,"title":"14: B L","a":[0,20],"b":[4,20],"moved":"B"},{"i":16,"title":"15: B L","a":[0,20],"b":[4,19],"moved":"B"},{"i":17,"title":"16: B L","a":[0,20],"b":[4,18],"moved":"B"},{"i":18,"title":"17: B L","a":[0,20],"b":[4,17],"moved":"B"},{"i":19,"title":"18: B D","a":[0,20],"b":[5,17],"moved":"B"},{"i":20,"title":"19: B D","a":[0,20],"b":[6,17],"moved":"B"},{"i":21,"title":"20: switch to A (sw=3)","a":[0,20],"b":[6,17],"moved":null},{"i":22,"title":"21: A D","a":[1,20],"b":[6,17],"moved":"A"},{"i":23,"title":"22: A D","a":[2,20],"b":[6,17],"moved":"A"},{"i":24,"title":"23: A R","a":[2,21],"b":[6,17],"moved":"A"},{"i":25,"title":"24: A D","a":[3,21],"b":[6,17],"moved":"A"},{"i":26,"title":"25: A R","a":[3,22],"b":[6,17],"moved":"A"},{"i":27,"title":"26: A R","a":[3,23],"b":[6,17],"moved":"A"},{"i":28,"title":"27: A R","a":[3,24],"b":[6,17],"moved":"A"},{"i":29,"title":"28: A R","a":[3,25],"b":[6,17],"moved":"A"},{"i":30,"title":"29: A R","a":[3,26],"b":[6,17],"moved":"A"},{"i":31,"title":"30: A R","a":[3,27],"b":[6,17],"moved":"A"},{"i":32,"title":"31: A D","a":[4,27],"b":[6,17],"moved":"A"},{"i":33,"title":"32: A D","a":[5,27],"b":[6,17],"moved":"A"},{"i":34,"title":"33: A D","a":[6,27],"b":[6,17],"moved":"A"},{"i":35,"title":"34: A D","a":[7,27],"b":[6,17],"moved":"A"},{"i":36,"title":"35: A D","a":[8,27],"b":[6,17],"moved":"A"},{"i":37,"title":"36: A D","a":[9,27],"b":[6,17],"moved":"A"},{"i":38,"title":"37: A D","a":[10,27],"b":[6,17],"moved":"A"},{"i":39,"title":"38: A D","a":[11,27],"b":[6,17],"moved":"A"},{"i":40,"title":"39: A D","a":[12,27],"b":[6,17],"moved":"A"},{"i":41,"title":"40: A L","a":[12,26],"b":[6,17],"moved":"A"},{"i":42,"title":"41: A L","a":[12,25],"b":[6,17],"moved":"A"},{"i":43,"title":"42: A L","a":[12,24],"b":[6,17],"moved":"A"},{"i":44,"title":"43: A L","a":[12,23],"b":[6,17],"moved":"A"},{"i":45,"title":"44: A L","a":[12,22],"b":[6,17],"moved":"A"},{"i":46,"title":"45: A L","a":[12,21],"b":[6,17],"moved":"A"},{"i":47,"title":"46: switch to B (sw=4)","a":[12,21],"b":[6,17],"moved":null},{"i":48,"title":"47: B U","a":[12,21],"b":[5,17],"moved":"B"},{"i":49,"title":"48: B U","a":[12,21],"b":[4,17],"moved":"B"},{"i":50,"title":"49: B R","a":[12,21],"b":[4,18],"moved":"B"},{"i":51,"title":"50: B R","a":[12,21],"b":[4,19],"moved":"B"},{"i":52,"title":"51: B R","a":[12,21],"b":[4,20],"moved":"B"},{"i":53,"title":"52: B U","a":[12,21],"b":[3,20],"moved":"B"},{"i":54,"title":"53: B R","a":[12,21],"b":[3,21],"moved":"B"},{"i":55,"title":"54: B R","a":[12,21],"b":[3,22],"moved":"B"},{"i":56,"title":"55: B R","a":[12,21],"b":[3,23],"moved":"B"},{"i":57,"title":"56: B R","a":[12,21],"b":[3,24],"moved":"B"},{"i":58,"title":"57: B R","a":[12,21],"b":[3,25],"moved":"B"},{"i":59,"title":"58: B R","a":[12,21],"b":[3,26],"moved":"B"},{"i":60,"title":"59: B R","a":[12,21],"b":[3,27],"moved":"B"},{"i":61,"title":"60: B D","a":[12,21],"b":[4,27],"moved":"B"},{"i":62,"title":"61: B D","a":[12,21],"b":[5,27],"moved":"B"},{"i":63,"title":"62: B D","a":[12,21],"b":[6,27],"moved":"B"},{"i":64,"title":"63: B D","a":[12,21],"b":[7,27],"moved":"B"},{"i":65,"title":"64: B D","a":[12,21],"b":[8,27],"moved":"B"},{"i":66,"title":"65: B D","a":[12,21],"b":[9,27],"moved":"B"},{"i":67,"title":"66: B D","a":[12,21],"b":[10,27],"moved":"B"},{"i":68,"title":"67: B D","a":[12,21],"b":[11,27],"moved":"B"},{"i":69,"title":"68: B D","a":[12,21],"b":[12,27],"moved":"B"},{"i":70,"title":"69: B D","a":[12,21],"b":[13,27],"moved":"B"},{"i":71,"title":"70: B D","a":[12,21],"b":[14,27],"moved":"B"},{"i":72,"title":"71: B D","a":[12,21],"b":[15,27],"moved":"B"},{"i":73,"title":"72: B D","a":[12,21],"b":[16,27],"moved":"B"},{"i":74,"title":"73: B D","a":[12,21],"b":[17,27],"moved":"B"},{"i":75,"title":"74: B L","a":[12,21],"b":[17,26],"moved":"B"},{"i":76,"title":"75: B L","a":[12,21],"b":[17,25],"moved":"B"},{"i":77,"title":"76: B L","a":[12,21],"b":[17,24],"moved":"B"},{"i":78,"title":"77: B L","a":[12,21],"b":[17,23],"moved":"B"},{"i":79,"title":"78: B L","a":[12,21],"b":[17,22],"moved":"B"},{"i":80,"title":"79: B L","a":[12,21],"b":[17,21],"moved":"B"},{"i":81,"title":"80: B L","a":[12,21],"b":[17,20],"moved":"B"},{"i":82,"title":"81: B L","a":[12,21],"b":[17,19],"moved":"B"},{"i":83,"title":"82: B L","a":[12,21],"b":[17,18],"moved":"B"},{"i":84,"title":"83: B L","a":[12,21],"b":[17,17],"moved":"B"},{"i":85,"title":"84: B L","a":[12,21],"b":[17,16],"moved":"B"},{"i":86,"title":"85: B L","a":[12,21],"b":[17,15],"moved":"B"},{"i":87,"title":"86: B U","a":[12,21],"b":[16,15],"moved":"B"},{"i":88,"title":"87: B U","a":[12,21],"b":[15,15],"moved":"B"},{"i":89,"title":"88: B U","a":[12,21],"b":[14,15],"moved":"B"},{"i":90,"title":"89: B L","a":[12,21],"b":[14,14],"moved":"B"},{"i":91,"title":"90: switch to A (sw=5)","a":[12,21],"b":[14,14],"moved":null},{"i":92,"title":"91: A R","a":[12,22],"b":[14,14],"moved":"A"},{"i":93,"title":"92: A R","a":[12,23],"b":[14,14],"moved":"A"},{"i":94,"title":"93: A R","a":[12,24],"b":[14,14],"moved":"A"},{"i":95,"title":"94: A R","a":[12,25],"b":[14,14],"moved":"A"},{"i":96,"title":"95: A R","a":[12,26],"b":[14,14],"moved":"A"},{"i":97,"title":"96: A R","a":[12,27],"b":[14,14],"moved":"A"},{"i":98,"title":"97: A U","a":[11,27],"b":[14,14],"moved":"A"},{"i":99,"title":"98: A U","a":[10,27],"b":[14,14],"moved":"A"},{"i":100,"title":"99: A U","a":[9,27],"b":[14,14],"moved":"A"},{"i":101,"title":"100: A U","a":[8,27],"b":[14,14],"moved":"A"},{"i":102,"title":"101: A U","a":[7,27],"b":[14,14],"moved":"A"},{"i":103,"title":"102: A U","a":[6,27],"b":[14,14],"moved":"A"},{"i":104,"title":"103: A U","a":[5,27],"b":[14,14],"moved":"A"},{"i":105,"title":"104: A U","a":[4,27],"b":[14,14],"moved":"A"},{"i":106,"title":"105: A U","a":[3,27],"b":[14,14],"moved":"A"},{"i":107,"title":"106: A L","a":[3,26],"b":[14,14],"moved":"A"},{"i":108,"title":"107: A L","a":[3,25],"b":[14,14],"moved":"A"},{"i":109,"title":"108: A L","a":[3,24],"b":[14,14],"moved":"A"},{"i":110,"title":"109: A L","a":[3,23],"b":[14,14],"moved":"A"},{"i":111,"title":"110: A L","a":[3,22],"b":[14,14],"moved":"A"},{"i":112,"title":"111: A L","a":[3,21],"b":[14,14],"moved":"A"},{"i":113,"title":"112: A L","a":[3,20],"b":[14,14],"moved":"A"},{"i":114,"title":"113: A D","a":[4,20],"b":[14,14],"moved":"A"},{"i":115,"title":"114: A L","a":[4,19],"b":[14,14],"moved":"A"},{"i":116,"title":"115: A L","a":[4,18],"b":[14,14],"moved":"A"},{"i":117,"title":"116: A L","a":[4,17],"b":[14,14],"moved":"A"},{"i":118,"title":"117: A D","a":[5,17],"b":[14,14],"moved":"A"},{"i":119,"title":"118: A D","a":[6,17],"b":[14,14],"moved":"A"},{"i":120,"title":"119: switch to B (sw=6)","a":[6,17],"b":[14,14],"moved":null},{"i":121,"title":"120: B R","a":[6,17],"b":[14,15],"moved":"B"},{"i":122,"title":"121: B D","a":[6,17],"b":[15,15],"moved":"B"},{"i":123,"title":"122: B D","a":[6,17],"b":[16,15],"moved":"B"},{"i":124,"title":"123: B D","a":[6,17],"b":[17,15],"moved":"B"},{"i":125,"title":"124: B R","a":[6,17],"b":[17,16],"moved":"B"},{"i":126,"title":"125: B R","a":[6,17],"b":[17,17],"moved":"B"},{"i":127,"title":"126: B R","a":[6,17],"b":[17,18],"moved":"B"},{"i":128,"title":"127: B R","a":[6,17],"b":[17,19],"moved":"B"},{"i":129,"title":"128: B R","a":[6,17],"b":[17,20],"moved":"B"},{"i":130,"title":"129: B R","a":[6,17],"b":[17,21],"moved":"B"},{"i":131,"title":"130: B R","a":[6,17],"b":[17,22],"moved":"B"},{"i":132,"title":"131: B R","a":[6,17],"b":[17,23],"moved":"B"},{"i":133,"title":"132: B R","a":[6,17],"b":[17,24],"moved":"B"},{"i":134,"title":"133: B R","a":[6,17],"b":[17,25],"moved":"B"},{"i":135,"title":"134: B R","a":[6,17],"b":[17,26],"moved":"B"},{"i":136,"title":"135: B R","a":[6,17],"b":[17,27],"moved":"B"},{"i":137,"title":"136: B U","a":[6,17],"b":[16,27],"moved":"B"},{"i":138,"title":"137: B U","a":[6,17],"b":[15,27],"moved":"B"},{"i":139,"title":"138: B U","a":[6,17],"b":[14,27],"moved":"B"},{"i":140,"title":"139: B U","a":[6,17],"b":[13,27],"moved":"B"},{"i":141,"title":"140: B U","a":[6,17],"b":[12,27],"moved":"B"},{"i":142,"title":"141: B U","a":[6,17],"b":[11,27],"moved":"B"},{"i":143,"title":"142: B U","a":[6,17],"b":[10,27],"moved":"B"},{"i":144,"title":"143: B U","a":[6,17],"b":[9,27],"moved":"B"},{"i":145,"title":"144: B U","a":[6,17],"b":[8,27],"moved":"B"},{"i":146,"title":"145: B U","a":[6,17],"b":[7,27],"moved":"B"},{"i":147,"title":"146: B U","a":[6,17],"b":[6,27],"moved":"B"},{"i":148,"title":"147: B U","a":[6,17],"b":[5,27],"moved":"B"},{"i":149,"title":"148: B U","a":[6,17],"b":[4,27],"moved":"B"},{"i":150,"title":"149: B U","a":[6,17],"b":[3,27],"moved":"B"},{"i":151,"title":"150: B L","a":[6,17],"b":[3,26],"moved":"B"},{"i":152,"title":"151: B L","a":[6,17],"b":[3,25],"moved":"B"},{"i":153,"title":"152: B L","a":[6,17],"b":[3,24],"moved":"B"},{"i":154,"title":"153: B L","a":[6,17],"b":[3,23],"moved":"B"},{"i":155,"title":"154: B L","a":[6,17],"b":[3,22],"moved":"B"},{"i":156,"title":"155: B L","a":[6,17],"b":[3,21],"moved":"B"},{"i":157,"title":"156: B U","a":[6,17],"b":[2,21],"moved":"B"},{"i":158,"title":"157: B L","a":[6,17],"b":[2,20],"moved":"B"},{"i":159,"title":"158: B U","a":[6,17],"b":[1,20],"moved":"B"},{"i":160,"title":"159: B U","a":[6,17],"b":[0,20],"moved":"B"},{"i":161,"title":"160: switch to A (sw=7)","a":[6,17],"b":[0,20],"moved":null},{"i":162,"title":"161: A U","a":[5,17],"b":[0,20],"moved":"A"},{"i":163,"title":"162: A U","a":[4,17],"b":[0,20],"moved":"A"},{"i":164,"title":"163: A R","a":[4,18],"b":[0,20],"moved":"A"},{"i":165,"title":"164: A R","a":[4,19],"b":[0,20],"moved":"A"},{"i":166,"title":"165: A R","a":[4,20],"b":[0,20],"moved":"A"},{"i":167,"title":"166: A R","a":[4,21],"b":[0,20],"moved":"A"},{"i":168,"title":"167: A R","a":[4,22],"b":[0,20],"moved":"A"},{"i":169,"title":"168: A D","a":[5,22],"b":[0,20],"moved":"A"},{"i":170,"title":"169: A D","a":[6,22],"b":[0,20],"moved":"A"},{"i":171,"title":"170: switch to B (sw=8)","a":[6,22],"b":[0,20],"moved":null},{"i":172,"title":"171: B D","a":[6,22],"b":[1,20],"moved":"B"},{"i":173,"title":"172: B D","a":[6,22],"b":[2,20],"moved":"B"},{"i":174,"title":"173: B R","a":[6,22],"b":[2,21],"moved":"B"},{"i":175,"title":"174: B R","a":[6,22],"b":[2,22],"moved":"B"},{"i":176,"title":"175: B R","a":[6,22],"b":[2,23],"moved":"B"},{"i":177,"title":"176: B R","a":[6,22],"b":[2,24],"moved":"B"},{"i":178,"title":"177: B R","a":[6,22],"b":[2,25],"moved":"B"},{"i":179,"title":"178: B U","a":[6,22],"b":[1,25],"moved":"B"},{"i":180,"title":"179: switch to A (sw=9)","a":[6,22],"b":[1,25],"moved":null},{"i":181,"title":"180: A U","a":[5,22],"b":[1,25],"moved":"A"}],"turns":[{"layer":0,"label":"B","from":[5,22],"to":[6,22],"stationary":[1,25],"stationary_label":"A","waypoints":[[24.0,7.0],[24.0,8.0]],"moves":"D","steps":1,"hits":[[7,26,2],[8,21,2],[9,26,1],[10,23,1],[10,24,1]]},{"layer":1,"label":"A","from":[1,25],"to":[0,20],"stationary":[6,22],"stationary_label":"B","waypoints":[[27.0,3.0],[27.0,4.0],[26.0,4.0],[25.0,4.0],[24.0,4.0],[23.0,4.0],[22.0,4.0],[22.0,3.0],[22.0,2.0]],"moves":"DLLLLLUU","steps":8,"hits":[[0,27,1],[1,24,7],[2,29,2],[3,19,3]]},{"layer":2,"label":"B","from":[6,22],"to":[6,17],"stationary":[0,20],"stationary_label":"A","waypoints":[[24.0,8.0],[24.0,7.0],[24.0,6.0],[23.0,6.0],[22.0,6.0],[21.0,6.0],[20.0,6.0],[19.0,6.0],[19.0,7.0],[19.0,8.0]],"moves":"UULLLLLDD","steps":9,"hits":[[3,19,3],[7,16,3],[7,26,3],[8,21,8],[9,26,1],[10,20,1],[10,23,1],[10,24,1]]},{"layer":3,"label":"A","from":[0,20],"to":[12,21],"stationary":[6,17],"stationary_label":"B","waypoints":[[22.0,2.0],[22.0,3.0],[22.0,4.0],[23.0,4.0],[23.0,5.0],[24.0,5.0],[25.0,5.0],[26.0,5.0],[27.0,5.0],[28.0,5.0],[29.0,5.0],[29.0,6.0],[29.0,7.0],[29.0,8.0],[29.0,9.0],[29.0,10.0],[29.0,11.0],[29.0,12.0],[29.0,13.0],[29.0,14.0],[28.0,14.0],[27.0,14.0],[26.0,14.0],[25.0,14.0],[24.0,14.0],[23.0,14.0]],"moves":"DDRDRRRRRRDDDDDDDDDLLLLLL","steps":25,"hits":[[1,24,3],[2,29,2],[3,19,3],[7,26,8],[9,26,4]]},{"layer":4,"label":"B","from":[6,17],"to":[14,14],"stationary":[12,21],"stationary_label":"A","waypoints":[[19.0,8.0],[19.0,7.0],[19.0,6.0],[20.0,6.0],[21.0,6.0],[22.0,6.0],[22.0,5.0],[23.0,5.0],[24.0,5.0],[25.0,5.0],[26.0,5.0],[27.0,5.0],[28.0,5.0],[29.0,5.0],[29.0,6.0],[29.0,7.0],[29.0,8.0],[29.0,9.0],[29.0,10.0],[29.0,11.0],[29.0,12.0],[29.0,13.0],[29.0,14.0],[29.0,15.0],[29.0,16.0],[29.0,17.0],[29.0,18.0],[29.0,19.0],[28.0,19.0],[27.0,19.0],[26.0,19.0],[25.0,19.0],[24.0,19.0],[23.0,19.0],[22.0,19.0],[21.0,19.0],[20.0,19.0],[19.0,19.0],[18.0,19.0],[17.0,19.0],[17.0,18.0],[17.0,17.0],[17.0,16.0],[16.0,16.0]],"moves":"UURRRURRRRRRRDDDDDDDDDDDDDDLLLLLLLLLLLLUUUL","steps":43,"hits":[[2,29,2],[3,19,4],[7,16,3],[7,26,8],[8,21,5],[9,26,4],[10,20,1],[13,14,1],[13,15,2],[16,13,1],[16,19,7]]},{"layer":5,"label":"A","from":[12,21],"to":[6,17],"stationary":[14,14],"stationary_label":"B","waypoints":[[23.0,14.0],[24.0,14.0],[25.0,14.0],[26.0,14.0],[27.0,14.0],[28.0,14.0],[29.0,14.0],[29.0,13.0],[29.0,12.0],[29.0,11.0],[29.0,10.0],[29.0,9.0],[29.0,8.0],[29.0,7.0],[29.0,6.0],[29.0,5.0],[28.0,5.0],[27.0,5.0],[26.0,5.0],[25.0,5.0],[24.0,5.0],[23.0,5.0],[22.0,5.0],[22.0,6.0],[21.0,6.0],[20.0,6.0],[19.0,6.0],[19.0,7.0],[19.0,8.0]],"moves":"RRRRRRUUUUUUUUULLLLLLLDLLLDD","steps":28,"hits":[[2,29,2],[3,19,4],[7,16,3],[7,26,8],[8,21,5],[9,26,4],[10,20,1]]},{"layer":6,"label":"B","from":[14,14],"to":[0,20],"stationary":[6,17],"stationary_label":"A","waypoints":[[16.0,16.0],[17.0,16.0],[17.0,17.0],[17.0,18.0],[17.0,19.0],[18.0,19.0],[19.0,19.0],[20.0,19.0],[21.0,19.0],[22.0,19.0],[23.0,19.0],[24.0,19.0],[25.0,19.0],[26.0,19.0],[27.0,19.0],[28.0,19.0],[29.0,19.0],[29.0,18.0],[29.0,17.0],[29.0,16.0],[29.0,15.0],[29.0,14.0],[29.0,13.0],[29.0,12.0],[29.0,11.0],[29.0,10.0],[29.0,9.0],[29.0,8.0],[29.0,7.0],[29.0,6.0],[29.0,5.0],[28.0,5.0],[27.0,5.0],[26.0,5.0],[25.0,5.0],[24.0,5.0],[23.0,5.0],[23.0,4.0],[22.0,4.0],[22.0,3.0],[22.0,2.0]],"moves":"RDDDRRRRRRRRRRRRUUUUUUUUUUUUUULLLLLLULUU","steps":40,"hits":[[1,24,3],[2,29,2],[3,19,3],[7,26,8],[9,26,4],[13,14,1],[13,15,2],[16,13,1],[16,19,7]]},{"layer":7,"label":"A","from":[6,17],"to":[6,22],"stationary":[0,20],"stationary_label":"B","waypoints":[[19.0,8.0],[19.0,7.0],[19.0,6.0],[20.0,6.0],[21.0,6.0],[22.0,6.0],[23.0,6.0],[24.0,6.0],[24.0,7.0],[24.0,8.0]],"moves":"UURRRRRDD","steps":9,"hits":[[3,19,3],[7,16,3],[7,26,3],[8,21,8],[9,26,1],[10,20,1],[10,23,1],[10,24,1]]},{"layer":8,"label":"B","from":[0,20],"to":[1,25],"stationary":[6,22],"stationary_label":"A","waypoints":[[22.0,2.0],[22.0,3.0],[22.0,4.0],[23.0,4.0],[24.0,4.0],[25.0,4.0],[26.0,4.0],[27.0,4.0],[27.0,3.0]],"moves":"DDRRRRRU","steps":8,"hits":[[0,27,1],[1,24,7],[2,29,2],[3,19,3]]},{"layer":9,"label":"A","from":[6,22],"to":[5,22],"stationary":[1,25],"stationary_label":"B","waypoints":[[24.0,8.0],[24.0,7.0]],"moves":"U","steps":1,"hits":[[7,26,2],[8,21,2],[9,26,1],[10,23,1],[10,24,1]]}],"heat":{"max":115,"cells":[[0,27,6],[1,24,44],[2,29,16],[3,19,46],[7,16,79],[7,26,60],[8,21,115],[9,26,38],[10,20,71],[10,23,22],[10,24,22],[13,14,31],[13,15,33],[16,13,31],[16,19,14]],"faces":[[0,27,"S",6],[1,24,"E",6],[1,24,"S",10],[1,24,"W",28],[2,29,"S",8],[2,29,"W",8],[3,19,"E",34],[3,19,"S",12],[7,16,"E",79],[7,26,"E",16],[7,26,"N",16],[7,26,"W",28],[8,21,"E",26],[8,21,"N",14],[8,21,"W",75],[9,26,"E",16],[9,26,"W",22],[10,20,"N",71],[10,23,"N",22],[10,24,"N",22],[13,14,"S",31],[13,15,"S",33],[16,13,"E",31],[16,19,"S",8],[16,19,"W",6]]},"recipes":[]}</script>
+
+<script>
+// A thrown error stops every later statement, silently losing whole sections of
+// the page. Surface it instead of leaving a half-rendered report looking whole.
+addEventListener('error', ev => {
+  document.body.insertAdjacentHTML('afterbegin',
+    `<p class="bad">Report script error: ${ev.message} — sections below this point
+     may be missing.</p>`);
+});
+
+const RUN = JSON.parse(document.getElementById('run').textContent);
+const G = RUN.grid, LAB = RUN.labels, CELL = 22;
+
+// One SVG per board, drawn straight from the wall bitstring -- no image step,
+// so a frame costs a string concat rather than a matplotlib render.
+// `opts.path` is the turn's waypoint centers and `opts.color` the mover's colour.
+function board(walls, rows, cols, a, b, size, opts={}){
+  const s = opts.cell || CELL, W = cols*s, H = rows*s, p = [];
+  p.push(`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img">`);
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    const wall = walls[r*cols+c] === '1';
+    p.push(`<rect x="${c*s}" y="${r*s}" width="${s}" height="${s}"
+      fill="${wall?'var(--wall)':'var(--free)'}" stroke="var(--grid)" stroke-width=".5"/>`);
+  }
+  // Layering follows visualizer._draw_turn exactly: wall highlights, then the
+  // faded ghost of where the mover started, then the robots, then the route on
+  // top. Labels are drawn last -- the one deviation, so the arrow crossing a
+  // square cannot hide which robot it is.
+  const box = (pos, fill, op, lw) =>
+    `<rect x="${pos[1]*s}" y="${pos[0]*s}" width="${size*s}" height="${size*s}"
+      fill="${fill}" fill-opacity="${op}" stroke="#fff" stroke-width="${lw}"/>`;
+
+  // Walls touched during this turn, shaded by how often (alpha .25 -> .75).
+  if(opts.hits && opts.hits.length){
+    const top = Math.max(...opts.hits.map(h => h[2])) || 1;
+    for(const [r,c,n] of opts.hits)
+      p.push(`<rect x="${c*s}" y="${r*s}" width="${s}" height="${s}" fill="var(--hot)"
+        fill-opacity="${(0.25 + 0.50*(n/top)).toFixed(3)}"/>`);
+  }
+  if(opts.ghost) p.push(box(opts.ghost, opts.color2 || 'var(--a)', .25, 1));
+  if(a) p.push(box(a, 'var(--a)', a === opts.mover ? .90 : .85, 2));
+  if(b) p.push(box(b, 'var(--b)', b === opts.mover ? .90 : .85, 2));
+
+  // The route, on top, with the head only on the final leg -- as the PNG does.
+  if(opts.path && opts.path.length > 1){
+    const pts = opts.path.map(([x,y]) => [x*s, y*s]);
+    // Proportions taken from the PNGs rather than guessed. There ARROW_LW is 3
+    // POINTS at dpi=150 on a ~105px cell, i.e. about 0.055 of a cell -- a thin
+    // line, not the heavy one a naive pixel conversion produces.
+    const lw = Math.max(1.5, 0.055 * size * s);
+    if(pts.length > 2)
+      p.push(`<polyline points="${pts.slice(0,-1).map(q=>q.join(',')).join(' ')}"
+        fill="none" stroke="${opts.color}" stroke-width="${lw}" stroke-linecap="round"
+        stroke-linejoin="round"/>`);
+    // Head drawn as a polygon rather than a marker: marker fill cannot follow
+    // the stroke colour reliably across browsers, and this scales with the robot
+    // the way matplotlib's mutation_scale does.
+    const [x0,y0] = pts[pts.length-2], [x1,y1] = pts[pts.length-1];
+    const dx=x1-x0, dy=y1-y0, len=Math.hypot(dx,dy) || 1;
+    // Head sized off the cell, not off the line width, so it stays a slim
+    // triangle instead of the stubby wedge a lw-multiple gives.
+    const ux=dx/len, uy=dy/len;
+    const hl=Math.min(len*0.9, 0.26*size*s), hw=0.13*size*s;
+    const bx=x1-ux*hl, by=y1-uy*hl;      // base of the head, back along the line
+    p.push(`<line x1="${x0}" y1="${y0}" x2="${bx}" y2="${by}" stroke="${opts.color}"
+      stroke-width="${lw}" stroke-linecap="butt"/>`);
+    p.push(`<polygon points="${x1},${y1} ${bx-uy*hw},${by+ux*hw} ${bx+uy*hw},${by-ux*hw}"
+      fill="${opts.color}"/>`);
+  }
+
+  const label = (pos, text) => pos ? `<text x="${(pos[1]+size/2)*s}"
+    y="${(pos[0]+size/2)*s}" fill="var(--label)" stroke="rgba(0,0,0,.45)"
+    stroke-width="${Math.max(.8,s*0.035)}" paint-order="stroke"
+    font-size="${Math.max(11,s*0.72)}" font-weight="700" text-anchor="middle"
+    dominant-baseline="central">${text}</text>` : '';
+  p.push(label(a, LAB.a), label(b, LAB.b));
+  p.push('</svg>');
+  return p.join('');
+}
+
+const el = id => document.getElementById(id);
+
+// Solve time is carried as seconds and given its unit here, so the page never
+// shows a bare number whose scale you have to guess.
+function duration(sec){
+  if(sec == null) return '—';
+  if(sec < 1e-3) return (sec*1e6).toFixed(1) + ' µs';
+  if(sec < 1)    return (sec*1e3).toFixed(1) + ' ms';
+  return sec.toFixed(2) + ' s';
+}
+
+el('sub').textContent = `${G.rows}x${G.cols} grid · ${RUN.meta.n}x${RUN.meta.n} robots`;
+el('gen').textContent = RUN.meta.generated;
+el('stats').innerHTML = [
+  ['switches', RUN.meta.switches], ['turns', RUN.turns.length],
+  ['moves', RUN.frames.length - 1], ['solve time', duration(RUN.meta.solver_seconds)],
+].map(([k,v])=>`<span class="stat">${k} <b>${v}</b></span>`).join('');
+
+// One entry per SWITCH, not per move: entry 0 is the start state, entry k is
+// the board after turn k-1 with an arrow spanning that whole turn's movement.
+// Stepping a move at a time made a long solve tedious to page through.
+function switchSteps(seq){
+  const f0 = seq.frames[0];
+  const out = [{a: f0.a, b: f0.b, title: 'start', moves: '', path: null}];
+  for(const t of seq.turns){
+    const isA = t.label === LAB.a;
+    const to = t.to;
+    out.push({
+      a: isA ? to : t.stationary,
+      b: isA ? t.stationary : to,
+      title: `switch ${String(t.layer).padStart(2,'0')} · ${t.label} moved · ${t.steps} moves`,
+      moves: t.moves || '',
+      path: t.waypoints,
+      hits: t.hits,
+      ghost: t.from,                       // faded start box, as in the PNG
+      mover: to,                           // drawn at .90, the others at .85
+      // visualizer uses a dedicated arrow colour per robot, distinct from the
+      // robot's own fill, so the route stays readable across it.
+      color: isA ? 'var(--arrow-a)' : 'var(--arrow-b)',
+      color2: isA ? 'var(--a)' : 'var(--b)',
+    });
+  }
+  return out;
+}
+
+// A self-contained player mounted into `host`, so the main solve and any recipe
+// can each have one without the controls being tied to fixed element ids.
+function makePlayer(host, grid, steps, size, cell){
+  host.innerHTML = `<div class="board"></div>
+    <div class="controls">
+      <button data-a="prev">&larr;</button><button data-a="play">Play</button>
+      <button data-a="next">&rarr;</button>
+      <input type="range" min="0" value="0"><span class="muted pos"></span>
+    </div><div class="muted cap"></div>`;
+  const stage = host.querySelector('.board'), scrub = host.querySelector('input'),
+        pos = host.querySelector('.pos'), cap = host.querySelector('.cap'),
+        playBtn = host.querySelector('[data-a=play]');
+  let i = 0, timer = null;
+  scrub.max = steps.length - 1;
+  function show(k){
+    i = Math.max(0, Math.min(steps.length-1, k));
+    const st = steps[i];
+    stage.innerHTML = board(grid.walls, grid.rows, grid.cols, st.a, st.b, size,
+      {cell, path: st.path, color: st.color, color2: st.color2,
+       hits: st.hits, ghost: st.ghost, mover: st.mover});
+    // The turn's own U/D/L/R sequence, so the moves behind the route are visible
+    // rather than only its shape.
+    cap.innerHTML = st.title
+      + (st.moves ? ` &middot; <span class="seg">${st.moves}</span>` : '');
+    pos.textContent = `${i} / ${steps.length-1} switches`;
+    scrub.value = i;
+  }
+  host.querySelector('[data-a=next]').onclick = () => show(i+1);
+  host.querySelector('[data-a=prev]').onclick = () => show(i-1);
+  scrub.oninput = e => show(+e.target.value);
+  playBtn.onclick = () => {
+    if(timer){ clearInterval(timer); timer=null; playBtn.textContent='Play'; return; }
+    playBtn.textContent = 'Pause';
+    timer = setInterval(() => {
+      if(i >= steps.length-1){ clearInterval(timer); timer=null; playBtn.textContent='Play'; return; }
+      show(i+1);
+    }, 700);
+  };
+  show(0);
+  return {show, step: () => i};
+}
+
+const main = makePlayer(el('player'), G, switchSteps(RUN), RUN.meta.n, 46);
+addEventListener('keydown', e => {
+  if(e.key === 'ArrowRight'){ main.show(main.step()+1); e.preventDefault(); }
+  if(e.key === 'ArrowLeft'){ main.show(main.step()-1); e.preventDefault(); }
+});
+
+// ── blocker heatmap ──
+// Untouched walls stay black (scenery); touched ones warm from yellow to red
+// with contact count, so the load-bearing structure is visible at a glance.
+if(!RUN.heat || !RUN.heat.cells.length){
+  for(const id of ['hhead','hhint','heat']) el(id).style.display = 'none';
+} else {
+  // Same scheme as visualizer.draw_blocker_heatmap, so the page and the PNGs can
+  // be compared directly: #ff8800 laid over the black wall at opacity
+  // 0.3 + 0.6*(hits/max), white numerals, and a tick on each face that was hit.
+  const HOT = 'var(--hot)';
+  const hot = new Map(RUN.heat.cells.map(([r,c,n]) => [r+','+c, n]));
+  const peak = RUN.heat.max || 1, s = 40;
+  const p = [`<svg viewBox="0 0 ${G.cols*s} ${G.rows*s}" width="${G.cols*s}"
+    height="${G.rows*s}" role="img">`];
+  for(let r=0;r<G.rows;r++) for(let c=0;c<G.cols;c++){
+    const wall = G.walls[r*G.cols+c] === '1';
+    p.push(`<rect x="${c*s}" y="${r*s}" width="${s}" height="${s}"
+      fill="${wall?'var(--wall)':'var(--free)'}" stroke="var(--grid)" stroke-width=".5"/>`);
+    const n = hot.get(r+','+c) || 0;
+    if(wall && n){
+      p.push(`<rect x="${c*s}" y="${r*s}" width="${s}" height="${s}" fill="${HOT}"
+        fill-opacity="${(0.3 + 0.6*(n/peak)).toFixed(3)}"/>`);
+      p.push(`<text x="${(c+.5)*s}" y="${(r+.5)*s}" font-size="${s*0.4}" font-weight="700"
+        fill="#fff" text-anchor="middle" dominant-baseline="central">${n}</text>`);
+    }
+  }
+  // Per-face ticks: which side(s) of each wall actually met a robot.
+  for(const [r,c,side] of (RUN.heat.faces || [])){
+    const x0=c*s, y0=r*s, x1=(c+1)*s, y1=(r+1)*s;
+    const seg = {N:[x0,y0,x1,y0], S:[x0,y1,x1,y1], W:[x0,y0,x0,y1], E:[x1,y0,x1,y1]}[side];
+    if(seg) p.push(`<line x1="${seg[0]}" y1="${seg[1]}" x2="${seg[2]}" y2="${seg[3]}"
+      stroke="${HOT}" stroke-width="4" stroke-linecap="butt"/>`);
+  }
+  p.push('</svg>');
+  el('heat').innerHTML = p.join('') +
+    `<div class="muted" style="margin-top:6px">${hot.size} wall(s) touched ·
+     peak ${peak} contact(s) · ${RUN.heat.cells.reduce((t,[,,n])=>t+n,0)} total</div>`;
+}
+
+// Path split at each S, so the moves belonging to each switch read separately
+// instead of running together in one string. Tolerates a list as well as a
+// string: older run.json files stored the solver's raw command list.
+const PATH = Array.isArray(RUN.path) ? RUN.path.join('') : (RUN.path || '');
+el('pathbox').innerHTML = PATH
+  ? PATH.split('S').map((seg, n) => `<span class="seg"><b>${n}</b>${seg || '—'}</span>`)
+        .join('<span class="sw">S</span>')
+  : '<span class="muted">no path</span>';
+
+// ── one thumbnail per switch ──
+el('turns').innerHTML = RUN.turns.map(t => {
+  const isA = t.label === LAB.a;
+  const a = isA ? t.to : t.stationary, b = isA ? t.stationary : t.to;
+  const svg = board(G.walls, G.rows, G.cols, a, b, RUN.meta.n,
+                    {cell:30, path: t.waypoints, hits: t.hits, ghost: t.from, mover: t.to,
+                     color: isA ? 'var(--arrow-a)' : 'var(--arrow-b)',
+                     color2: isA ? 'var(--a)' : 'var(--b)'});
+  return `<figure class="cell" style="margin:0">${svg}
+    <figcaption>switch ${String(t.layer).padStart(2,'0')} · ${t.label}<br>
+    <span class="seg">${t.moves || '—'}</span></figcaption></figure>`;
+}).join('') || '<span class="muted">no transitions</span>';
+
+// ── recipes: table, thumbnails, and a player for the one you pick ──
+// The whole section is hidden when the run had no recipes, so a plain solve
+// does not show an empty heading.
+if(!RUN.recipes.length){
+  for(const id of ['rhead','rhint','recipes','rplayer']) el(id).style.display = 'none';
+} else {
+  const playable = RUN.recipes.filter(r => r.sequence && r.grid);
+  if(!playable.length) el('rhint').style.display = 'none';
+
+  // Every column summary.png used to carry, so nothing is lost by not rendering
+  // the images: the wall breakdown by kind, before/after, and the percentage.
+  el('recipes').innerHTML =
+   `<table><tr><th>recipe</th><th>walls before</th><th>walls after</th>
+      <th>black</th><th>orange</th><th>uncrossable</th><th>total removed</th>
+      <th>switches</th><th>status</th><th>page</th></tr>` +
+   RUN.recipes.map((r, n) => {
+     if(r.error)
+       return `<tr><td>${r.mode??'?'}</td><td colspan="9" class="bad">ERROR: ${r.error}</td></tr>`;
+     const st = r.preserved ? '<span class="ok">PRESERVED</span>'
+                            : '<span class="bad">FAILED</span>';
+     const pct = r.walls_before ? (100*(r.removed||0)/r.walls_before).toFixed(1) : '0.0';
+     const pick = (r.sequence && r.grid) ? ` class="pick" data-r="${n}"` : '';
+     const note = r.note ? `<div class="muted" style="white-space:normal">${r.note}</div>` : '';
+     // Its own page, if the recipe produced one. Stop the click so opening the
+     // link does not also load the inline player underneath.
+     const link = r.report_href
+       ? `<a href="${r.report_href}" onclick="event.stopPropagation()">open &rarr;</a>`
+       : '<span class="muted">—</span>';
+     return `<tr${pick}><td>${r.mode??'?'}${note}</td>
+       <td>${r.walls_before??'-'}</td><td>${r.walls_after??'-'}</td>
+       <td>${r.removed_black??'-'}</td><td>${r.removed_orange??'-'}</td>
+       <td>${r.removed_uncrossable??'-'}</td>
+       <td>${r.removed??'-'} (${pct}%)</td>
+       <td>${r.new_switches??'-'} / ${RUN.meta.switches}</td><td>${st}</td>
+       <td>${link}</td></tr>`;
+   }).join('') + `</table><div class="strip" style="margin-top:12px">` +
+   RUN.recipes.filter(r => r.grid).map(r =>
+     `<figure class="cell" style="margin:0">
+        ${board(r.grid.walls, r.grid.rows, r.grid.cols, null, null, RUN.meta.n, {cell:26})}
+        <figcaption>${r.mode} · ${r.walls_after} walls</figcaption></figure>`).join('') + `</div>`;
+
+  // Clicking a solvable recipe plays its own solution in place, so the
+  // simplified runs are browsable here rather than in a folder of images.
+  el('recipes').querySelectorAll('tr.pick').forEach(row => {
+    row.onclick = () => {
+      const r = RUN.recipes[+row.dataset.r];
+      el('recipes').querySelectorAll('tr').forEach(t => t.classList.remove('on'));
+      row.classList.add('on');
+      el('rplayer').innerHTML =
+        `<h3 style="font-size:14px;margin:18px 0 8px">${r.mode} — `
+        + `${r.walls_before}→${r.walls_after} walls, ${r.new_switches} switches</h3>`;
+      const host = document.createElement('div');
+      el('rplayer').appendChild(host);
+      makePlayer(host, r.grid, switchSteps(r.sequence), RUN.meta.n, 40);
+    };
+  });
+}
+</script>
