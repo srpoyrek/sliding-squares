@@ -58,7 +58,13 @@ sliding-squares/
 ├── data/
 ├── demo_solver.py
 ├── demo_validator.py
+├── tests/
+│   ├── fixtures.py                # Hand-built corner/edge/junction layouts + expectations
+│   ├── conftest.py
+│   └── test_simplify.py           # Proves the simplification passes' claims
+├── .github/workflows/pages.yml    # Verify, build reports, publish to Pages
 ├── find_hardest_workspace.py      # Parallel search for the workspace requiring the most switches
+├── make_gallery.py                # Recipe gallery: every fixture x every recipe
 ├── render_run.py                  # run.json -> PNGs, offline (see Reports)
 ├── run_tests.py
 ├── requirements.txt
@@ -196,6 +202,59 @@ python render_run.py plots/tests/*/run.json --chart-only    # just the combined 
 
 It writes to `<run-dir>/png_from_json/`, leaving any existing `switch_NN.png`
 untouched so the two can be compared side by side.
+
+### Verify the simplification
+
+The recipes make specific claims; the suite checks them rather than taking them
+on trust.
+
+```bash
+python -m pytest              # the whole suite
+python make_gallery.py        # -> plots/gallery/index.html
+```
+
+[`tests/fixtures.py`](tests/fixtures.py) holds small layouts chosen so the right
+answer is provable on paper — a solid mass, one-thick lines in both
+orientations, a grid corner, a wall against the border, L and T junctions, a
+lone wall in open space, a full wall border, and the degenerate `n=1` case.
+
+[`tests/test_simplify.py`](tests/test_simplify.py) asserts *properties* rather
+than golden pictures, because a pasted-in expected grid only proves the code
+still does what it did that day. The claims it checks:
+
+| Claim | Why it matters |
+|---|---|
+| `_prune_uncrossable` never changes the legal n×n placement set | This **is** the losslessness argument — the solver sees only placements, so an unchanged set means an unchanged switch count |
+| one sweep is a fixed point | A second pass must find nothing, or callers are silently getting a partial result |
+| a pass only ever frees walls | It must never add one |
+| `n=1` frees nothing | Every wall is its own placement, so none is redundant |
+| removals are monotonic in `n` | A bigger robot crosses fewer gaps, so more walls become redundant |
+| the spacing rule never leaves a gap ≥ `n` | Otherwise an n×n robot slips through the thinned line |
+| every recipe key equals `mode_name(**its kwargs)` | The key names the output folder while the status is stamped from `mode_name`; drift means writing to one folder and reporting another |
+
+`make_gallery.py` renders the same fixtures as a page — the original beside each
+recipe's result, every original wall coloured **kept**, **removed** or **cropped
+away**. It drives `simplify_workspace` with the fixture's own contact counts, so
+a case only has to be a *shape*, not a solvable puzzle; that is what keeps the
+cases small enough to reason about.
+
+### Published reports
+
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml) runs lint and the
+test suite, then solves every test case, builds the reports and the gallery, and
+publishes `plots/` to GitHub Pages — **committing nothing**. The site therefore
+always matches the code at `main`, not whenever an artifact was last committed,
+which is the same rule the repo applies locally.
+
+Enable it once under **Settings → Pages → Source: GitHub Actions**. Then:
+
+```
+https://<user>.github.io/<repo>/                    landing page
+https://<user>.github.io/<repo>/tests/index.html    every test run
+https://<user>.github.io/<repo>/gallery/index.html  the recipe gallery
+```
+
+A pull request gets the verify and build signal without replacing what is live.
 
 ### Run demos
 

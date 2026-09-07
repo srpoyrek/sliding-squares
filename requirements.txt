@@ -3,6 +3,7 @@ matplotlib>=3.5.0   # plots: src/visualizer.py, render_run.py (PNG output)
 jinja2>=3.1.0       # renders src/templates/*.html.j2 into the HTML reports
 psutil>=5.9.0       # real RSS measurement for the memory guard in src/memory.py
 
-# Development — lint, format and the pre-commit hook. Not needed just to run.
+# Development — test, lint, format and the pre-commit hook. Not needed just to run.
+pytest>=8.0.0       # the suite in tests/ (python -m pytest)
 ruff>=0.4.4
 pre-commit>=3.5.0
