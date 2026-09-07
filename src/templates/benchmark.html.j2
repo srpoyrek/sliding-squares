@@ -138,9 +138,14 @@ Built {{ data.generated }}.</p>
 </div>
 
 <h2>Totals</h2>
-<p class="muted note">Summed across every case this search and
-<code>{{ baseline }}</code> both solved, so the ratio columns compare like with
-like.</p>
+<p class="muted note">Over every case this search and <code>{{ baseline }}</code>
+both solved, so the ratio columns compare like with like. States and time are
+<b>summed</b> — a total of those means something, since all of the states get
+built and all of the seconds get spent. <b>Peak RAM is not summed</b>: each case
+runs in its own process and peaks at its own moment, so adding those peaks would
+describe a run that never happened. It is the <b>worst single case</b> instead,
+and its ratio is the average of the per-case ratios so that one large grid does
+not decide the figure by itself.</p>
 
 <table>
   <tr class="grouphead">
@@ -152,9 +157,9 @@ like.</p>
   </tr>
   <tr>
     <th class="num">solved</th><th class="num">failed</th>
-    <th class="num">count</th><th class="num">&times; {{ baseline }}</th>
-    <th class="num">seconds</th><th class="num">&times; {{ baseline }}</th>
-    <th class="num">bytes</th><th class="num">&times; {{ baseline }}</th>
+    <th class="num">total</th><th class="num">avg per case</th>
+    <th class="num">total seconds</th><th class="num">avg per case</th>
+    <th class="num">worst case</th><th class="num">avg per case</th>
   </tr>
   {% for row in data.summary %}
   <tr>
@@ -165,14 +170,29 @@ like.</p>
     <td class="num">{% if row.failed %}<span class="bad">{{ row.failed }}</span>
         {%- else -%}0{% endif %}</td>
     <td class="num">{{ row.states | num }}</td>
-    <td class="num">{{ row.states_ratio | ratio }}</td>
+    <td class="num">{{ row.states_ratio_avg | delta }}<br>
+        <span class="unit">best on {{ row.states_wins }}/{{ row.cases_compared }}</span></td>
     <td class="num">{{ row.warm_min | seconds }}</td>
-    <td class="num">{{ row.warm_min_ratio | ratio }}</td>
+    <td class="num">{{ row.warm_min_ratio_avg | delta }}<br>
+        <span class="unit">best on {{ row.warm_min_wins }}/{{ row.cases_compared }}</span></td>
     <td class="num">{{ row.peak_bytes | bytes }}</td>
-    <td class="num">{{ row.peak_bytes_ratio | ratio }}</td>
+    <td class="num">{{ row.peak_bytes_ratio_avg | delta }}<br>
+        <span class="unit">best on {{ row.peak_bytes_wins }}/{{ row.cases_compared }}</span></td>
   </tr>
   {% endfor %}
 </table>
+<p class="muted note"><b>avg per case</b> is the <em>geometric</em> mean of the
+per-case ratios against <code>{{ baseline }}</code> — how much this search saves
+on a typical case, with every case counting once. Geometric because a ratio's
+natural centre is multiplicative: <code>2.00x</code> and <code>0.50x</code> are
+opposite results and must cancel to <code>1.00x</code>, which an ordinary mean
+would put at <code>1.25x</code>.</p>
+<p class="muted note">It is a different question from the total beside it, and
+the two can point opposite ways. <b>The cases here span four orders of
+magnitude</b> — a 200 KB solve counts once and so does a 95 MB one — so the
+average is swayed by the small cases while the total is decided almost entirely
+by the largest. <b>best on N/M</b> says how many cases the search actually won,
+which is the tiebreaker when those two disagree.</p>
 
 <h2>Per case</h2>
 <p class="muted note">The best value for each measurement is marked

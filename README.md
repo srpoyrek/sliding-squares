@@ -314,6 +314,26 @@ keeps its results in the LRU caches in [`src/bfs.py`](src/bfs.py), all three
 searches fill them identically, and that shared cache dominates the peak. The
 state count is where the searches actually differ.
 
+**`avg per case` is a geometric mean**, not an ordinary one. A ratio's centre is
+multiplicative — `2.00x` and `0.50x` are opposite results and must cancel to
+`1.00x`, which an arithmetic mean puts at `1.25x`, biasing every comparison
+towards "worse".
+
+**Read the average and the total together; they can disagree.** These cases span
+four orders of magnitude, so the average lets a 200 KB solve outvote a 95 MB one
+while the total is decided almost entirely by the largest grid. `best on N/M`
+counts the cases each search actually won, which is the tiebreaker. `mirror`
+holds fewer states on every case, but on RAM and time it wins the large cases
+and loses the toys — so its totals look good while its averages do not.
+
+In the totals, **`states` and `time` are summed but `ram` is not**. A total of
+states or seconds means something — all of them get built, all of them get
+spent. Peak memory does not add up that way: every case runs in its own process
+and peaks at its own moment, so summing those peaks would report a figure larger
+than any amount of memory ever actually held. It is the **worst single case**
+instead, with the ratio averaged per case so one large grid cannot decide it
+alone.
+
 `benchmark.json` also records `cold_seconds` and `warm_median` for each run;
 the page shows the fastest warm time, since that is the least noisy number.
 

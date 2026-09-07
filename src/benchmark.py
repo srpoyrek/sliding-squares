@@ -442,12 +442,37 @@ def _annotate_case(entry: dict) -> dict:
 
 
 def _summarise(entries, variants) -> list[dict]:
-    """One row per variant: totals across every case both it and the baseline
-    solved, so the ratios compare like with like."""
+    """One row per search, over the cases both it and the baseline solved.
+
+    States and time are summed, because a total of those means something: the
+    states are all built, the seconds are all spent. **Peak memory is not
+    summed.** Each case runs in its own process and peaks at its own moment, so
+    adding those peaks describes a run that never happened — the headline figure
+    would be several times the largest amount of memory ever actually held. It
+    is reported as the worst case instead.
+
+    Ratios follow the same logic: a ratio of sums for the two that are summed,
+    and the mean of the per-case ratios for peak memory, so every case counts
+    once instead of the largest grid deciding the number on its own.
+    """
+    metrics = ("states", "warm_min", "peak_bytes")
     rows = []
     for variant in variants:
-        totals = {"states": 0, "warm_min": 0.0, "peak_bytes": 0}
-        base_totals = {"states": 0, "warm_min": 0.0, "peak_bytes": 0}
+        totals = dict.fromkeys(metrics, 0)
+        base_totals = dict.fromkeys(metrics, 0)
+        # Per-case ratios kept alongside the totals: a ratio of totals answers
+        # "over the whole suite", which the largest grid decides almost by
+        # itself, while the average of the per-case ratios answers "on a typical
+        # case", where every case counts once. They are different questions and
+        # the page asks both.
+        #
+        # Averaged geometrically, not arithmetically. A ratio's natural centre is
+        # multiplicative: 2.0x and 0.5x are opposite results and must cancel to
+        # 1.00x, which the arithmetic mean puts at 1.25x. Averaging ratios the
+        # ordinary way biases every comparison towards "worse".
+        per_case = {metric: [] for metric in metrics}
+        wins = dict.fromkeys(metrics, 0)
+        peak_worst = 0
         solved = 0
         failed = 0
         for entry in entries:
@@ -462,11 +487,16 @@ def _summarise(entries, variants) -> list[dict]:
                 failed += 1
                 continue
             solved += 1
+            peak_worst = max(peak_worst, record["peak_bytes"])
             if base is None:
                 continue
-            for metric in totals:
+            for metric in metrics:
                 totals[metric] += record[metric]
                 base_totals[metric] += base[metric]
+                if base[metric]:
+                    per_case[metric].append(record[metric] / base[metric])
+                if record.get(f"{metric}_best"):
+                    wins[metric] += 1
         row = {
             "variant": variant,
             "blurb": VARIANT_BLURB.get(variant, ""),
@@ -474,12 +504,21 @@ def _summarise(entries, variants) -> list[dict]:
             "failed": failed,
             "states": totals["states"],
             "warm_min": totals["warm_min"],
-            "peak_bytes": totals["peak_bytes"],
+            # Worst single case, never a sum -- see the docstring.
+            "peak_bytes": peak_worst,
         }
-        for metric in totals:
+        for metric in metrics:
             row[f"{metric}_ratio"] = (
                 totals[metric] / base_totals[metric] if base_totals[metric] else None
             )
+            row[f"{metric}_ratio_avg"] = (
+                statistics.geometric_mean(per_case[metric]) if per_case[metric] else None
+            )
+            row[f"{metric}_wins"] = wins[metric]
+        row["cases_compared"] = len(per_case["states"])
+        # Peak memory has no meaningful total, so its headline ratio is the
+        # per-case average rather than a ratio of sums.
+        row["peak_bytes_ratio"] = row["peak_bytes_ratio_avg"]
         rows.append(row)
     return rows
 
@@ -515,6 +554,20 @@ def fmt_num(value) -> str:
 
 def fmt_ratio(value) -> str:
     return "—" if value is None else f"{value:.2f}x"
+
+
+def fmt_ratio_delta(value) -> str:
+    """A ratio with the saving spelled out, e.g. ``0.57x (43% less)``.
+
+    The multiple alone makes the reader do the subtraction, and "how much less"
+    is the question the chart exists to answer.
+    """
+    if value is None:
+        return "—"
+    pct = abs(value - 1.0) * 100.0
+    if pct < 0.5:
+        return f"{value:.2f}x (same)"
+    return f"{value:.2f}x ({pct:.0f}% {'less' if value < 1 else 'more'})"
 
 
 # ── charts ──────────────────────────────────────────────────────────────
@@ -656,17 +709,21 @@ def _case_chart(data, metric, title, subtitle, axis_label, fmt) -> dict:
 
 
 def _headline_chart(data) -> dict:
-    """The one chart that answers "which is best": each search's total for each
-    metric divided by the baseline's, on a shared linear axis with 1.0x marked."""
+    """The one chart that answers "which is best, and by how much".
+
+    Uses the mean of the per-case ratios rather than a ratio of totals: the
+    question is how much each search saves on a typical case, and a ratio of
+    totals is decided almost entirely by the largest grid in the set.
+    """
     summary = {row["variant"]: row for row in data["summary"]}
     metrics = [
-        ("states_ratio", "States held"),
-        ("warm_min_ratio", "Solve time"),
-        ("peak_bytes_ratio", "Peak memory"),
+        ("states_ratio_avg", "Memory — states held"),
+        ("warm_min_ratio_avg", "Execution time"),
+        ("peak_bytes_ratio_avg", "Memory — peak RAM"),
     ]
     ratios = [
         summary[v][key]
-        for key, _ in metrics
+        for key, _label in metrics
         for v in data["variants"]
         if summary.get(v) and summary[v].get(key)
     ]
@@ -689,14 +746,16 @@ def _headline_chart(data) -> dict:
         for variant in data["variants"]:
             row = summary.get(variant)
             value = row.get(key) if row else None
-            bars.append((variant, value, fmt_ratio(value)))
+            bars.append((variant, value, fmt_ratio_delta(value)))
         groups.append((label, bars))
 
     return _render(
-        "Head to head",
-        f"Each search's total divided by {BASELINE}'s, over the cases both solved. "
-        f"Shorter is better; {BASELINE} is 1.00x by definition.",
-        f"multiple of {BASELINE}",
+        f"Head to head — average per case, against {BASELINE}",
+        f"How much each search saves on a typical case: the mean of its per-case "
+        f"ratios against {BASELINE}, over the cases both solved. Shorter is "
+        f"better, {BASELINE} is 1.00x by definition, and the bracket says how "
+        f"much less (or more) than it.",
+        f"multiple of {BASELINE} (1.00x = no change)",
         groups,
         ticks,
         scale,
@@ -775,6 +834,7 @@ def write_benchmark_report(data: dict, out_dir: str | None = None) -> str:
     env.filters["bytes"] = fmt_bytes
     env.filters["num"] = fmt_num
     env.filters["ratio"] = fmt_ratio
+    env.filters["delta"] = fmt_ratio_delta
     page = env.get_template("benchmark.html.j2").render(
         data=data,
         charts=build_charts(data),

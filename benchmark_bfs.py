@@ -39,7 +39,7 @@ from src.benchmark import (  # noqa: E402 — needs BASE_DIR on the path first
     BASELINE,
     VARIANTS,
     discover_cases,
-    fmt_ratio,
+    fmt_ratio_delta,
     run_benchmark,
     write_benchmark,
     write_benchmark_report,
@@ -72,15 +72,23 @@ def _print_summary(data: dict) -> None:
             }
             print(f"  {case['name']}: {counts}")
 
-    print(f"\nTotals across cases each search and {BASELINE} both solved.")
-    print(f"Ratios are that search divided by {BASELINE} — lower is better.")
+    print(f"\nAverage per case against {BASELINE} (geometric mean of the per-case ratios).")
+    print("Lower is better. 'best on N/M' counts the cases the search actually won.")
+    for row in data["summary"]:
+        compared = row["cases_compared"]
+        print(f"  {row['variant']:<15} solved={row['solved']:<3} failed={row['failed']:<3}")
+        for label, key in (("states", "states"), ("time", "warm_min"), ("ram", "peak_bytes")):
+            print(
+                f"      {label:<7}{fmt_ratio_delta(row[f'{key}_ratio_avg']):<24}"
+                f"best on {row[f'{key}_wins']}/{compared}"
+            )
+    print("\nSuite totals — the largest grid decides these almost on its own,")
+    print("so where they disagree with the averages above, read both.")
     for row in data["summary"]:
         print(
-            f"  {row['variant']:<15} solved={row['solved']:<3} failed={row['failed']:<3} "
-            f"states={row['states']:>12,} ({fmt_ratio(row['states_ratio'])})  "
-            f"time={row['warm_min']:.3f}s ({fmt_ratio(row['warm_min_ratio'])})  "
-            f"ram={row['peak_bytes'] / (1024 * 1024):>7.1f}MB "
-            f"({fmt_ratio(row['peak_bytes_ratio'])})"
+            f"  {row['variant']:<15} states={row['states']:>12,}  "
+            f"time={row['warm_min']:.3f}s  "
+            f"ram_worst={row['peak_bytes'] / (1024 * 1024):>7.1f}MB"
         )
 
 
