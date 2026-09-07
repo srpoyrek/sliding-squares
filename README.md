@@ -3,9 +3,9 @@
 Two n×n square robots swap positions in a grid workspace.
 Find the workspace that maximizes the minimum number of control switches.
 
-**[📊 Browse the reports](https://srpoyrek.github.io/optimal_sliding_control_squares/)** —
+**[📊 Browse the reports](https://srpoyrek.github.io/sliding-squares/)** —
 every solved test case stepped switch by switch, the blocker heatmaps, and a
-[gallery](https://srpoyrek.github.io/optimal_sliding_control_squares/gallery/index.html)
+[gallery](https://srpoyrek.github.io/sliding-squares/gallery/index.html)
 showing what each simplification recipe does. Rebuilt from `main` on every push;
 nothing generated is committed.
 
@@ -60,8 +60,7 @@ sliding-squares/
 │   ├── 4x4_robot_no_holes.py
 │   ├── 4x4_robot_holes.py
 │   └── 5x5_robot_no_holes.py
-├── plots/
-├── data/
+├── plots/                         # Generated reports — untracked, built by a run
 ├── demo_solver.py
 ├── demo_validator.py
 ├── tests/
@@ -119,6 +118,27 @@ The recipes, defined in `simplify.RECIPES` — each writes to its own folder:
 | `untouched_uncrossable` | ✓ | — | ✓ |
 | `untouched_spaced_uncrossable` | ✓ | plateaus + spacing | ✓ |
 | `uncrossable` | — | — | ✓ (**provably lossless**) |
+
+**Pass order: crop → contact rules → placement rule.** The order is load-bearing,
+and the tempting rearrangement is wrong.
+
+The placement rule finds far more walls on a dense grid than on a thinned one —
+124 versus 36 on `3x3_robot_holes`. That looks like the contact rules are
+starving it, and like running it first would be free, since it leaves the
+placement set unchanged **by definition**.
+
+It isn't. That guarantee is relative to *the grid it measures*. The extra 88
+walls are exactly the ones that **become load-bearing** once the contact rules
+open the grid up. Remove them anyway and the workspace gets strictly more
+permissive, the solver finds a shorter path, and the switch count drops —
+`untouched_spaced_uncrossable` fails outright.
+
+Running the placement rule **last** is what makes its guarantee apply to the
+grid you actually ship.
+
+Cropping stays first for a separate reason: an all-wall border is redundant only
+while it is still all wall. Free a cell inside it and peeling that border would
+delete a free cell, which is not lossless.
 
 **The simplification pass** removes walls that aren't load-bearing and crops all-wall borders, then **re-solves to verify the minimum switch count is unchanged.** A wall the robots never touch is removed; touched walls are thinned according to the chosen recipe.
 
@@ -205,6 +225,7 @@ For raster output, convert on demand:
 ```bash
 python render_run.py plots/tests/3x3_robot_holes/run.json   # per-switch PNGs + transitions.png
 python render_run.py plots/tests/*/run.json --chart-only    # just the combined chart
+python render_run.py plots/tests/3x3_robot_holes/run.json --out-dir figures/
 ```
 
 It writes to `<run-dir>/png_from_json/`, leaving any existing `switch_NN.png`
@@ -257,9 +278,9 @@ Enable it once under **Settings → Pages → Source: GitHub Actions**. Then:
 
 | Page | What it holds |
 |---|---|
-| [Landing page](https://srpoyrek.github.io/optimal_sliding_control_squares/) | Links to both trees |
-| [Test runs](https://srpoyrek.github.io/optimal_sliding_control_squares/tests/index.html) | Every test case, its solved sequence, heatmap and recipe comparison |
-| [Recipe gallery](https://srpoyrek.github.io/optimal_sliding_control_squares/gallery/index.html) | What each simplification recipe does to corner, edge and junction layouts |
+| [Landing page](https://srpoyrek.github.io/sliding-squares/) | Links to both trees |
+| [Test runs](https://srpoyrek.github.io/sliding-squares/tests/index.html) | Every test case, its solved sequence, heatmap and recipe comparison |
+| [Recipe gallery](https://srpoyrek.github.io/sliding-squares/gallery/index.html) | What each simplification recipe does to corner, edge and junction layouts |
 
 A pull request gets the verify and build signal without replacing what is live.
 
@@ -290,6 +311,7 @@ Flags:
 | `--touching` | `edge` | `edge` = full-edge-adjacent robot pairs only; `all` = also corner / partial-offset pairs |
 | `--central-only` | off | Only run the most-central representative per adjacency orientation (1–2 placements) — sound because any placement's workspaces can be replicated from a central one |
 | `--cache-mb` | `150` | Per-worker memory budget for the bfs flood caches. Cap counts auto-scale with grid area so memory stays near this target. Raise for very large grids (e.g. `500` for 30×30, `1000+` for 100×100) if you have the RAM, or lower `--processes` to give each worker more headroom. |
+| `--max-mb` | auto | Ceiling for the whole process tree's resident memory. The run reports its peak against this at the end and flags an overshoot |
 | `--quiet` | off | Suppress per-iteration progress output |
 
 Outputs land in `plots/hardest/run_<R>x<C>_n<N>/` (proof images plus a `summary.txt`).

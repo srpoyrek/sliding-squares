@@ -33,6 +33,7 @@ from src.simplify import (
     _prune_uncrossable,
     _spacing_keepers,
     mode_name,
+    simplify_workspace,
 )
 from src.workspace import Workspace
 from tests.fixtures import CASES, Case, parse, render, walls_of
@@ -194,6 +195,49 @@ def test_relative_keepers_keep_the_contact_peak():
     face_counts[(2, 3, "N")] = 9
     keepers = set(_spacing_keepers(face_counts, 2))
     assert (2, 3) in keepers
+
+
+# ── the reported numbers must add up ────────────────────────────────────
+
+
+@ALL_CASES
+@pytest.mark.parametrize("mode", list(RECIPES), ids=lambda m: m)
+def test_removal_tallies_account_for_every_wall(case: Case, mode: str):
+    """Every wall in the input is surviving, removed by a named pass, or cropped.
+
+    The reported breakdown is measured on the cropped grid while `walls_before`
+    is measured on the original, so cropped walls have to be counted explicitly
+    or the columns do not reconcile against the final count — and the shortfall
+    is not even constant between recipes, which makes the table quietly wrong
+    rather than obviously wrong.
+    """
+    counts, face_counts = case.contacts()
+    ws = case.workspace()
+    before = _count_walls(ws.grid)
+    simplified, untouched, thinned, uncross, cropped_away, _crop = simplify_workspace(
+        ws, counts, face_counts=face_counts, **RECIPES[mode]["kwargs"]
+    )
+    after = _count_walls(simplified.grid)
+    tallied = len(untouched) + len(thinned) + len(uncross) + cropped_away
+    assert after + tallied == before, (
+        f"{case.name}/{mode}: {before} walls in, but {after} left + {tallied} "
+        f"accounted for (untouched={len(untouched)} thinned={len(thinned)} "
+        f"uncrossable={len(uncross)} cropped={cropped_away})"
+    )
+
+
+@ALL_CASES
+@pytest.mark.parametrize("mode", list(RECIPES), ids=lambda m: m)
+def test_removal_lists_are_disjoint(case: Case, mode: str):
+    """No wall may be claimed by two passes, or the totals double-count."""
+    counts, face_counts = case.contacts()
+    _ws, untouched, thinned, uncross, _cropped, _crop = simplify_workspace(
+        case.workspace(), counts, face_counts=face_counts, **RECIPES[mode]["kwargs"]
+    )
+    lists = [set(map(tuple, untouched)), set(map(tuple, thinned)), set(map(tuple, uncross))]
+    for i, a in enumerate(lists):
+        for b in lists[i + 1 :]:
+            assert not (a & b), f"{case.name}/{mode}: a wall was removed twice: {a & b}"
 
 
 # ── recipe wiring ───────────────────────────────────────────────────────

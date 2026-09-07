@@ -332,6 +332,27 @@ def write_local_report(run: dict, out_dir: str, parent_href: str | None = None) 
     return dest
 
 
+def _rank(recipe: dict) -> tuple:
+    """Sort key for "best recipe": lower is better. Only ever applied to
+    recipes that preserved the switch count — a failed one leaves fewer walls
+    precisely because it changed the problem, so it cannot compete.
+
+    1. **Fewest walls left.** The point of the exercise.
+    2. **Most provable removals.** Recipes frequently tie on wall count, and the
+       tie was previously broken by dict insertion order, which is arbitrary.
+       Between two results of the same size, the one that reached it with more
+       walls freed by the placement rule is the more trustworthy: those are
+       lossless by construction, while contact-driven removals only happen to
+       have survived this workspace's re-solve.
+    3. **Name**, so equal results still order deterministically across runs.
+    """
+    return (
+        recipe.get("walls_after", 10**9),
+        -recipe.get("removed_uncrossable", 0),
+        recipe.get("mode", ""),
+    )
+
+
 def _index_row(run_path: str) -> dict:
     """One table row for the global index, or an error row if unreadable."""
     folder = os.path.basename(os.path.dirname(run_path))
@@ -340,11 +361,8 @@ def _index_row(run_path: str) -> dict:
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         return {"folder": folder, "error": f"{type(exc).__name__}: {exc}"}
     meta, recipes = run["meta"], run.get("recipes", [])
-    # The winner is the recipe that left the fewest walls *while preserving the
-    # switch count*. A failed recipe often leaves fewer, but it has changed the
-    # problem, so it cannot win — ranking on walls alone would reward breakage.
     survivors = [r for r in recipes if r.get("preserved") and not r.get("error")]
-    best = min(survivors, key=lambda r: r.get("walls_after", 10**9), default=None)
+    best = min(survivors, key=_rank, default=None)
     row = {
         "folder": folder,
         "error": None,
@@ -361,12 +379,16 @@ def _index_row(run_path: str) -> dict:
     }
     if best:
         before, after = best.get("walls_before", 0), best.get("walls_after", 0)
+        tied = [r for r in survivors if r.get("walls_after") == after and r is not best]
         row["best"] = {
             "mode": best.get("mode", "?"),
             "href": best.get("report_href"),
             "walls_before": before,
             "walls_after": after,
             "pct": round(100.0 * (before - after) / before, 1) if before else 0.0,
+            "provable": best.get("removed_uncrossable", 0),
+            # Named so a tie is visible rather than looking like a lone winner.
+            "tied_with": [r.get("mode", "?") for r in tied],
         }
     return row
 

@@ -292,81 +292,108 @@ def simplify_workspace(
 
     Without it, every touched wall is kept.
 
-    `prune_uncrossable` then runs the exact pass on whatever survived: every
-    wall the n*n robot can never cross is freed, which the solver provably
-    cannot notice. It composes with any of the above, or stands alone as the
-    only lossless recipe (`remove_untouched=False`, no thinning).
+    `prune_uncrossable` then runs the exact pass on whatever survived: every wall
+    the n*n robot can never cross is freed, which the solver provably cannot
+    notice. It must run LAST — its guarantee is relative to the grid it measures,
+    and walls that look redundant on the dense grid become load-bearing once the
+    removals above have opened it up. It composes with any of the above, or
+    stands alone as the only lossless recipe (`remove_untouched=False`, no
+    thinning).
 
     Cells in `protected` are exempt from all removal (e.g. walls the robots
     rest against at their start/goal positions).
 
-    Returns (simplified_ws, removed_untouched, removed_thinned, removed_uncrossable,
-    (crop_top, crop_left)).
+    Returns (simplified_ws, removed_untouched, removed_thinned,
+    removed_uncrossable, cropped_away, (crop_top, crop_left)), where
+    ``cropped_away`` is the number of walls the crop destroyed. Those four
+    counts plus the surviving walls account for every wall in the input
+    exactly once.
     """
     rows, cols = ws.grid.rows, ws.grid.cols
     new_tiles = [row[:] for row in ws.grid.tiles]
+    protected = protected or set()
+    n = ws.robot_a.n
 
+    # Crop fully-wall outer borders first. An all-wall border bounds the robot
+    # exactly as the grid edge does, so peeling it is lossless — but only while
+    # it is still all wall. Any pass that frees a cell inside it has to run
+    # after, or the crop would slice away a cell that had become free.
+    top, bottom, left, right = _crop_bounds(ws.grid.tiles)
+    cropped = [row[left : cols - right] for row in new_tiles[top : rows - bottom]]
+    crop_rows = len(cropped)
+    crop_cols = len(cropped[0]) if crop_rows else 0
+
+    # Walls destroyed by the crop itself. Counted explicitly because every other
+    # tally below is measured on the cropped grid while `walls_before` is
+    # measured on the original: without this the two bases differ and the
+    # breakdown cannot be reconciled against the final count.
+    cropped_away = sum(cell != 0 for row in new_tiles for cell in row) - sum(
+        cell != 0 for row in cropped for cell in row
+    )
+
+    def _orig(r, c):
+        """Cropped coordinate back to the original grid, for reporting."""
+        return (r + top, c + left)
+
+    # Contact-driven removals first. On a maximally-hard workspace every
+    # untouched wall is still load-bearing (it blocks a shortcut), so
+    # remove_untouched=False + crop is the only lossless pass there.
     touched_cells = [
-        (r, c)
-        for r in range(rows)
-        for c in range(cols)
-        if new_tiles[r][c] != 0 and contact_counts.get((r, c), 0) > 0
+        _orig(r, c)
+        for r in range(crop_rows)
+        for c in range(crop_cols)
+        if cropped[r][c] != 0 and contact_counts.get(_orig(r, c), 0) > 0
     ]
 
     removed_thinned = []
     if keep_robot_spacing:
-        keepers = set(_spacing_keepers(face_counts or {}, ws.robot_a.n))
+        keepers = set(_spacing_keepers(face_counts or {}, n))
         removed_thinned = [cell for cell in touched_cells if cell not in keepers]
 
-    # Remove the zero-contact walls — unless asked to keep them — plus whatever
-    # thinning selected. On a maximally-hard workspace every untouched wall is
-    # still load-bearing (it blocks a shortcut), so remove_untouched=False + crop
-    # is the only lossless pass there.
-    protected = protected or set()
     removed_untouched = (
         [
-            (r, c)
-            for r in range(rows)
-            for c in range(cols)
-            if new_tiles[r][c] != 0
-            and contact_counts.get((r, c), 0) == 0
-            and (r, c) not in protected
+            _orig(r, c)
+            for r in range(crop_rows)
+            for c in range(crop_cols)
+            if cropped[r][c] != 0
+            and contact_counts.get(_orig(r, c), 0) == 0
+            and _orig(r, c) not in protected
         ]
         if remove_untouched
         else []
     )
     removed_thinned = [cell for cell in removed_thinned if cell not in protected]
 
-    for r, c in removed_untouched:
-        new_tiles[r][c] = 0
-    for r, c in removed_thinned:
-        new_tiles[r][c] = 0
+    for r, c in removed_untouched + removed_thinned:
+        cropped[r - top][c - left] = 0
 
-    # Crop fully-wall outer borders, shifting the robots into the smaller grid.
-    top, bottom, left, right = _crop_bounds(ws.grid.tiles)
-    cropped = [row[left : cols - right] for row in new_tiles[top : rows - bottom]]
-
-    # Exact pass, last: whatever walls are left, free the ones the robot could
-    # never cross anyway. Runs after the heuristic removals (freeing a cell can
-    # only ever make a neighbouring wall matter MORE, so this stays sound
-    # whatever ran before it) and after the crop, so the grid edge — which
-    # bounds the robot exactly like a wall — is already doing its job instead of
-    # this thinning a border that is about to be sliced off. Coordinates come
-    # back in cropped space, so map them to the original grid for the report.
-    n = ws.robot_a.n
+    # The exact pass runs LAST, and must. Its guarantee — freeing this wall opens
+    # no new n*n placement — holds only for the grid it is measured against. On
+    # the dense grid it would claim far more walls (124 vs 36 on
+    # 3x3_robot_holes), but those extra walls become load-bearing precisely
+    # because the removals above opened the grid up. Taking them anyway makes
+    # the workspace more permissive, the solver finds a shorter path, and the
+    # switch count drops: untouched_spaced_uncrossable fails outright that way.
+    # Running last is what makes the guarantee apply to the grid actually
+    # shipped. Coordinates come back in cropped space, so map them home.
     removed_uncrossable = []
     if prune_uncrossable:
         shifted = {(r - top, c - left) for r, c in protected}
-        removed_uncrossable = [
-            (r + top, c + left) for r, c in _prune_uncrossable(cropped, n, shifted)
-        ]
+        removed_uncrossable = [_orig(r, c) for r, c in _prune_uncrossable(cropped, n, shifted)]
 
     cropped_ws = Workspace(
         Grid(cropped),
         Robot(ws.robot_a.label, n, ws.robot_a.row - top, ws.robot_a.col - left),
         Robot(ws.robot_b.label, n, ws.robot_b.row - top, ws.robot_b.col - left),
     )
-    return cropped_ws, removed_untouched, removed_thinned, removed_uncrossable, (top, left)
+    return (
+        cropped_ws,
+        removed_untouched,
+        removed_thinned,
+        removed_uncrossable,
+        cropped_away,
+        (top, left),
+    )
 
 
 def run_simplification(
@@ -409,6 +436,7 @@ def run_simplification(
         removed_untouched,
         removed_thinned,
         removed_uncrossable,
+        cropped_away,
         (off_r, off_c),
     ) = simplify_workspace(
         ws,
@@ -430,6 +458,9 @@ def run_simplification(
         "removed_untouched": len(removed_untouched),
         "removed_thinned": len(removed_thinned),
         "removed_uncrossable": len(removed_uncrossable),
+        # Walls the crop destroyed. Reported so the breakdown reconciles:
+        # walls_before == walls_after + removed + removed_cropped, exactly.
+        "removed_cropped": cropped_away,
         # Rows/cols peeled off the top and left. Recorded because a cropped
         # result has different dimensions from the original, so this offset is
         # what maps a simplified coordinate back onto the workspace it came from.

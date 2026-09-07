@@ -171,7 +171,7 @@ def build_case(case) -> dict:
     results = []
     for mode, recipe in RECIPES.items():
         ws = case.workspace()
-        simplified, untouched, thinned, uncross, crop = simplify_workspace(
+        simplified, untouched, thinned, uncross, _cropped_away, crop = simplify_workspace(
             ws, counts, face_counts=face_counts, **recipe["kwargs"]
         )
         svg, tally = _diff_svg(

@@ -53,6 +53,28 @@ a given shape is visible rather than described. Generated {{ generated }} by
 {% endfor %}
 </dl>
 
+<h3>Why the passes run in this order</h3>
+<div class="doc">
+<p style="margin:0 0 10px">Every recipe applies its passes as
+<b>crop &rarr; contact rules &rarr; placement rule</b>. The order is
+load-bearing, and the tempting rearrangement is wrong.</p>
+<p style="margin:0 0 10px">The placement rule finds far more walls on a dense
+grid than on a thinned one — <b>124</b> versus <b>36</b> on
+<code>3x3_robot_holes</code>. That looks like the contact rules are starving it,
+and like moving it first would be free, since it leaves the placement set
+unchanged <em>by definition</em>.</p>
+<p style="margin:0 0 10px">It is not. That guarantee is relative to <em>the grid
+it measures</em>. The extra 88 walls are exactly the ones that <b>become
+load-bearing</b> once the contact rules open the grid up. Take them anyway and
+the workspace turns strictly more permissive, the solver finds a shorter path,
+and the switch count drops — <code>untouched_spaced_uncrossable</code> fails
+outright. Running the placement rule <b>last</b> is what makes its guarantee
+apply to the grid actually shipped.</p>
+<p style="margin:0">Cropping stays first for a separate reason: an all-wall
+border is redundant only while it is still all wall. Free a cell inside it and
+peeling that border would delete a free cell, which is not lossless.</p>
+</div>
+
 <h3>Reading a row</h3>
 <p class="why muted">The first board is the scene: <b>A</b> solid at its start
 with its slide ghosted behind it, <b>B</b> parked, walls the robots press tinted

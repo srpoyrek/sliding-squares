@@ -22,7 +22,10 @@
 </style>
 
 <h1>sliding-squares — all tests</h1>
-<p class="muted">{{ rows | length }} run(s).</p>
+<p class="muted">{{ rows | length }} run(s). <b>Best recipe</b> is the one leaving
+the fewest walls while preserving the switch count; ties go to the result with
+more walls freed by the placement rule, since those are lossless by construction
+rather than merely verified on this workspace.</p>
 
 <table>
   <tr>
@@ -65,6 +68,9 @@
       {%- if row.best -%}
         {{ row.best.walls_before }}&rarr;{{ row.best.walls_after }}
         <span class="ok">&minus;{{ row.best.pct }}%</span>
+        {%- if row.best.tied_with %}<br>
+        <span class="muted">tied with {{ row.best.tied_with | join(", ") }}</span>
+        {%- endif -%}
       {%- else -%}
         <span class="muted">-</span>
       {%- endif -%}

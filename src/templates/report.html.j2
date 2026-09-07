@@ -436,11 +436,11 @@ if(!RUN.recipes.length){
   // percentage — so the table explains a result rather than just scoring it.
   el('recipes').innerHTML =
    `<table><tr><th>recipe</th><th>walls before</th><th>walls after</th>
-      <th>untouched</th><th>thinned</th><th>uncrossable</th><th>total removed</th>
-      <th>switches</th><th>status</th><th>page</th></tr>` +
+      <th>untouched</th><th>thinned</th><th>uncrossable</th><th>cropped</th>
+      <th>total removed</th><th>switches</th><th>status</th><th>page</th></tr>` +
    RUN.recipes.map((r, n) => {
      if(r.error)
-       return `<tr><td>${r.mode??'?'}</td><td colspan="9" class="bad">ERROR: ${r.error}</td></tr>`;
+       return `<tr><td>${r.mode??'?'}</td><td colspan="10" class="bad">ERROR: ${r.error}</td></tr>`;
      const st = r.preserved ? '<span class="ok">PRESERVED</span>'
                             : '<span class="bad">FAILED</span>';
      const pct = r.walls_before ? (100*(r.removed||0)/r.walls_before).toFixed(1) : '0.0';
@@ -455,6 +455,7 @@ if(!RUN.recipes.length){
        <td>${r.walls_before??'-'}</td><td>${r.walls_after??'-'}</td>
        <td>${r.removed_untouched??'-'}</td><td>${r.removed_thinned??'-'}</td>
        <td>${r.removed_uncrossable??'-'}</td>
+       <td>${r.removed_cropped??'-'}</td>
        <td>${r.removed??'-'} (${pct}%)</td>
        <td>${r.new_switches??'-'} / ${RUN.meta.switches}</td><td>${st}</td>
        <td>${link}</td></tr>`;
