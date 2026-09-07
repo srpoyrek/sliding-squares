@@ -182,8 +182,15 @@ xdg-open plots/tests/index.html   # Linux
 
 | File | What it is |
 |---|---|
-| `plots/tests/index.html` | Every run in one table — grid, robot size, switches, recipe verdicts, and the **best recipe** for that test: the one leaving the fewest walls *while preserving the switch count*, linked to its own page. A failed recipe usually leaves fewer walls, but it has changed the problem, so it cannot win |
+| `plots/tests/index.html` | Every run in one table — grid, robot size, switches, recipe verdicts, and the **best recipe** for that test: every recipe leaving the fewest walls *while preserving the switch count*, each linked to its own page. Recipes tie often, so all winners are listed rather than one being picked arbitrarily; they are ordered so the result with more walls freed by the placement rule reads first, those being lossless by construction. A failed recipe usually leaves fewer walls, but it has changed the problem, so it cannot win |
 | `plots/tests/<name>/index.html` | One run, end to end (below) |
+
+The index also carries a **Recipes ranked** table: every recipe across every
+test, ordered by mean wall reduction, with how often it preserved the switch
+count and how often it was the best on a test. The average counts only runs
+where the recipe held — including a failure would flatter it, since a broken
+workspace is the smallest of all. The per-test winner tells you what suited one
+workspace; this tells you which recipe is worth reaching for in general.
 
 The per-test page holds:
 

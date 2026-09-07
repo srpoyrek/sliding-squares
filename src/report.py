@@ -376,21 +376,77 @@ def _index_row(run_path: str) -> dict:
         "recipe_kept": len(survivors),
         "generated": meta["generated"],
         "best": None,
+        # Kept per row so the page can rank recipes across every test, not just
+        # name a winner per test.
+        "detail": [
+            {
+                "mode": r.get("mode", "?"),
+                "preserved": bool(r.get("preserved")) and not r.get("error"),
+                "walls_before": r.get("walls_before", 0),
+                "walls_after": r.get("walls_after", 0),
+                "provable": r.get("removed_uncrossable", 0),
+            }
+            for r in recipes
+        ],
     }
     if best:
         before, after = best.get("walls_before", 0), best.get("walls_after", 0)
-        tied = [r for r in survivors if r.get("walls_after") == after and r is not best]
+        # Every recipe that reached the winning wall count, not just the one the
+        # tie-break happened to pick. Recipes tie often, and showing a single
+        # name implies a decisiveness the numbers do not have. Ordered by the
+        # same rank, so the most provable result reads first.
+        winners = sorted((r for r in survivors if r.get("walls_after") == after), key=_rank)
         row["best"] = {
-            "mode": best.get("mode", "?"),
-            "href": best.get("report_href"),
             "walls_before": before,
             "walls_after": after,
             "pct": round(100.0 * (before - after) / before, 1) if before else 0.0,
-            "provable": best.get("removed_uncrossable", 0),
-            # Named so a tie is visible rather than looking like a lone winner.
-            "tied_with": [r.get("mode", "?") for r in tied],
+            "recipes": [
+                {
+                    "mode": r.get("mode", "?"),
+                    "href": r.get("report_href"),
+                    "provable": r.get("removed_uncrossable", 0),
+                }
+                for r in winners
+            ],
         }
     return row
+
+
+def _leaderboard(rows: list[dict]) -> list[dict]:
+    """Every recipe ranked across all tests, strongest reduction first.
+
+    The per-test winner says which recipe suited one workspace; this says which
+    is worth reaching for in general. Ranked on mean reduction over the tests
+    where the recipe *held* — averaging in a failed run would reward breaking
+    the problem, since a broken result is the smallest of all.
+    """
+    stats: dict[str, dict] = {}
+    for row in rows:
+        if row.get("error"):
+            continue
+        winners = {r["mode"] for r in (row.get("best") or {}).get("recipes", [])}
+        for entry in row.get("detail", []):
+            acc = stats.setdefault(
+                entry["mode"], {"mode": entry["mode"], "runs": 0, "kept": 0, "wins": 0, "pcts": []}
+            )
+            acc["runs"] += 1
+            if not entry["preserved"]:
+                continue
+            acc["kept"] += 1
+            before, after = entry["walls_before"], entry["walls_after"]
+            if before:
+                acc["pcts"].append(100.0 * (before - after) / before)
+            if entry["mode"] in winners:
+                acc["wins"] += 1
+
+    board = []
+    for acc in stats.values():
+        pcts = acc.pop("pcts")
+        acc["avg_pct"] = round(sum(pcts) / len(pcts), 1) if pcts else 0.0
+        acc["always_held"] = acc["kept"] == acc["runs"]
+        board.append(acc)
+    # Reduction first; a recipe that never failed breaks a tie over one that did.
+    return sorted(board, key=lambda a: (-a["avg_pct"], -a["kept"], a["mode"]))
 
 
 def write_global_index(tests_dir: str) -> str | None:
@@ -404,8 +460,10 @@ def write_global_index(tests_dir: str) -> str | None:
     runs = sorted(glob.glob(os.path.join(tests_dir, "*", RUN_FILENAME)))
     if not runs:
         return None
+    rows = [_index_row(p) for p in runs]
     page = _ENV.get_template("index.html.j2").render(
-        rows=[_index_row(p) for p in runs],
+        rows=rows,
+        leaderboard=_leaderboard(rows),
         report_filename=REPORT_FILENAME,
     )
     dest = os.path.join(tests_dir, REPORT_FILENAME)

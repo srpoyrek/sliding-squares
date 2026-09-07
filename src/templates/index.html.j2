@@ -22,10 +22,11 @@
 </style>
 
 <h1>sliding-squares — all tests</h1>
-<p class="muted">{{ rows | length }} run(s). <b>Best recipe</b> is the one leaving
-the fewest walls while preserving the switch count; ties go to the result with
-more walls freed by the placement rule, since those are lossless by construction
-rather than merely verified on this workspace.</p>
+<p class="muted">{{ rows | length }} run(s). <b>Best recipe</b> lists every
+recipe that left the fewest walls while preserving the switch count — all of
+them when they tie, ordered so the result with more walls freed by the placement
+rule comes first, since those are lossless by construction rather than merely
+verified on this workspace.</p>
 
 <table>
   <tr>
@@ -52,13 +53,20 @@ rather than merely verified on this workspace.</p>
         <span class="muted">-</span>
       {%- endif -%}
     </td>
-    {# Fewest walls left among the recipes that kept the switch count. #}
-    <td>
+    {# Every recipe that reached the fewest walls while preserving the switch
+       count — all of them when they tie, most-provable first. #}
+    <td style="white-space:normal">
       {%- if row.best -%}
-        {%- if row.best.href -%}
-          <a href="{{ row.folder }}/{{ row.best.href }}"><b>{{ row.best.mode }}</b></a>
-        {%- else -%}
-          <b>{{ row.best.mode }}</b>
+        {%- for r in row.best.recipes -%}
+          {%- if not loop.first %}<br>{% endif -%}
+          {%- if r.href -%}
+            <a href="{{ row.folder }}/{{ r.href }}"><b>{{ r.mode }}</b></a>
+          {%- else -%}
+            <b>{{ r.mode }}</b>
+          {%- endif -%}
+        {%- endfor -%}
+        {%- if row.best.recipes | length > 1 %}
+        <br><span class="muted">{{ row.best.recipes | length }}-way tie</span>
         {%- endif -%}
       {%- else -%}
         <span class="muted">none preserved</span>
@@ -68,9 +76,6 @@ rather than merely verified on this workspace.</p>
       {%- if row.best -%}
         {{ row.best.walls_before }}&rarr;{{ row.best.walls_after }}
         <span class="ok">&minus;{{ row.best.pct }}%</span>
-        {%- if row.best.tied_with %}<br>
-        <span class="muted">tied with {{ row.best.tied_with | join(", ") }}</span>
-        {%- endif -%}
       {%- else -%}
         <span class="muted">-</span>
       {%- endif -%}
@@ -80,3 +85,32 @@ rather than merely verified on this workspace.</p>
   {% endif %}
   {% endfor %}
 </table>
+
+{% if leaderboard %}
+<h2 style="font-size:17px;margin:32px 0 4px">Recipes ranked</h2>
+<p class="muted" style="margin:0 0 12px">Across every test, strongest reduction
+first. Averaged only over the runs where a recipe <em>held</em> — counting a
+failed run would reward it, since a broken workspace is the smallest of all.</p>
+<table>
+  <tr>
+    <th>#</th><th>recipe</th><th>avg reduction</th><th>preserved</th>
+    <th>best on</th><th></th>
+  </tr>
+  {% for r in leaderboard %}
+  <tr>
+    <td class="muted">{{ loop.index }}</td>
+    <td><b>{{ r.mode }}</b></td>
+    <td><span class="ok">&minus;{{ r.avg_pct }}%</span></td>
+    <td>{{ r.kept }}/{{ r.runs }}</td>
+    <td>{{ r.wins }} test(s)</td>
+    <td>
+      {%- if r.always_held -%}
+        <span class="ok">never failed</span>
+      {%- else -%}
+        <span class="bad">failed {{ r.runs - r.kept }}</span>
+      {%- endif -%}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
