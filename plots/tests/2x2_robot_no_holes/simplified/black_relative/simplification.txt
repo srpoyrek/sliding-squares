@@ -1,8 +1,0 @@
-Status: PRESERVED — switches stayed at 5
-Recipe: black_relative
-  Baseline + keep contact peaks plus enough extra cells that no gap along a run exceeds n-1, so an n x n robot still cannot slip past.
-Walls before: 39
-Walls after:  5
-Black walls removed (16): [(0, 0), (0, 3), (0, 6), (0, 7), (0, 8), (1, 7), (1, 8), (2, 8), (5, 8), (6, 0), (6, 3), (6, 4), (6, 5), (6, 6), (6, 7), (6, 8)]
-Orange walls removed (12): [(0, 2), (0, 5), (1, 0), (1, 3), (1, 6), (2, 7), (3, 0), (4, 8), (5, 0), (5, 4), (5, 7), (6, 2)]
-Uncrossable walls removed (0): []

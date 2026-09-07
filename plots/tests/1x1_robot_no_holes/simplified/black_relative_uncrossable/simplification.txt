@@ -1,8 +1,0 @@
-Status: PRESERVED — switches stayed at 3
-Recipe: black_relative_uncrossable
-  black_relative, then the exact pass. The spacing rule and the placement rule agree on straight runs, so this mostly shows what the exact pass finds that the gap heuristic misses at corners.
-Walls before: 11
-Walls after:  2
-Black walls removed (4): [(0, 0), (0, 4), (2, 0), (2, 4)]
-Orange walls removed (0): []
-Uncrossable walls removed (0): []

@@ -1,8 +1,0 @@
-Status: PRESERVED — switches stayed at 3
-Recipe: black_uncrossable
-  Baseline + exact pass: free every remaining wall whose removal opens no new n x n robot placement. Thins lines to a picket at spacing n without guessing.
-Walls before: 11
-Walls after:  2
-Black walls removed (4): [(0, 0), (0, 4), (2, 0), (2, 4)]
-Orange walls removed (0): []
-Uncrossable walls removed (0): []
