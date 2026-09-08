@@ -45,6 +45,26 @@
  .strip{display:flex;flex-wrap:wrap;gap:12px}
  .cell{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px}
  .cell figcaption{font-size:12px;color:var(--muted);margin-top:4px;text-align:center}
+ /* Every board sits in a fixed-size viewport and is scaled to fit it, so
+    stepping through switches, swapping recipes or opening a larger grid never
+    reflows the page. Zooming grows the inner wrapper past the viewport and
+    overflow:auto turns that into pan; the corner handle resizes the viewport. */
+ .boardbox{display:inline-block;vertical-align:top;max-width:100%}
+ .boardbox.wide{display:block}
+ /* overflow:hidden, not auto: panning is grab-and-drag on the board itself, so
+    there are no scrollbars to show. The wrapper is exactly the box at 1x and is
+    zoomed/panned with a transform, which keeps the svg's own layout fixed. */
+ .board{position:relative;width:var(--bw,100%);height:var(--bh,420px);max-width:100%;
+        overflow:hidden;resize:both;background:var(--bg);border:1px solid var(--line);
+        border-radius:6px;cursor:grab;touch-action:none;user-select:none}
+ .board.dragging{cursor:grabbing}
+ .boardbox.wide .board{resize:vertical}
+ .boardzoom{position:absolute;inset:0;transform-origin:0 0;will-change:transform}
+ .boardzoom svg{display:block;width:100%;height:100%}
+ .zoomctl{display:flex;gap:4px;align-items:center;margin-top:4px;font-size:12px}
+ .zoomctl button{padding:1px 7px;font-size:12px;line-height:1.4}
+ .zoomctl .zpct{min-width:3.5em;text-align:center;color:var(--muted);
+                font-variant-numeric:tabular-nums}
  table{border-collapse:collapse;width:100%;overflow-x:auto;display:block}
  th,td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left;white-space:nowrap}
  th{font-weight:600;color:var(--muted)}
@@ -229,16 +249,105 @@ function switchSteps(seq){
   return out;
 }
 
+// ── framed boards ──
+// Every board is drawn into a fixed-size viewport and scaled to fit it (the CSS
+// width/height on the svg override its pixel attributes, and the viewBox keeps
+// the aspect). Zoom and pan are a transform on the wrapper, keyed per board, so
+// a redraw -- the player stepping, the comparison re-rendering -- restores the
+// view instead of resetting it.
+const VIEW = {};
+const view = key => VIEW[key] || (VIEW[key] = {z: 1, x: 0, y: 0});
+const tf = st => `translate(${st.x}px,${st.y}px) scale(${st.z})`;
+
+function frame(svg, {key, h=420, w=null}){
+  const st = view(key);
+  const size = `--bh:${h}px${w ? `;--bw:${w}px` : ''}`;
+  return `<div class="boardbox${w ? '' : ' wide'}" data-zk="${key}" style="${size}">
+    <div class="board"><div class="boardzoom" style="transform:${tf(st)}">${svg}</div></div>
+    <div class="zoomctl"><button data-z="-" title="zoom out">&minus;</button>
+      <span class="zpct">${Math.round(st.z*100)}%</span>
+      <button data-z="+" title="zoom in">+</button>
+      <button data-z="0" title="fit to box">fit</button>
+      <span class="muted">drag to pan &middot; ctrl+wheel to zoom</span></div></div>`;
+}
+
+// Clamp so the board never leaves the box: smaller than the box it stays
+// centred, larger than the box its edges never come inside the box's edges.
+function applyView(box){
+  const st = view(box.dataset.zk), vp = box.querySelector('.board');
+  const W = vp.clientWidth, H = vp.clientHeight, cw = W*st.z, ch = H*st.z;
+  st.x = cw <= W ? (W-cw)/2 : Math.min(0, Math.max(W-cw, st.x));
+  st.y = ch <= H ? (H-ch)/2 : Math.min(0, Math.max(H-ch, st.y));
+  box.querySelector('.boardzoom').style.transform = tf(st);
+  box.querySelector('.zpct').textContent = Math.round(st.z*100) + '%';
+}
+
+// Zoom keeping the content under (cx, cy) -- box-relative -- where it is, so
+// wheel zoom goes towards the pointer and button zoom towards the centre.
+function zoomAt(box, factor, cx, cy){
+  const st = view(box.dataset.zk);
+  const nz = factor === null ? 1 : Math.max(0.25, Math.min(8, st.z*factor));
+  st.x = cx - (cx - st.x) * (nz/st.z);
+  st.y = cy - (cy - st.y) * (nz/st.z);
+  st.z = nz;
+  applyView(box);
+}
+
+// One set of delegated handlers covers every board, including those rendered
+// later (the recipe player), so nothing needs wiring per instance.
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-z]'); if(!b) return;
+  const box = b.closest('.boardbox'), vp = box.querySelector('.board');
+  const f = b.dataset.z === '+' ? 1.25 : b.dataset.z === '-' ? 1/1.25 : null;
+  zoomAt(box, f, vp.clientWidth/2, vp.clientHeight/2);
+});
+document.addEventListener('wheel', e => {
+  if(!e.ctrlKey) return;
+  const vp = e.target.closest('.board'); if(!vp) return;
+  e.preventDefault();
+  const r = vp.getBoundingClientRect();
+  zoomAt(vp.closest('.boardbox'), e.deltaY < 0 ? 1.15 : 1/1.15,
+         e.clientX - r.left, e.clientY - r.top);
+}, {passive:false});
+document.addEventListener('pointerdown', e => {
+  const vp = e.target.closest('.board'); if(!vp || e.button !== 0) return;
+  const box = vp.closest('.boardbox'), st = view(box.dataset.zk);
+  const sx = e.clientX, sy = e.clientY, ox = st.x, oy = st.y;
+  vp.setPointerCapture(e.pointerId);
+  vp.classList.add('dragging');
+  const move = ev => { st.x = ox + (ev.clientX - sx); st.y = oy + (ev.clientY - sy); applyView(box); };
+  const up = () => {
+    vp.removeEventListener('pointermove', move);
+    vp.removeEventListener('pointerup', up);
+    vp.removeEventListener('pointercancel', up);
+    vp.classList.remove('dragging');
+  };
+  vp.addEventListener('pointermove', move);
+  vp.addEventListener('pointerup', up);
+  vp.addEventListener('pointercancel', up);
+  e.preventDefault();
+});
+// The corner handle resizes the box; re-clamp so a zoomed board recentres.
+if(window.ResizeObserver){
+  const ro = new ResizeObserver(es => es.forEach(en => applyView(en.target.closest('.boardbox'))));
+  document.addEventListener('pointerenter', e => {
+    const vp = e.target.closest && e.target.closest('.board');
+    if(vp && !vp.dataset.ro){ vp.dataset.ro = 1; ro.observe(vp); }
+  }, true);
+}
+
 // A self-contained player mounted into `host`, so the main solve and any recipe
-// can each have one without the controls being tied to fixed element ids.
-function makePlayer(host, grid, steps, size, cell){
-  host.innerHTML = `<div class="board"></div>
+// can each have one without the controls being tied to fixed element ids. The
+// frame is built once and only its contents are redrawn per step, so the zoom
+// and the viewport size survive stepping.
+function makePlayer(host, grid, steps, size, cell, key){
+  host.innerHTML = `${frame('', {key: key || host.id || 'player', h: 440})}
     <div class="controls">
       <button data-a="prev">&larr;</button><button data-a="play">Play</button>
       <button data-a="next">&rarr;</button>
       <input type="range" min="0" value="0"><span class="muted pos"></span>
     </div><div class="muted cap"></div>`;
-  const stage = host.querySelector('.board'), scrub = host.querySelector('input'),
+  const stage = host.querySelector('.boardzoom'), scrub = host.querySelector('input'),
         pos = host.querySelector('.pos'), cap = host.querySelector('.cap'),
         playBtn = host.querySelector('[data-a=play]');
   let i = 0, timer = null;
@@ -319,7 +428,7 @@ function heatSummary(heat){
 if(!RUN.heat || !RUN.heat.cells.length){
   for(const id of ['hhead','hhint','heat']) el(id).style.display = 'none';
 } else {
-  el('heat').innerHTML = heatBoard(G, RUN.heat, 40) +
+  el('heat').innerHTML = frame(heatBoard(G, RUN.heat, 40), {key: 'heat', h: 520}) +
     `<div class="muted" style="margin-top:6px">${heatSummary(RUN.heat)}</div>`;
 }
 
@@ -342,8 +451,13 @@ if(VARIANTS.length < 2){
 } else {
   const opts = VARIANTS.map((v,i) => `<option value="${i}">${v.label}</option>`).join('');
   el('cmpL').innerHTML = opts; el('cmpR').innerHTML = opts;
+  // Default pair: the original against the most aggressive recipe that is
+  // still expected to hold, so the first thing on screen is the interesting
+  // comparison. Falls back to whichever recipe comes first if that one is
+  // absent from this run.
+  const preferred = VARIANTS.findIndex(v => v.key === 'untouched_spaced_uncrossable');
   el('cmpL').value = 0;
-  el('cmpR').value = 1;
+  el('cmpR').value = preferred > 0 ? preferred : 1;
 
   let ci = 0, ctimer = null;
   const sides = () => [VARIANTS[+el('cmpL').value], VARIANTS[+el('cmpR').value]];
@@ -352,13 +466,14 @@ if(VARIANTS.length < 2){
   // clamped to the shorter run.
   const stepsFor = v => switchSteps(v.seq);
 
-  function panel(v, steps, i){
+  function panel(v, steps, i, side){
     const st = steps[Math.min(i, steps.length-1)];
     const done = i >= steps.length ? ' <span class="muted">(finished)</span>' : '';
+    const svg = board(v.grid.walls, v.grid.rows, v.grid.cols, st.a, st.b, RUN.meta.n,
+                      {cell:34, path: st.path, color: st.color, color2: st.color2,
+                       hits: st.hits, ghost: st.ghost, mover: st.mover});
     return `<figure class="cell" style="margin:0">
-      ${board(v.grid.walls, v.grid.rows, v.grid.cols, st.a, st.b, RUN.meta.n,
-              {cell:34, path: st.path, color: st.color, color2: st.color2,
-               hits: st.hits, ghost: st.ghost, mover: st.mover})}
+      ${frame(svg, {key: 'cmp' + side, h: 460, w: 540})}
       <figcaption><b>${v.label}</b><br>${v.walls} walls · ${v.switches} switches<br>
       ${st.title}${done}${st.moves ? ` · <span class="seg">${st.moves}</span>` : ''}
       </figcaption></figure>`;
@@ -371,12 +486,12 @@ if(VARIANTS.length < 2){
     ci = Math.max(0, Math.min(span, ci));
     el('cmpscrub').value = ci;
     el('cmppos').textContent = `switch ${ci} / ${span}`;
-    el('cmpboards').innerHTML = panel(L, sl, ci) + panel(R, sr, ci);
+    el('cmpboards').innerHTML = panel(L, sl, ci, 'L') + panel(R, sr, ci, 'R');
     // Heatmaps for the same pair: which walls each solution actually leans on.
-    const hfig = v => `<figure class="cell" style="margin:0">
-      ${heatBoard(v.grid, v.seq.heat, 26)}
+    const hfig = (v, side) => `<figure class="cell" style="margin:0">
+      ${frame(heatBoard(v.grid, v.seq.heat, 26), {key: 'cmpheat' + side, h: 420, w: 540})}
       <figcaption><b>${v.label}</b><br>${heatSummary(v.seq.heat)}</figcaption></figure>`;
-    el('cmpheat').innerHTML = hfig(L) + hfig(R);
+    el('cmpheat').innerHTML = hfig(L, 'L') + hfig(R, 'R');
   }
 
   el('cmpL').onchange = el('cmpR').onchange = drawCompare;
@@ -413,9 +528,9 @@ el('turns').innerHTML = RUN.turns.map(t => {
                     {cell:30, path: t.waypoints, hits: t.hits, ghost: t.from, mover: t.to,
                      color: isA ? 'var(--arrow-a)' : 'var(--arrow-b)',
                      color2: isA ? 'var(--a)' : 'var(--b)'});
-  return `<figure class="cell" style="margin:0">${svg}
-    <figcaption>switch ${String(t.layer).padStart(2,'0')} · ${t.label}<br>
-    <span class="seg">${t.moves || '—'}</span></figcaption></figure>`;
+  return `<figure class="cell" style="margin:0">
+    ${frame(svg, {key: 'turn' + t.layer, h: 200, w: 240})}
+    <figcaption>switch ${String(t.layer).padStart(2,'0')} · ${t.label}</figcaption></figure>`;
 }).join('') || '<span class="muted">no transitions</span>';
 
 // ── recipes: table, thumbnails, and a player for the one you pick ──
@@ -457,7 +572,8 @@ if(!RUN.recipes.length){
    }).join('') + `</table><div class="strip" style="margin-top:12px">` +
    RUN.recipes.filter(r => r.grid).map(r =>
      `<figure class="cell" style="margin:0">
-        ${board(r.grid.walls, r.grid.rows, r.grid.cols, null, null, RUN.meta.n, {cell:26})}
+        ${frame(board(r.grid.walls, r.grid.rows, r.grid.cols, null, null, RUN.meta.n, {cell:26}),
+                {key: 'recipe-' + r.mode, h: 180, w: 220})}
         <figcaption>${r.mode} · ${r.walls_after} walls</figcaption></figure>`).join('') + `</div>`;
 
   // Clicking a solvable recipe plays its own solution in place, so the
@@ -480,7 +596,7 @@ if(!RUN.recipes.length){
         + `<h4 style="font-size:13px;margin:18px 0 6px">Its solution</h4>`;
       const host = document.createElement('div');
       el('rplayer').appendChild(host);
-      makePlayer(host, r.grid, switchSteps(r.sequence), RUN.meta.n, 40);
+      makePlayer(host, r.grid, switchSteps(r.sequence), RUN.meta.n, 40, 'rplayer');
     };
   });
 }

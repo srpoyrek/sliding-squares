@@ -227,6 +227,17 @@ The per-test page holds:
   The board matches the PNGs deliberately: colours come from `visualizer.py`'s
   constants (see `report.palette()`), and the draw order follows
   `visualizer._draw_turn`, so page and image can be compared directly.
+
+  **Every board on the page sits in its own fixed-size viewport and is scaled to
+  fit it** — the player, the side-by-side panels, the heatmaps, the per-switch
+  thumbnails and the recipe thumbnails. Stepping through switches, swapping
+  recipes or opening a larger grid therefore never moves anything else on the
+  page. Each viewport has `−` / `+` / `fit` buttons and takes `Ctrl`+wheel, which
+  zooms towards the pointer; **drag the board to pan** once it is larger than
+  its box — there are no scrollbars — and the corner handle drags the box
+  itself larger. Zoom and pan are remembered per board, so stepping the player
+  does not reset them. The side-by-side view opens on the original against
+  `untouched_spaced_uncrossable` when that recipe was run.
 - **The path split at each `S`**, so the moves belonging to each switch read
   separately rather than running together in one string.
 - **A thumbnail per switch**, the whole solution at a glance.
