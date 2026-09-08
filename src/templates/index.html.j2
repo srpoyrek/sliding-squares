@@ -278,6 +278,45 @@ document.getElementById('costsize').innerHTML =
 </script>
 {% endraw %}
 
+{% if avg_time_chart %}
+<h2 style="font-size:17px;margin:32px 0 4px">Average reduction in solve time, vs the
+original</h2>
+<p class="muted" style="margin:0 0 12px">One bar per recipe: the mean of
+<code>(re-solve &minus; original) / original</code> over the tests, each test
+measured against <em>its own</em> original solve. Averaging the per-test
+percentages, rather than dividing summed times, keeps every test's weight equal,
+so the one fixture that takes seconds cannot decide the ranking on its own. A bar
+left of <b>&plusmn;0%</b> is a reduction and negative is better;
+<b>&minus;40%</b> means the recipe's solve took, on average, 40% less time than
+the original it replaced. Averaged only over the tests where the recipe
+<em>held</em>: a failed recipe solved an easier problem, so its cheaper solve is
+not a reduction. The axis runs {{ avg_time_chart.left_label }} to
+{{ avg_time_chart.right_label }}.</p>
+<figure style="margin:0 0 8px">
+  <svg class="chart" viewBox="0 0 {{ avg_time_chart.width }} {{ avg_time_chart.height }}"
+       width="{{ avg_time_chart.width }}" height="{{ avg_time_chart.height }}" role="img"
+       aria-label="Average change in solve time, per recipe">
+    <rect x="0" y="0" width="{{ avg_time_chart.width }}" height="{{ avg_time_chart.height }}"
+          fill="#ffffff" rx="6"/>
+    <line class="axis" x1="{{ avg_time_chart.zero_x }}" y1="18" x2="{{ avg_time_chart.zero_x }}"
+          y2="{{ avg_time_chart.height - 4 }}" stroke-dasharray="3 3" stroke-width="1"/>
+    <text x="{{ avg_time_chart.zero_x }}" y="13" font-size="11"
+          text-anchor="middle">&plusmn;0%</text>
+    <text x="{{ avg_time_chart.bar_x }}" y="13" font-size="10">{{ avg_time_chart.left_label }}</text>
+    <text x="{{ avg_time_chart.plot_right }}" y="13" font-size="10"
+          text-anchor="end">{{ avg_time_chart.right_label }}</text>
+    {% for b in avg_time_chart.bars %}
+    <text x="{{ avg_time_chart.bar_x - 8 }}" y="{{ b.y + 11 }}" font-size="11" text-anchor="end"
+          fill="{{ b.fill }}">{{ b.mode }}</text>
+    <rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ avg_time_chart.bar_h }}" rx="2"
+          fill="{{ b.fill }}"/>
+    <text x="{{ avg_time_chart.label_x }}" y="{{ b.y + 11 }}" font-size="11"
+          font-weight="700">{{ b.label }}</text>
+    {% endfor %}
+  </svg>
+</figure>
+{% endif %}
+
 {% if cost_charts %}
 <h2 style="font-size:17px;margin:32px 0 4px">Solve cost after simplification, per test</h2>
 <p class="muted" style="margin:0 0 12px">For every test, what each recipe did to

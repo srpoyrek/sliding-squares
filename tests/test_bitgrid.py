@@ -1,12 +1,12 @@
 """
 Proves BitGrid's primitives against brute-force loops on small grids.
 
-Every operation the solver leans on — shift, rect, flood, erode_window — is
-checked cell by cell against the obvious Python implementation, on random
-grids and on the shapes that break bit tricks: one column wide, one row tall,
-edges, and a serpentine corridor whose width is far larger than its area
-would suggest. If these hold, the searches built on them see exactly the
-sets they would have seen from the tuple code they replaced.
+Every operation the searches lean on — shift, rect, dilate, flood,
+erode_window — is checked cell by cell against the obvious Python
+implementation, on random grids and on the shapes that break bit tricks: one
+column wide, one row tall, edges, and a serpentine corridor whose width is far
+larger than its area would suggest. If these hold, the searches built on them
+see exactly the sets they would have seen from the tuple code they replaced.
 """
 
 from __future__ import annotations
@@ -28,6 +28,15 @@ def _random_grid(rng, rows, cols, density=0.6):
 
 def _brute_shift(cells, rows, cols, dr, dc):
     return {(r + dr, c + dc) for r, c in cells if 0 <= r + dr < rows and 0 <= c + dc < cols}
+
+
+def _brute_dilate(cells, rows, cols):
+    out = set(cells)
+    for r, c in cells:
+        for nr, nc in ((r + 1, c), (r - 1, c), (r, c + 1), (r, c - 1)):
+            if 0 <= nr < rows and 0 <= nc < cols:
+                out.add((nr, nc))
+    return out
 
 
 def _brute_flood(cells, rows, cols, start):
@@ -93,6 +102,33 @@ def test_rect_clips_to_grid(rows, cols):
             for c in range(max(c0, 0), min(cols, c0 + w))
         }
         assert set(g.rect(r0, c0, h, w).cells()) == expect, (r0, c0, h, w)
+
+
+@pytest.mark.parametrize("rows,cols", SHAPES)
+def test_dilate_grows_exactly_one_ring(rows, cols):
+    rng = random.Random(rows * 23 + cols)
+    cells, g = _random_grid(rng, rows, cols, density=0.3)
+    assert set(g.dilate().cells()) == _brute_dilate(cells, rows, cols)
+    # What the dig search actually asks for: the ring around a region holds no
+    # cell of the region and nothing off the grid (shift drops those).
+    ring = g.dilate() - g
+    assert set(ring.cells()).isdisjoint(cells)
+    assert all(0 <= r < rows and 0 <= c < cols for r, c in ring.cells())
+    assert BitGrid.empty(rows, cols).dilate().count() == 0
+    assert BitGrid.full(rows, cols).dilate() == BitGrid.full(rows, cols)
+
+
+def test_coerce_accepts_a_grid_its_bits_or_its_cells():
+    cells = {(0, 1), (2, 2), (2, 0)}
+    g = BitGrid.from_cells(3, 4, cells)
+    assert BitGrid.coerce(3, 4, g) is g  # already a grid: handed straight back
+    assert BitGrid.coerce(3, 4, g.bits) == g
+    assert BitGrid.coerce(3, 4, cells) == g
+    assert BitGrid.coerce(3, 4, iter(cells)) == g
+    assert BitGrid.coerce(3, 4, 0) == BitGrid.empty(3, 4)
+    # A grid of the wrong shape is a mistake, not something to reinterpret.
+    with pytest.raises(ValueError):
+        BitGrid.coerce(4, 3, g)
 
 
 def test_invert_and_algebra_clip_to_grid():

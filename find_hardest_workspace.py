@@ -2,7 +2,17 @@
 find_hardest_workspace.py
 -------------------------
 Self-contained, optimized candidate generator for hardest workspaces.
-Uses enqueue-time depth filtering and a sound symmetric connectivity pre-check.
+
+The dig search walks candidate workspaces breadth-first, carving one cell (or
+one n-cell strip) free per step and solving each candidate. Two things keep it
+affordable: enqueue-time depth filtering, and canonical keys that collapse every
+workspace equivalent under a grid symmetry or the A<->B label swap into one.
+
+A candidate region is a `BitGrid` throughout — on the queue as its bits, in the
+per-node records, and in the payload pickled out to a solver worker. Nothing in
+the search inflates one into a set of (row, col) cells: a BFS layer holds
+thousands of nodes at once, and a set of tuples costs about a thousand times
+what the mask does.
 """
 
 from __future__ import annotations
@@ -53,23 +63,27 @@ _VISITED_RAM_FLOOR = 100_000  # never spill below this many keys
 # implementations (now on Workspace) so all call sites and the hot loop stay
 # unchanged.
 _build_workspace = Workspace.from_free_cells
-_free_set = Workspace.free_cells
 _valid_block_positions = Workspace.valid_block_positions
 
 
 def _solve_payload(payload):
     """Worker function: rebuild workspace and run solver.
     Used by the batch-parallel solver pool in dig_search.
-    Payload: (rows, cols, n, free_cells, pos_a, pos_b, goal_a, goal_b)
+    Payload: (rows, cols, n, free_bits, pos_a, pos_b, goal_a, goal_b)
     Returns: (solvable, switches)
+
+    The candidate region travels as the raw bits of its BitGrid, so a batch of
+    5000 nodes pickles as 5000 ints and the worker rebuilds the mask for free.
+    Sending the free cells as a set of (row, col) instead would put ~2.6 KB per
+    node on the pipe and a second copy of it in the worker.
 
     Every candidate here swaps the two robots (`dig_search` sets the goal to
     `pos_b, pos_a`), so the single-tree mirror search always applies — worth
     having in the hot loop, since it holds one BFS tree in memory instead of
     two under the same per-worker budget.
     """
-    rows, cols, n, free_cells, pos_a, pos_b, goal_a, goal_b = payload
-    ws = _build_workspace(rows, cols, set(free_cells), pos_a, pos_b, n)
+    rows, cols, n, free_bits, pos_a, pos_b, goal_a, goal_b = payload
+    ws = _build_workspace(rows, cols, free_bits, pos_a, pos_b, n)
     out = bfs_mirror(ws, goal_a, goal_b, need_path=False)
     return (False, None) if out is None else (True, out["switches"])
 
@@ -92,15 +106,20 @@ _N_KINDS = None
 _CELL_TABLE = None
 _POS_TABLE = None
 _BIT_STRIDE = None  # grid width in cols; used to pack (r, c) into a single bit index
-_CELL_BITS = None  # {(r, c): (bit_under_k0, bit_under_k1, ...)} for incremental canon
+_CELL_BITS = None  # {bit_index: (bit_under_k0, bit_under_k1, ...)} for incremental canon
 
 
 def _build_cell_bits(cell_table, bit_stride):
-    """Precompute, per cell, the bit-position values under each transform."""
-    cb = {}
-    for c, tforms in cell_table.items():
-        cb[c] = tuple(1 << (rt * bit_stride + ct) for (rt, ct) in tforms)
-    return cb
+    """Precompute, per cell, the bit-position values under each transform.
+
+    Keyed by the cell's own bit index (`row * bit_stride + col`) — the same
+    flattening BitGrid uses — so the dig loop looks a cell up straight from a
+    region's set-bit indices without unpacking it back into (row, col).
+    """
+    return {
+        r * bit_stride + c: tuple(1 << (rt * bit_stride + ct) for (rt, ct) in tforms)
+        for (r, c), tforms in cell_table.items()
+    }
 
 
 def _init_transform_tables(rows, cols, n, cache_mb=150, mem_budget_mb=None):
@@ -170,9 +189,10 @@ def _canonical_key(tf, seconds, thirds):
 # Dig strategies
 # ---------------------------------------------------------------------------
 #
-# A dig strategy decides what cell-set to dig in one BFS step.
-# It receives the current state and yields candidate cell-sets (frozensets).
-# Each yielded set is treated as one atomic dig (one BFS depth increment).
+# A dig strategy decides what cells to dig in one BFS step. It receives the
+# current node — the free region, its frontier ring and (only where a strategy
+# asks for it) its placement set, all BitGrids — and yields candidate cell sets
+# as BitGrids. Each yielded set is one atomic dig (one BFS depth increment).
 #
 # The default strategy yields one cell at a time (the current behavior).
 # Future strategies (e.g., n-cell strips for n*n robots) can drop in by
@@ -180,22 +200,28 @@ def _canonical_key(tf, seconds, thirds):
 # ---------------------------------------------------------------------------
 
 
-def _dig_options_single_cell(free_cells, frontier, valid, rows, cols, n):
-    for cell in frontier:
-        yield frozenset({cell})
+def _dig_options_single_cell(free, frontier, valid, rows, cols, n):
+    """One frontier cell per dig — the finest step there is."""
+    for i in frontier.indices():
+        yield BitGrid(rows, cols, 1 << i)
 
 
-def _dig_options_n_strip(free_cells, frontier, valid, rows, cols, n):
+def _dig_options_n_strip(free, frontier, valid, rows, cols, n):
     """Yield 1×n or n×1 strips that extend the valid region by one robot step.
 
     For each valid position, look in 4 directions. If the adjacent position
     isn't yet valid, the n cells the robot would newly occupy form a strip.
     Dig the wall cells in that strip.
 
+    `valid` is a placement grid, so its own bounds are exactly the legal
+    top-lefts and a membership test needs no separate range check — but the
+    explicit one stays, because it is what tells an out-of-range neighbour from
+    an in-range one that merely is not valid yet.
+
     For n=1 this produces the same candidates as _dig_options_single_cell.
     """
     seen = set()
-    for r, c in valid:
+    for r, c in valid.cells():
         for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
             nr, nc = r + dr, c + dc
             if not (0 <= nr <= rows - n and 0 <= nc <= cols - n):
@@ -204,15 +230,13 @@ def _dig_options_n_strip(free_cells, frontier, valid, rows, cols, n):
                 continue
             # The n cells the robot newly occupies when stepping this direction
             if dr != 0:  # vertical move → horizontal strip
-                strip_r = r + n if dr == 1 else r - 1
-                cells = frozenset((strip_r, c + i) for i in range(n))
+                strip = free.rect(r + n if dr == 1 else r - 1, c, 1, n)
             else:  # horizontal move → vertical strip
-                strip_c = c + n if dc == 1 else c - 1
-                cells = frozenset((r + i, strip_c) for i in range(n))
-            to_dig = cells - free_cells
-            if not to_dig or to_dig in seen:
+                strip = free.rect(r, c + n if dc == 1 else c - 1, n, 1)
+            to_dig = strip - free
+            if not to_dig or to_dig.bits in seen:
                 continue
-            seen.add(to_dig)
+            seen.add(to_dig.bits)
             yield to_dig
 
 
@@ -221,19 +245,13 @@ def _dig_options_n_strip(free_cells, frontier, valid, rows, cols, n):
 # ---------------------------------------------------------------------------
 
 
-def _decode_free_key(mask, rows, cols):
-    """Decode a free-cell bitmask (bit r*cols+c set iff (r, c) is free) back to a
-    set of (r, c) cells."""
-    return set(BitGrid(rows, cols, mask).cells())
-
-
-def _tf_from_cells(free_cells):
+def _tf_from_free(free):
     """Rebuild the per-transform free-cell bitmaps (one int per symmetry) from a
-    free-cell set. The dig queue stores only the compact free_key and rebuilds
+    free-region BitGrid. The dig queue stores only the region's bits and rebuilds
     this on pop — trading a little CPU for ~100x smaller queue entries."""
     tf_list = [0] * _N_KINDS  # type: ignore
-    for cell in free_cells:
-        bits = _CELL_BITS[cell]  # type: ignore
+    for i in free.indices():
+        bits = _CELL_BITS[i]  # type: ignore
         for k in range(_N_KINDS):  # type: ignore
             tf_list[k] |= bits[k]
     return tuple(tf_list)
@@ -263,7 +281,9 @@ def dig_search(
     block_a = _robot_block(pos_a, n)
     block_b = _robot_block(pos_b, n)
 
-    init_free = block_a | block_b
+    # The one place cells become a mask: from here down every region, ring and
+    # placement set in the search is a BitGrid.
+    init_free = BitGrid.from_cells(rows, cols, block_a | block_b)
 
     # Per-placement tiebreakers: pos_a and pos_b don't change within one
     # dig_search call, so the (a_t, b_t) / (b_t, a_t) tiebreaker pairs are
@@ -288,25 +308,26 @@ def dig_search(
         visited_cap = 20_000_000
     visited = SpillableSet(ram_cap=visited_cap)
 
-    # Min-heap priority queue of (depth, seq, free_key) entries.
-    #   depth    -> primary key; preserves layered-BFS ordering.
-    #   seq      -> unique tie-break so Python never compares the int payloads.
-    #   free_key -> compact free-cell bitmask (bit r*cols+c set iff free). Only
-    #               this int is stored per node; frontier / valid / tf are
-    #               rebuilt on pop, so each entry is ~100x smaller than the full
-    #               payload and the queue cannot blow the memory budget.
+    # Min-heap priority queue of (depth, seq, free_bits) entries.
+    #   depth     -> primary key; preserves layered-BFS ordering.
+    #   seq       -> unique tie-break so Python never compares the int payloads.
+    #   free_bits -> the candidate free region's BitGrid bits. Only this int is
+    #                stored per node; the region, its frontier, its placement
+    #                set and tf are rebuilt on pop, so each entry is ~100x
+    #                smaller than the full payload and the queue cannot blow the
+    #                memory budget.
     queue: list = []
     seq = 0
-    heapq.heappush(queue, (0, seq, BitGrid.from_cells(rows, cols, init_free).bits))
+    heapq.heappush(queue, (0, seq, init_free.bits))
     seq += 1
 
-    shared_ws = _build_workspace(rows, cols, set(init_free), pos_a, pos_b, n)
+    shared_ws = _build_workspace(rows, cols, init_free, pos_a, pos_b, n)
 
-    def sync_tiles_to(target_free):
+    def sync_free_to(free_bits):
         # The grid's free set is one bitmask and it is what every solver cache
         # keys on, so pointing the shared workspace at the next candidate is a
         # single assignment — nothing else needs telling.
-        shared_ws.grid.free = BitGrid.from_cells(rows, cols, target_free)
+        shared_ws.grid.free = BitGrid(rows, cols, free_bits)
 
     best_switches = -1
     best_free_max, best_free_min = None, None
@@ -343,10 +364,9 @@ def dig_search(
     # ~millions of times in the layer loops, so we bind them once here.
     cell_bits = _CELL_BITS
     n_kinds = _N_KINDS
-    decode_free = _decode_free_key
     init_frontier = _initial_frontier
     valid_positions_of = _valid_block_positions
-    tf_from_cells = _tf_from_cells
+    tf_from_free = _tf_from_free
     heappush = heapq.heappush
     perf = time.perf_counter
     vis_add = visited.add
@@ -376,7 +396,7 @@ def dig_search(
             need_solve_payloads = []
             need_solve_indices = []
             for item in batch:
-                depth, _pseq, free_key_int = item
+                depth, _pseq, free_bits = item
                 nodes_visited += 1
                 if guard is not None:
                     guard.tick()
@@ -391,28 +411,30 @@ def dig_search(
                         f"eta={eta:.0f}s ({rate:.0f} nodes/s)",
                         flush=True,
                     )
-                # Rebuild the heavy per-node structures from the compact key;
-                # the queue stores only free_key_int to keep memory bounded.
+                # Rebuild the per-node structures from the compact key; the
+                # queue stores only free_bits to keep memory bounded. Each is a
+                # mask, so a whole batch of records costs a few hundred bytes
+                # per node instead of the ~5 KB two sets of (row, col) tuples
+                # would take — and a batch is up to MAX_BATCH_SIZE nodes wide.
                 # `valid` is skipped unless the active strategy needs it; `tf` is
                 # deferred to Phase 3 so it is built only for nodes that expand
                 # (solvable / depth-capped nodes never use it).
-                free_cells = decode_free(free_key_int, rows, cols)
-                frontier = init_frontier(rows, cols, free_cells)
-                valid = valid_positions_of(rows, cols, free_cells, n) if need_valid else None
+                free = BitGrid(rows, cols, free_bits)
+                frontier = init_frontier(free)
+                valid = valid_positions_of(rows, cols, free, n) if need_valid else None
 
                 # Every node is solved directly. (The old reach-ignoring-the-
                 # other-robot precheck was a no-op for edge-adjacent placements
                 # and only pruned trivially-unsolvable corner/partial nodes that
-                # the solver rejects anyway, so it was removed.)  The solver
-                # accepts the plain free-cell set, so no frozenset copy is made.
-                need_solve_payloads.append(
-                    (rows, cols, n, free_cells, pos_a, pos_b, goal_a, goal_b)
-                )
+                # the solver rejects anyway, so it was removed.)  The payload
+                # carries the region as its bits — one int, whether the solve
+                # runs here or is pickled out to a pool worker.
+                need_solve_payloads.append((rows, cols, n, free_bits, pos_a, pos_b, goal_a, goal_b))
                 need_solve_indices.append(len(layer_records))
 
                 layer_records.append(
                     {
-                        "free_cells": free_cells,
+                        "free": free,
                         "frontier": frontier,
                         "valid": valid,
                         "depth": depth,
@@ -428,8 +450,8 @@ def dig_search(
                 else:
                     batch_results = []
                     for p in need_solve_payloads:
-                        _rows, _cols, _n, fk, _pa, _pb, _ga, _gb = p
-                        sync_tiles_to(fk)  # fk is a set; sync_tiles_to never mutates it
+                        _rows, _cols, _n, fb, _pa, _pb, _ga, _gb = p
+                        sync_free_to(fb)
                         out = bfs_mirror(shared_ws, goal_a, goal_b, need_path=False)
                         batch_results.append(
                             (False, None) if out is None else (True, out["switches"])
@@ -443,7 +465,7 @@ def dig_search(
             # Phase 3: expand
             for rec in layer_records:
                 depth = rec["depth"]
-                free_cells = rec["free_cells"]
+                free = rec["free"]
                 frontier = rec["frontier"]
                 valid = rec["valid"]
 
@@ -453,28 +475,25 @@ def dig_search(
                         if first_solvable_depth is None:
                             first_solvable_depth = depth
                             logs.append(f"    first solvable @ depth={depth}")
+                        free_count = free.count()
                         if res_switches is not None and res_switches > best_switches:
                             best_switches = res_switches
-                            # Immutable snapshot of the winning free set (built
-                            # only on the rare best-update, not every node).
-                            snapshot = frozenset(free_cells)
-                            best_free_max = snapshot
-                            best_free_min = snapshot
-                            min_free_at_max = len(free_cells)
-                            logs.append(
-                                f"    NEW MAX: {res_switches} (D:{depth}, F:{len(free_cells)})"
-                            )
+                            # A BitGrid is immutable and hashes by value, so the
+                            # winning region is kept as it stands — no snapshot
+                            # copy to guard against a later mutation.
+                            best_free_max = free
+                            best_free_min = free
+                            min_free_at_max = free_count
+                            logs.append(f"    NEW MAX: {res_switches} (D:{depth}, F:{free_count})")
                         elif (
                             res_switches is not None
                             and res_switches == best_switches
-                            and len(free_cells) < min_free_at_max
+                            and free_count < min_free_at_max
                         ):
-                            min_free_at_max = len(free_cells)
-                            best_free_min = frozenset(free_cells)
-                            logs.append(
-                                f"    MIN-FREE witness: {len(free_cells)} (S:{res_switches})"
-                            )
-                        n_children = len(frontier)
+                            min_free_at_max = free_count
+                            best_free_min = free
+                            logs.append(f"    MIN-FREE witness: {free_count} (S:{res_switches})")
+                        n_children = frontier.count()
                         if n_children > 0:
                             solvable_prunes += 1
                             solvable_prune_children_skipped += n_children
@@ -488,16 +507,16 @@ def dig_search(
 
                 # tf is needed only here (this node will expand); building it now
                 # instead of in Phase 1 skips it for solvable / depth-capped nodes.
-                tf = tf_from_cells(free_cells)
-                for cells_to_dig in dig_options(free_cells, frontier, valid, rows, cols, n):
+                tf = tf_from_free(free)
+                for cells_to_dig in dig_options(free, frontier, valid, rows, cols, n):
                     expansions_total += 1
                     if guard is not None:
                         guard.tick()
 
                     t0 = perf()
                     new_tf_list = list(tf)
-                    for c in cells_to_dig:
-                        bits = cell_bits[c]
+                    for i in cells_to_dig.indices():
+                        bits = cell_bits[i]
                         for k in range(n_kinds):
                             new_tf_list[k] |= bits[k]
                     new_tf = tuple(new_tf_list)
@@ -515,10 +534,12 @@ def dig_search(
                         continue
                     vis_add(new_canon)
 
-                    # Enqueue only the compact free-cell bitmask. new_tf[0] is the
-                    # identity-transform bitmap, which is exactly that mask — so we
-                    # reuse it instead of rebuilding it (no set union, no repack).
-                    # frontier / valid / tf are rebuilt when this node is popped.
+                    # Enqueue only the child's free mask. new_tf[0] is the
+                    # identity-transform bitmap, which is exactly the parent's
+                    # region ORed with the dug cells — so it is reused as the
+                    # child's bits rather than recomputed. The region, its
+                    # frontier, its placement set and tf are all rebuilt from
+                    # this one int when the node is popped.
                     heappush(queue, (depth + 1, seq, new_tf[0]))
                     seq += 1
 
@@ -560,10 +581,10 @@ def dig_search(
         return None
     return {
         "switches": best_switches,
-        "ws_max": _build_workspace(rows, cols, set(best_free_max), pos_a, pos_b, n),
-        "free_max_count": len(best_free_max),
-        "ws_min": _build_workspace(rows, cols, set(best_free_min), pos_a, pos_b, n),
-        "free_min_count": len(best_free_min),
+        "ws_max": _build_workspace(rows, cols, best_free_max, pos_a, pos_b, n),
+        "free_max_count": best_free_max.count(),
+        "ws_min": _build_workspace(rows, cols, best_free_min, pos_a, pos_b, n),
+        "free_min_count": best_free_min.count(),
         "goals": (goal_a, goal_b),
     }
 
@@ -654,8 +675,10 @@ def _worker(args, solver_pool=None):
     out["min_proof_dir"] = min_dir
     out["free_max"] = res["free_max_count"]
     out["free_min"] = res["free_min_count"]
-    out["ws_max_template"] = (rows, cols, _free_set(res["ws_max"]), pos_a, pos_b, n)
-    out["ws_min_template"] = (rows, cols, _free_set(res["ws_min"]), pos_a, pos_b, n)
+    # Templates travel back to the orchestrator through the pool, so the free
+    # region goes as its bits; _build_workspace takes them as they are.
+    out["ws_max_template"] = (rows, cols, res["ws_max"].grid.free.bits, pos_a, pos_b, n)
+    out["ws_min_template"] = (rows, cols, res["ws_min"].grid.free.bits, pos_a, pos_b, n)
     out["goals"] = goals
     return out
 

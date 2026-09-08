@@ -71,21 +71,30 @@ _ENV = Environment(
 )
 
 
-def fmt_change(ratio) -> str:
-    """A ratio against a reference as a signed percent change: ``−43%`` is 43%
-    less than the reference, ``+35%`` is 35% more, ``±0%`` is unchanged.
+def fmt_pct_change(pct) -> str:
+    """A signed percent change: ``−43%`` is 43% less than the reference, ``+35%``
+    is 35% more, ``±0%`` is unchanged.
 
     The single convention for every comparison on every page -- walls, solve
     time, states -- chosen to match the wall-reduction column that already read
     ``−84%``. Negative is always better, and the same number never appears as a
     multiple in one place and a percentage in another.
+
+    Takes a percent that is already a percent. A mean of per-test changes is one
+    of those, and routing it back through a ratio just to print it is how a
+    percent and a ratio end up confused for each other.
     """
-    if ratio is None:
+    if pct is None:
         return "—"
-    pct = (ratio - 1.0) * 100.0
     if abs(pct) < 0.5:
         return "±0%"
     return f"{'−' if pct < 0 else '+'}{abs(pct):.0f}%"
+
+
+def fmt_change(ratio) -> str:
+    """A ratio against a reference in the same signed-percent convention:
+    ``0.57`` reads ``−43%``. See `fmt_pct_change`."""
+    return "—" if ratio is None else fmt_pct_change((ratio - 1.0) * 100.0)
 
 
 _ENV.filters["change"] = fmt_change
@@ -632,6 +641,80 @@ def _cost_charts(rows: list[dict]) -> list[dict]:
     return charts
 
 
+_AC_W, _AC_LABEL, _AC_PLOT = 700, 190, 390
+_AC_ROW, _AC_GAP, _AC_TOP = 18, 8, 30
+
+
+def _average_time_chart(rows: list[dict]) -> dict | None:
+    """One bar per recipe: its mean reduction in solve time against the original.
+
+    Each test contributes one percentage -- ``(re-solve - original) / original``,
+    measured against *that test's own* original solve -- and the bar is the plain
+    mean of those percentages. Averaging per test rather than dividing summed
+    times keeps every test's weight equal, so the one fixture that takes seconds
+    cannot decide the ranking on its own.
+
+    Held runs only, for the same reason the leaderboard uses: a failed recipe
+    solved an easier problem, so its cheaper solve is not a saving. The scale is
+    symmetric about zero, which puts the ±0% line down the middle and makes a
+    saving and a cost of the same size the same length in opposite directions.
+    Returns None when no recipe held anywhere, so the page omits the section
+    rather than drawing an empty axis.
+    """
+    live = [r for r in rows if not r.get("error")]
+    modes = sorted({d["mode"] for r in live for d in r.get("detail", [])})
+    colour = {m: _RECIPE_COLOURS[i % len(_RECIPE_COLOURS)] for i, m in enumerate(modes)}
+
+    means = []
+    for mode in modes:
+        changes = [
+            (d["time_ratio"] - 1.0) * 100.0
+            for r in live
+            for d in r.get("detail", [])
+            if d["mode"] == mode and d["preserved"] and d.get("time_ratio")
+        ]
+        if changes:
+            means.append((mode, sum(changes) / len(changes), len(changes)))
+    if not means:
+        return None
+
+    means.sort(key=lambda m: m[1])  # strongest saving first
+    span = max([abs(pct) for _, pct, _ in means] + [1.0])
+    half = _AC_PLOT / 2.0
+    zero_x = _AC_LABEL + half
+
+    bars = []
+    y = _AC_TOP
+    for mode, pct, tests in means:
+        # A floor of 2px so a recipe that changed nothing still shows a mark
+        # against the zero line instead of vanishing from the chart.
+        w = max(2.0, half * abs(pct) / span)
+        bars.append(
+            {
+                "mode": mode,
+                "y": y,
+                "x": round(zero_x - w if pct < 0 else zero_x, 1),
+                "w": round(w, 1),
+                "label": f"{fmt_pct_change(pct)} · {tests} test(s)",
+                "fill": colour[mode],
+                "good": pct < 0,
+            }
+        )
+        y += _AC_ROW + _AC_GAP
+    return {
+        "bars": bars,
+        "width": _AC_W,
+        "height": y + 6,
+        "bar_x": _AC_LABEL,
+        "bar_h": _AC_ROW - 4,
+        "zero_x": round(zero_x, 1),
+        "plot_right": _AC_LABEL + _AC_PLOT,
+        "label_x": _AC_LABEL + _AC_PLOT + 8,
+        "left_label": fmt_pct_change(-span),
+        "right_label": fmt_pct_change(span),
+    }
+
+
 def _leaderboard(rows: list[dict]) -> list[dict]:
     """Every recipe ranked across all tests, strongest reduction first.
 
@@ -726,6 +809,7 @@ def write_global_index(tests_dir: str) -> str | None:
     page = _ENV.get_template("index.html.j2").render(
         rows=rows,
         leaderboard=_leaderboard(rows),
+        avg_time_chart=_average_time_chart(rows),
         cost_charts=_cost_charts(rows),
         # Marked safe in the template: it is JSON, not markup.
         chart_json=json.dumps(_chart_points(rows), separators=(",", ":")).replace("</", "<\\/"),

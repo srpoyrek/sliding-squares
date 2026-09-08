@@ -53,53 +53,37 @@ class Workspace:
     @classmethod
     def from_free_cells(cls, rows, cols, free_cells, pos_a, pos_b, n, labels=("A", "B")):
         """Build a wall-filled rows*cols workspace with only `free_cells` carved
-        free, robot A at pos_a and robot B at pos_b (both size n). The grid's
-        free mask is built straight from the cells, and it is the mask every
-        solver cache keys on — no separate free key to keep in step."""
+        free, robot A at pos_a and robot B at pos_b (both size n).
+
+        `free_cells` may be a BitGrid, the raw bits of one, or any iterable of
+        (row, col) — the dig search hands over the bits straight off its queue,
+        while a test case hands over a cell set. Whichever arrives becomes the
+        grid's free mask, and that mask is what every solver cache keys on, so
+        there is no separate free key to keep in step.
+        """
         grid = Grid(rows=rows, cols=cols)
-        grid.free = BitGrid.from_cells(rows, cols, free_cells)
+        grid.free = BitGrid.coerce(rows, cols, free_cells)
         return cls(grid, Robot(labels[0], n, *pos_a), Robot(labels[1], n, *pos_b))
 
     def free_cells(self):
         """The set of free (non-obstacle) cells in this workspace's grid."""
         return set(self.grid.free.cells())
 
-    # ── Placement queries (n*n block validity over a free-cell set) ──────
+    # ── Placement queries (n*n block validity over a free region) ────────
 
     @staticmethod
     def valid_block_positions(rows, cols, free_cells, n):
-        """All top-left positions where an n*n block fits entirely in free_cells.
+        """Every top-left at which an n*n block fits entirely inside the free
+        region, as a *placement* BitGrid of (rows-n+1) x (cols-n+1).
 
-        One erosion of the free-cell mask — n*n shifts of the whole grid —
-        rather than n*n membership tests per candidate placement."""
-        return set(BitGrid.from_cells(rows, cols, free_cells).erode_window(n).cells())
-
-    @staticmethod
-    def extend_valid(valid, dug_cell, free_cells_after, rows, cols, n):
-        """Incrementally update valid block positions after one cell is dug free.
-        Only top-lefts whose n*n footprint contains the dug cell can change."""
-        r_star, c_star = dug_cell
-        r_lo = max(0, r_star - n + 1)
-        r_hi = min(rows - n, r_star)
-        c_lo = max(0, c_star - n + 1)
-        c_hi = min(cols - n, c_star)
-
-        new_valid = set(valid)
-        for r in range(r_lo, r_hi + 1):
-            for c in range(c_lo, c_hi + 1):
-                if (r, c) in new_valid:
-                    continue
-                ok = True
-                for ir in range(n):
-                    for ic in range(n):
-                        if (r + ir, c + ic) not in free_cells_after:
-                            ok = False
-                            break
-                    if not ok:
-                        break
-                if ok:
-                    new_valid.add((r, c))
-        return new_valid
+        `free_cells` takes the same three forms as `from_free_cells`. One
+        erosion of the free mask — n*n shifts of the whole grid — answers every
+        candidate placement at once, rather than n*n membership tests each.
+        That also makes an incremental variant pointless: re-eroding after a
+        dig is n*n integer ANDs, cheaper than working out which placements the
+        dug cells could have changed.
+        """
+        return BitGrid.coerce(rows, cols, free_cells).erode_window(n)
 
     # ── Grid queries ────────────────────────────────────
 

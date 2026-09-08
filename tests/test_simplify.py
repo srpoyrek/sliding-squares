@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import pytest
 
+from src.bitgrid import BitGrid
 from src.report import encode_grid
 from src.simplify import (
     RECIPES,
@@ -41,14 +42,16 @@ from tests.fixtures import CASES, Case, parse, render, walls_of
 ALL_CASES = pytest.mark.parametrize("case", CASES, ids=lambda c: c.name)
 
 
-def placements(tiles, n) -> set:
-    """Every legal n*n top-left position — what the solver actually sees.
+def placements(tiles, n) -> BitGrid:
+    """Every legal n*n top-left position — what the solver actually sees, as a
+    placement BitGrid.
 
     `bfs.flood_fill` builds its reachable set from exactly this, so two grids
-    with the same placement set are indistinguishable to the solver.
+    with the same placement set are indistinguishable to the solver. Comparing
+    the masks compares the sets: a BitGrid is equal by shape and bits.
     """
     rows, cols = len(tiles), len(tiles[0])
-    free = {(r, c) for r, row in enumerate(tiles) for c, cell in enumerate(row) if cell == 0}
+    free = BitGrid.from_tiles(tiles, lambda cell: cell == 0)
     return Workspace.valid_block_positions(rows, cols, free, n)
 
 

@@ -8,9 +8,10 @@ This is the one bitmask type in the project. It serves both index spaces the
 solver uses — a *cell* grid (the workspace's free cells, stride ``cols``) and a
 *placement* grid (the top-left corners an n x n robot may occupy, stride
 ``cols - n + 1``) — and ``erode_window`` is the bridge from the first to the
-second. Everything that once hand-rolled a mask (the workspace free key, the
-flood fill, the valid and usable placement sets, the dig search's candidate
-keys) goes through here, so the edge cases live in exactly one place: a
+second. Everything that once hand-rolled a mask or a set of cell tuples (the
+workspace free key, the flood fill, the valid and usable placement sets, the
+dig search's candidate regions and their frontier rings) goes through here, so
+the edge cases live in exactly one place: a
 sideways shift must not wrap onto the neighbouring row, a membership test must
 bounds-check before forming an index, and ``~`` must clip to the grid.
 
@@ -97,6 +98,25 @@ class BitGrid:
                 if predicate(value):
                     bits |= 1 << (r * cols + c)
         return cls(rows, cols, bits)
+
+    @classmethod
+    def coerce(cls, rows: int, cols: int, value) -> BitGrid:
+        """A BitGrid from whichever of the three interchangeable forms the
+        caller holds: an existing BitGrid (returned unchanged once its shape is
+        checked), the raw ``bits`` of one, or any iterable of (row, col).
+
+        The forms meet wherever a search that carries masks calls into an entry
+        point that others reach with cells — the dig search hands over an int
+        straight off its queue, a test case hands over a cell set — so the entry
+        point accepts all three instead of every caller converting first.
+        """
+        if isinstance(value, BitGrid):
+            if value.rows == rows and value.cols == cols:
+                return value
+            raise ValueError(f"grid shape mismatch: {value.rows}x{value.cols} vs {rows}x{cols}")
+        if isinstance(value, int):
+            return cls(rows, cols, value)
+        return cls.from_cells(rows, cols, value)
 
     # ── queries ──────────────────────────────────────────
 
@@ -220,6 +240,17 @@ class BitGrid:
         elif dr < 0:
             bits >>= (-dr) * cols
         return BitGrid(rows, cols, bits)
+
+    def dilate(self) -> BitGrid:
+        """This set plus every cell orthogonally adjacent to one of its cells.
+
+        One growth ring in all four directions: four shifts and four ORs on the
+        whole grid, rather than four bounds-checked neighbour lookups per cell.
+        ``shift`` drops whatever leaves the grid, so nothing outside it is
+        added and a sideways step never wraps onto the neighbouring row. The
+        ring *around* a region is ``region.dilate() - region``.
+        """
+        return self | self.shift(-1, 0) | self.shift(1, 0) | self.shift(0, -1) | self.shift(0, 1)
 
     def flood(self, start_index: int) -> BitGrid:
         """The cells reachable from ``start_index`` by 4-neighbour steps that

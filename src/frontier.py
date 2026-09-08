@@ -1,43 +1,38 @@
 """
 frontier.py
 -----------
-Frontier helpers for grow / dig searches over a free-cell region.
+Frontier helpers for grow / dig searches over a free region.
 
-`initial_frontier` is the ring of obstacle cells directly adjacent to the free
-region; `extend_frontier` updates that ring after one cell is dug free. Both are
-pure functions on (cells, rows, cols) — no Grid or Workspace needed.
+`initial_frontier` is the ring of blocked cells directly adjacent to the free
+region; `extend_frontier` updates that ring after cells are dug free. Both take
+and return `BitGrid`s, so a search that carries its candidate regions as masks
+never has to inflate one into a set of (row, col) tuples to ask what it may dig
+next — which is what a dig search does once per node, for every node.
+
+Neither function needs a Grid or a Workspace: a ring is a property of the free
+region and the grid shape alone.
 """
 
 from __future__ import annotations
 
-
-def initial_frontier(rows, cols, free_cells):
-    """Obstacle cells orthogonally adjacent to the free region."""
-    front = set()
-    for r, c in free_cells:
-        for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-            nr, nc = r + dr, c + dc
-            if not (0 <= nr < rows and 0 <= nc < cols):
-                continue
-            cell = (nr, nc)
-            if cell in free_cells:
-                continue
-            front.add(cell)
-    return frozenset(front)
+from src.bitgrid import BitGrid
 
 
-def extend_frontier(frontier, dug_cell, free_cells_after, rows, cols):
-    """Frontier after `dug_cell` becomes free: drop it, add its still-blocked
-    orthogonal neighbours."""
-    new_front = set(frontier)
-    new_front.discard(dug_cell)
-    r, c = dug_cell
-    for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-        nr, nc = r + dr, c + dc
-        if not (0 <= nr < rows and 0 <= nc < cols):
-            continue
-        cell = (nr, nc)
-        if cell in free_cells_after:
-            continue
-        new_front.add(cell)
-    return frozenset(new_front)
+def initial_frontier(free: BitGrid) -> BitGrid:
+    """Blocked cells orthogonally adjacent to the free region.
+
+    The region grown by one ring, minus the region itself. `dilate` drops
+    whatever falls off an edge, so a cell outside the grid can never enter the
+    frontier and no explicit bounds test is needed.
+    """
+    return free.dilate() - free
+
+
+def extend_frontier(frontier: BitGrid, dug: BitGrid, free_after: BitGrid) -> BitGrid:
+    """The frontier after `dug` becomes free.
+
+    The dug cells' still-blocked orthogonal neighbours join the ring, and every
+    cell that is now free leaves it — including the dug cells themselves, which
+    is why one subtraction of `free_after` covers both.
+    """
+    return (frontier | dug.dilate()) - free_after
