@@ -4,11 +4,19 @@ grid.py
 The physical environment — a 2D map of free tiles and obstacles.
 
 Knows nothing about robots.
+
+Stored as two BitGrids, `free` and `holes`; a boundary wall is any cell that
+is neither. That is two ints for the whole map instead of a list of lists plus
+a set of tuples per obstacle kind, and it is the same free mask every solver
+cache keys on, so nothing has to be re-derived or kept in sync. `tiles` is a
+derived view for the readers that want a 2D list; writers use the methods.
 """
 
 from __future__ import annotations
 
 from typing import Optional
+
+from src.bitgrid import BitGrid
 
 FREE = 0
 BOUNDARY = 1
@@ -25,8 +33,12 @@ class Grid:
     Row increases downward, col increases rightward.
 
     Two ways to create:
-        Grid(tiles)             — from existing 2D list (backward compatible)
-        Grid(rows=R, cols=C)    — empty grid, add obstacles manually
+        Grid(tiles)             — from an existing 2D list
+        Grid(rows=R, cols=C)    — all-free grid, add obstacles with the methods
+
+    `free` is the source of truth and may be replaced wholesale — the dig
+    search does exactly that, pointing one shared grid at candidate after
+    candidate — because every cache downstream keys on its bits.
     """
 
     def __init__(
@@ -36,66 +48,91 @@ class Grid:
         cols: Optional[int] = None,
     ):
         if tiles is not None:
-            self.tiles = tiles
             self.rows = len(tiles)
             self.cols = len(tiles[0])
+            self.free = BitGrid.from_tiles(tiles, lambda v: v == FREE)
+            self.holes = BitGrid.from_tiles(tiles, lambda v: v == HOLE)
         elif rows is not None and cols is not None:
             self.rows = rows
             self.cols = cols
-            self.tiles = [[0] * cols for _ in range(rows)]
+            self.free = BitGrid.full(rows, cols)
+            self.holes = BitGrid.empty(rows, cols)
         else:
             raise ValueError("Provide either tiles or both rows and cols.")
 
-        self._holes: set = set()
-        self._boundaries: set = set()
+    # ── Derived views ────────────────────────────────────
 
-        if tiles is not None:
-            for r in range(self.rows):
-                for c in range(self.cols):
-                    if self.tiles[r][c] == HOLE:
-                        self._holes.add((r, c))
-                    elif self.tiles[r][c] == BOUNDARY:
-                        self._boundaries.add((r, c))
+    @property
+    def obstacles(self) -> BitGrid:
+        """Every cell that is not free — boundary and hole alike."""
+        return ~self.free
+
+    @property
+    def boundaries(self) -> BitGrid:
+        return ~self.free - self.holes
+
+    @property
+    def tiles(self) -> list[list[int]]:
+        """The map as a 2D list of FREE / BOUNDARY / HOLE.
+
+        Materialised on every access — it is a view, not storage. Read from it
+        freely; writing into it changes a throwaway list, so mutations go
+        through `add_hole`, `add_boundary`, `set_free` or by assigning `free`.
+        """
+        free, holes, cols = self.free.bits, self.holes.bits, self.cols
+        out = []
+        for r in range(self.rows):
+            base = r * cols
+            row = []
+            for c in range(cols):
+                i = base + c
+                if (free >> i) & 1:
+                    row.append(FREE)
+                elif (holes >> i) & 1:
+                    row.append(HOLE)
+                else:
+                    row.append(BOUNDARY)
+            out.append(row)
+        return out
 
     # ── Construction helpers ─────────────────────────────
+
     def add_hole(self, row: int, col: int, height: int = 1, width: int = 1):
         """Set a rectangle of cells as internal holes/islands."""
-        for dr in range(height):
-            for dc in range(width):
-                self.tiles[row + dr][col + dc] = HOLE
-                self._holes.add((row + dr, col + dc))
+        block = self.free.rect(row, col, height, width)
+        self.free = self.free - block
+        self.holes = self.holes | block
 
     def add_boundary(self, row: int, col: int, height: int = 1, width: int = 1):
         """Set a rectangle of cells as boundary — same as add_hole but marks as BOUNDARY."""
-        for dr in range(height):
-            for dc in range(width):
-                self.tiles[row + dr][col + dc] = BOUNDARY
-                self._boundaries.add((row + dr, col + dc))
+        block = self.free.rect(row, col, height, width)
+        self.free = self.free - block
+        self.holes = self.holes - block
+
+    def set_free(self, row: int, col: int, height: int = 1, width: int = 1):
+        """Carve a rectangle of cells free."""
+        block = self.free.rect(row, col, height, width)
+        self.free = self.free | block
+        self.holes = self.holes - block
 
     def add_rect_boundary(self):
         """Draw the full perimeter of the grid as boundary."""
-        for c in range(self.cols):
-            self.tiles[0][c] = BOUNDARY
-            self.tiles[self.rows - 1][c] = BOUNDARY
-            self._boundaries.add((0, c))
-            self._boundaries.add((self.rows - 1, c))
-        for r in range(1, self.rows - 1):
-            self.tiles[r][0] = BOUNDARY
-            self.tiles[r][self.cols - 1] = BOUNDARY
-            self._boundaries.add((r, 0))
-            self._boundaries.add((r, self.cols - 1))
+        interior = self.free.rect(1, 1, self.rows - 2, self.cols - 2)
+        border = BitGrid.full(self.rows, self.cols) - interior
+        self.free = self.free - border
+        self.holes = self.holes - border
 
     def get_holes(self) -> set:
         """Return set of all hole cell positions (row, col)."""
-        return set(self._holes)
+        return set(self.holes.cells())
 
     def get_boundaries(self) -> set:
         """Return set of all boundary cell positions (row, col)."""
-        return set(self._boundaries)
+        return set(self.boundaries.cells())
 
     def get_all_obstacles(self) -> set:
         """Return set of all obstacle positions — both holes and boundaries."""
-        return self._holes | self._boundaries
+        return set(self.obstacles.cells())
 
     # ── Queries ─────────────────────────────────────────
 
@@ -105,15 +142,19 @@ class Grid:
 
     def is_free(self, row: int, col: int) -> bool:
         """Is (row, col) in bounds and not an obstacle?"""
-        return self.in_bounds(row, col) and self.tiles[row][col] == FREE
+        return (row, col) in self.free
 
     def is_boundary(self, row: int, col: int) -> bool:
         """Is (row, col) a boundary wall?"""
-        return self.in_bounds(row, col) and self.tiles[row][col] == BOUNDARY
+        return (
+            self.in_bounds(row, col)
+            and (row, col) not in self.free
+            and ((row, col) not in self.holes)
+        )
 
     def is_hole(self, row: int, col: int) -> bool:
         """Is (row, col) an internal hole / island?"""
-        return self.in_bounds(row, col) and self.tiles[row][col] == HOLE
+        return (row, col) in self.holes
 
     def is_obstacle(self, row: int, col: int) -> bool:
         """Is (row, col) out of bounds or any kind of obstacle?"""

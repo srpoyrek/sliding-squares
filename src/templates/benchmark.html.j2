@@ -302,8 +302,9 @@ many state sets it holds at once. Everything above follows from those two.</p>
     <td><b>Memory — peak RAM</b></td><td>bytes (KB / MB)</td>
     <td style="white-space:normal">The most memory held at once during one solve,
     from <code>tracemalloc</code>, measured on the first solve in a fresh process
-    with cold caches. It moves far less than the state count does, because most
-    of it is the shared flood cache that all three searches fill identically.</td>
+    with cold caches. It includes the flood caches, which every search fills
+    identically — a common offset — so only the part above that offset tracks
+    the search's own state count.</td>
   </tr>
   <tr>
     <td><b>vs {{ baseline }}</b></td><td>% change</td>

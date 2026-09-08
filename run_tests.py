@@ -34,7 +34,7 @@ import sys
 import time
 import traceback
 
-from src.bfs import _clear_caches
+from src.bfs import _clear_caches, configure_caches_for_grid
 from src.directories import get_plots_dir, get_testcases_dir
 from src.grid import Grid
 from src.report import build_run, control_turns, write_global_index, write_local_report, write_run
@@ -167,6 +167,14 @@ def run_one(args) -> TestResult:
 
     try:
         ws, goal_a, goal_b = tc.setup()
+
+        # Cap the flood caches to this grid before anything is solved. The
+        # caps are entry counts, and an entry's size grows with the grid, so
+        # the module defaults that suit a 20x30 board would let a 100x100 one
+        # hold gigabytes before evicting. Same per-worker budget as
+        # find_hardest's --cache-mb default; the recipe re-solves run on
+        # cropped grids, so sizing for the original is an upper bound for them.
+        configure_caches_for_grid(ws.grid.rows, ws.grid.cols, ws.robot_a.n)
 
         # Solved twice, the second timed. This is the first solve in a freshly
         # spawned worker, and a first solve pays one-off costs -- heap growth,

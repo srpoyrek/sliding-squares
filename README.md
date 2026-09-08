@@ -34,7 +34,8 @@ sliding-squares/
 ├── src/
 │   ├── bfs.py              # Layered BFS — mirror (default), bidirectional, unidirectional
 │   ├── lru.py              # LRU cache backing the bfs memoization
-│   ├── grid.py             # Grid representation (free, boundary, hole tiles)
+│   ├── bitgrid.py          # BitGrid — the one bitmask type: shift / rect / flood / erode_window
+│   ├── grid.py             # Grid — free cells and holes as two BitGrids; `tiles` is a derived view
 │   ├── robot.py            # n×n square robot representation
 │   ├── state.py            # Immutable state snapshots for BFS
 │   ├── workspace.py        # Grid + robots + movement rules; build-from-free-cells + placement queries
@@ -70,6 +71,7 @@ sliding-squares/
 ├── tests/
 │   ├── fixtures.py                # Hand-built corner/edge/junction layouts + expectations
 │   ├── conftest.py
+│   ├── test_bitgrid.py            # BitGrid primitives against brute force: shift, rect, flood, erode
 │   └── test_simplify.py           # Proves the simplification passes' claims
 ├── .github/workflows/pages.yml    # Verify, build reports, publish to Pages
 ├── find_hardest_workspace.py      # Parallel search for the workspace requiring the most switches
@@ -85,10 +87,10 @@ sliding-squares/
 
 The solver runs a **single-tree layered breadth-first search** over the state space `(pos_a, pos_b, control)` — see [`src/solver.py`](src/solver.py) and [`src/bfs.py`](src/bfs.py):
 
-1. **Layered structure.** Each BFS layer represents states reachable with exactly *k* control switches. Within a layer, `flood_fill` explores all positions the controlled robot can reach without switching.
+1. **Layered structure.** Each BFS layer represents states reachable with exactly *k* control switches. Within a layer, `flood_fill` finds every placement the controlled robot can reach without switching — **bit-parallel**: every legal placement is one bit of one integer, and a pass shifts the whole reached set one step in all four directions at once (four shifts, four ANDs, three ORs, all in C), repeating until nothing new is reached. The cost of a flood therefore grows with the *width* of the region, not the number of placements in it — an open grid floods in as few passes as a cramped one of the same size. Column masks stop a sideways shift wrapping onto the neighbouring row.
 2. **Relabelling symmetry.** The two robots are identical squares and the grid never moves, so exchanging their labels is a symmetry of *every* workspace — no geometric symmetry of the walls is required. Because the goal is the start with the robots exchanged, that relabelling carries the start onto the goal, and the states *l* switches from the goal are exactly the relabelling of the states *l* switches from the start. The backward half of a search is therefore the forward half relabelled, the same size at every layer.
 3. **Mirror meeting.** Only the forward tree is built. A state's distance to the goal is read out of the same `visited` map by looking up its relabelling, so the tree, its parent pointers and its frontier are built once instead of twice. Both initial controllers are seeded in layer 0, which covers either robot moving first — and, under the relabelling, either moving last.
-4. **Memoization.** Per-process LRU caches in `bfs.py` (`_USABLE_CACHE`, `_PARENT_MAP_CACHE`, `_VALID_POS_CACHE`) memoize flood-fill results and valid-position sets. Keys include a `free_key` (an int bitmask where bit `r*cols + c` is set iff cell `(r,c)` is free — ~300× smaller than a frozenset and O(1) to hash), so cached entries are pure functions of their inputs and safely reused across every solve call within a worker. Cache caps are **auto-sized to the grid and the memory budget** (see [Memory budget](#memory-budget) below). Because the caches are pure memoization, they are fully disposable: under memory pressure they are cleared and shrunk (forcing recomputation, never a wrong answer).
+4. **Memoization.** Per-process LRU caches in `bfs.py` (`_VALID_POS_CACHE`, `_USABLE_CACHE`, `_REACH_CACHE`) memoize the valid placements, the placements usable around a parked robot, and each flood's **reachable set**. The first two are `BitGrid`s ([`src/bitgrid.py`](src/bitgrid.py)) — one bit per placement, never a set of `(row, col)` tuples, which would cost ~86 bytes per placement for the same information; valid placements are one `erode_window` of the grid's free cells, usable placements that minus a `rect` around the parked robot. The reachable set is a tuple of state-id indices, so an expansion turns each into a successor id with one multiply-add. The grid itself is stored the same way — `Grid.free` and `Grid.holes` are `BitGrid`s and `tiles` is a derived view — so the free key every cache uses is the grid's own storage, never a copy to keep in step. The flood's *parent map* is deliberately **not** cached: a search asks for thousands of floods and only path reconstruction reads a parent map, for the handful of segments in the answer, so keeping one per flood was most of a solve's memory spent on data that was never read; `_parent_map` recomputes those few on demand. Keys include a `free_key` (an int bitmask where bit `r*cols + c` is set iff cell `(r,c)` is free — ~300× smaller than a frozenset and O(1) to hash), so cached entries are pure functions of their inputs and safely reused across every solve call within a worker. Cache caps are **auto-sized to the grid and the memory budget** (see [Memory budget](#memory-budget) below). Because the caches are pure memoization, they are fully disposable: under memory pressure they are cleared and shrunk (forcing recomputation, never a wrong answer).
 5. **Optimality.** Layer *h* makes exactly two totals newly reachable — 2*h*−1 (relabelling one layer back) and 2*h* (relabelling in this layer). The whole layer is scanned and the smallest total taken before the layer is left, which is what keeps the answer minimal: arriving at layer *h* with nothing found already proves the optimum is at least 2*h*−1, so the first total found there is that optimum.
 6. **Reconstruction.** Both halves are backtracked through the parent pointers as **segments** — one robot walking while the other stands still — and joined *before* either becomes moves. The halves meet inside a segment rather than between two: the first half walks a robot into the meeting square and the second walks the same robot, around the same stationary partner, back out of it. Those two are merged into one segment and planned as a single shortest route, so the path is minimal in moves as well as in switches. Rendering the halves separately instead would detour through the meeting square and imply a switch that is not in the count.
 7. **First mover.** Each search reports which robot moves in layer 0 alongside the path. Commands name no robot, so a replay has to be told who holds control at step 0 and then follow the switches; reading it off the first *move* command is wrong whenever the layer-0 segment is empty, because the path then opens with a switch and the first robot to move is the second to hold control.
@@ -119,6 +121,13 @@ python run_tests.py 4x4_robot_holes --simplified uncrossable untouched_spaced
 | `--bidirectional` | off | Solve with the older forward+backward search instead of the single-tree mirror search (see [Algorithm](#algorithm)). Both are exact, so the switch counts must agree; the flag exists to check that they do. It applies to the recipe re-solves too, so a comparison covers the simplified workspaces as well |
 
 Run `python run_tests.py --list-recipes` to print the recipes and what each one does. After a run, `plots/tests/<name>/simplified/README.txt` names every recipe folder and ranks them by how few walls survived.
+
+Before each test is solved, the flood caches in [`src/bfs.py`](src/bfs.py) are
+capped to that test's grid (`configure_caches_for_grid`, the same 150 MB
+per-worker budget `find_hardest_workspace.py --cache-mb` defaults to). The caps
+are entry counts and an entry grows with the grid, so a fixed default that suits
+a 20×30 board would let a 100×100 one hold gigabytes before evicting anything.
+The benchmark does the same per measurement.
 
 The recipes, defined in `simplify.RECIPES` — each writes to its own folder:
 
@@ -342,10 +351,13 @@ is always better. This is the form the wall-reduction column already used
 (`−84%`), so solve time, states held and peak RAM now read the same way, and the
 same number is never a multiple in one place and a percentage in another.
 
-**`ram` moves much less than `states` does**, and that is expected: `flood_fill`
-keeps its results in the LRU caches in [`src/bfs.py`](src/bfs.py), all three
-searches fill them identically, and that shared cache dominates the peak. The
-state count is where the searches actually differ.
+**`ram` and `states` need not move together.** The flood caches in
+[`src/bfs.py`](src/bfs.py) are filled identically by all three searches — every
+search needs floods for the same position pairs — so whatever they hold is a
+common offset in every `ram` figure, and only the part above it tracks the
+search's own state count. That offset is what the reach cache keeps small: it
+stores each flood's reachable set, not its parent map. The state count is where
+the searches actually differ.
 
 **`avg per case` is a geometric mean**, not an ordinary one. The centre of a
 ratio is multiplicative — `+100%` and `−50%` are opposite results and must
@@ -469,14 +481,14 @@ Outputs land in `plots/hardest/run_<R>x<C>_n<N>/` (proof images plus a `summary.
 
 At startup each run prints its auto-sized caps, e.g.:
 ```
-Cache sizing (budget=150 MB/worker): parent_map=3400  usable=8400  valid_pos=4200
+Cache sizing (budget=150 MB/worker): reach=13600  usable=8400  valid_pos=4200
 ```
 
 At the end of each run the aggregated cache usage is printed (and appended to `summary.txt`):
 ```
 CACHE USAGE (aggregated across all placements)
   usable      peak_size=.../8400 (...) hits=... hit_rate=...  evictions=...
-  parent_map  peak_size=.../3400 (...) hits=... hit_rate=...  evictions=...
+  reach       peak_size=.../13600 (...) hits=... hit_rate=...  evictions=...
 ```
 If any line ends with `HIT LIMIT`, that cache had evictions — raise `--cache-mb` or tune the per-cache caps in [`src/bfs.py`](src/bfs.py).
 
@@ -490,6 +502,7 @@ Several pieces are factored into `src/` so other tools can import them:
 - [`src/report.py`](src/report.py) — `build_run(...)` / `write_run(...)` encode a solve as `run.json`; `write_local_report(...)` and `write_global_index(...)` render the HTML from it, and `write_site_index(...)` writes the landing page (called by both `make_gallery.py` and `benchmark_bfs.py`, so whichever runs last relinks correctly); `encode_grid`, `encode_sequence` and `palette()` are the pieces `simplify.py` and `render_run.py` reuse.
 - [`src/benchmark.py`](src/benchmark.py) — `discover_cases(...)` / `run_benchmark(...)` measure the searches against each other one spawned process at a time, `write_benchmark(...)` / `write_benchmark_report(...)` emit `benchmark.json` and its page. `VARIANTS` and `VARIANT_DOCS` are the single definition of which searches exist and what each one does.
 - [`src/bfs.py`](src/bfs.py) — `bfs_mirror` / `bfs_bidirectional` / `bfs` are the three searches, all returning `{switches, path, visited, initial_mover}` so a caller can replay a path without guessing who moves first.
+- [`src/bitgrid.py`](src/bitgrid.py) — **`BitGrid`**, the project's one bitmask type: a `rows × cols` cell set as a single int (bit `r·cols + c`), immutable, hashable, with set algebra clipped to the grid, `rect`, `shift` (never wraps onto the next row), `flood` (bit-parallel, cost follows the region's width not its area) and `erode_window(n)` (the cells at which an n×n window fits — the bridge from a cell grid to a placement grid). `Grid.free`, every solver cache key, the flood fill and the dig search's candidate keys are all `BitGrid`s or their bits.
 - [`src/workspace.py`](src/workspace.py) — `Workspace.from_free_cells(...)` builds a wall-filled grid with only the given cells carved free; `Workspace.valid_block_positions` / `Workspace.extend_valid` answer n×n placement queries over a free-cell set.
 
 ## Test Cases

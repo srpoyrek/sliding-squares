@@ -282,13 +282,9 @@ class Canonicalizer:
         return self.key(free, pos_a, pos_b)
 
     def key_for_workspace(self, ws):
-        """Canonical key from a Workspace object (free cells = tiles == 0)."""
-        free = {
-            (r, c)
-            for r in range(ws.grid.rows)
-            for c in range(ws.grid.cols)
-            if ws.grid.tiles[r][c] == 0
-        }
+        """Canonical key from a Workspace object — its grid's free cells plus
+        the two robot positions."""
+        free = set(ws.grid.free.cells())
         return self.key(free, ws.robot_a.position(), ws.robot_b.position())
 
     def dedup_placements(self, placements):

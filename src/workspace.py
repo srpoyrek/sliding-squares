@@ -16,6 +16,7 @@ This is the only place where:
 
 from __future__ import annotations
 
+from src.bitgrid import BitGrid
 from src.grid import Grid
 from src.robot import Robot
 from src.state import State
@@ -52,42 +53,26 @@ class Workspace:
     @classmethod
     def from_free_cells(cls, rows, cols, free_cells, pos_a, pos_b, n, labels=("A", "B")):
         """Build a wall-filled rows*cols workspace with only `free_cells` carved
-        free, robot A at pos_a and robot B at pos_b (both size n)."""
-        tiles = [[1] * cols for _ in range(rows)]
-        for r, c in free_cells:
-            tiles[r][c] = 0
-        ws = cls(Grid(tiles), Robot(labels[0], n, *pos_a), Robot(labels[1], n, *pos_b))
-        ws._free_key = sum(1 << (r * cols + c) for r, c in free_cells)
-        return ws
+        free, robot A at pos_a and robot B at pos_b (both size n). The grid's
+        free mask is built straight from the cells, and it is the mask every
+        solver cache keys on — no separate free key to keep in step."""
+        grid = Grid(rows=rows, cols=cols)
+        grid.free = BitGrid.from_cells(rows, cols, free_cells)
+        return cls(grid, Robot(labels[0], n, *pos_a), Robot(labels[1], n, *pos_b))
 
     def free_cells(self):
         """The set of free (non-obstacle) cells in this workspace's grid."""
-        return {
-            (r, c)
-            for r in range(self.grid.rows)
-            for c in range(self.grid.cols)
-            if self.grid.tiles[r][c] == 0
-        }
+        return set(self.grid.free.cells())
 
     # ── Placement queries (n*n block validity over a free-cell set) ──────
 
     @staticmethod
     def valid_block_positions(rows, cols, free_cells, n):
-        """All top-left positions where an n*n block fits entirely in free_cells."""
-        valid = set()
-        for r in range(rows - n + 1):
-            for c in range(cols - n + 1):
-                ok = True
-                for ir in range(n):
-                    for ic in range(n):
-                        if (r + ir, c + ic) not in free_cells:
-                            ok = False
-                            break
-                    if not ok:
-                        break
-                if ok:
-                    valid.add((r, c))
-        return valid
+        """All top-left positions where an n*n block fits entirely in free_cells.
+
+        One erosion of the free-cell mask — n*n shifts of the whole grid —
+        rather than n*n membership tests per candidate placement."""
+        return set(BitGrid.from_cells(rows, cols, free_cells).erode_window(n).cells())
 
     @staticmethod
     def extend_valid(valid, dug_cell, free_cells_after, rows, cols, n):

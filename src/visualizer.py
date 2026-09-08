@@ -81,7 +81,7 @@ def draw(grid, robots=None, title="Workspace", ax=None, show=True):
 
     for r in range(rows):
         for c in range(cols):
-            color = COLOR_FREE if grid.tiles[r][c] == 0 else COLOR_OBSTACLE
+            color = COLOR_FREE if grid.is_free(r, c) else COLOR_OBSTACLE
             ax.add_patch(
                 patches.Rectangle(
                     (c, r), 1, 1, linewidth=0.5, edgecolor=COLOR_GRID_LINE, facecolor=color
@@ -225,7 +225,7 @@ def _compute_contact_at(grid, r, c, n, stationary):
             if sr <= cr < sr + sn and sc <= cc < sc + sn:
                 hit_robot = True
                 continue
-            if grid.tiles[cr][cc] != 0:  # any obstacle (boundary wall OR interior hole)
+            if not grid.is_free(cr, cc):  # any obstacle (boundary wall OR interior hole)
                 hit_wall = True
                 face_walls[side].append((cr, cc))
 

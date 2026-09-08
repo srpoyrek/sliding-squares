@@ -175,8 +175,8 @@ VARIANT_DOCS = {
             "pays instead is a little arithmetic on every state to find the twin, "
             "which on the small cases costs more than the states it saves; that is "
             "why it can lose on the clock there while still winning on states. Peak "
-            "RAM moves far less than the state count, because most of that memory "
-            "is the flood cache all three searches share."
+            "RAM includes the flood caches, which every search fills identically, "
+            "so only the part above that common offset tracks the state count."
         ),
     },
 }
@@ -269,6 +269,15 @@ def _measure_worker(payload, out_q) -> None:
     try:
         tc = _load_case(cls_name)
         ws, goal_a, goal_b = tc.setup()
+
+        # Cap the flood caches to this grid, as run_tests does: cap counts are
+        # per entry and entries grow with the grid, so the module defaults
+        # would let a large board hold gigabytes before evicting. Done before
+        # tracing starts so the (empty) cache objects are not counted as the
+        # search's allocation.
+        from src.bfs import configure_caches_for_grid
+
+        configure_caches_for_grid(ws.grid.rows, ws.grid.cols, ws.robot_a.n)
 
         # Cold: fresh process, so the flood caches are empty and tracemalloc
         # sees this search's allocations and nothing else.

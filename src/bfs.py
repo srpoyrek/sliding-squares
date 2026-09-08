@@ -14,9 +14,11 @@ All three BFS entry points share the same per-layer expansion helper
 halves inside a single bidirectional run.
 
 State = (pos_a, pos_b, ctrl) — ctrl is the robot that just moved.
-Parent tuple convention (unified across fwd and bwd): (prev_state, target_pos, mover)
+Parent tuple convention (unified across fwd and bwd): (prev_state, target_idx, mover)
     - prev_state None ⇒ this state is at layer 0 (no preceding switch).
-    - target_pos      is the mover's end-of-segment position.
+    - target_idx      is the mover's end-of-segment placement as a sid index,
+                      row * col_span + col — the unit `flood_fill` returns, so
+                      no (row, col) tuple is built on the hot path.
     - mover           is the Robot that moved in this segment.
 """
 
@@ -36,36 +38,51 @@ from src.workspace import COMMANDS, DIRECTIONS
 # No per-solve clearing is required: entries remain valid across any number
 # of solve calls on any grid topology, and LRU bounds control memory.
 #
-# _VALID_POS_CACHE   key: (free_key, n)                          -> valid positions
-# _USABLE_CACHE      key: (free_key, pos_static, n)              -> usable positions
-# _PARENT_MAP_CACHE  key: (free_key, pos_static, n, pos_moving)  -> parent_map dict
+# _VALID_POS_CACHE   key: (free_key, n)                          -> BitGrid of valid placements
+# _USABLE_CACHE      key: (free_key, pos_static, n)              -> BitGrid of usable placements
+#
+# Placement sets are BitGrids (src/bitgrid.py) throughout — one bit per
+# placement in the placement index space (row * col_span + col, the same
+# flattening the packed state ids use), never a set of (row, col) tuples. The
+# free_key is the grid's own free BitGrid, so it is always current.
+# _REACH_CACHE       key: (free_key, pos_static, n, pos_moving)  -> reachable placements,
+#                         a tuple of sid indices (row * col_span + col)
+#
+# The reach cache holds the *set* a flood reaches and nothing else. The parent
+# map that produced it is not kept: a search asks for thousands of floods, and
+# only path reconstruction ever reads a parent map — one per segment of the
+# answer — so caching one for every flood made this cache the bulk of a solve's
+# memory, spent on data that was never read. `_parent_map` recomputes the few
+# that are.
 # ---------------------------------------------------------------------------
 _VALID_POS_CACHE: LRUCache = LRUCache(maxsize=1024)
 _USABLE_CACHE: LRUCache = LRUCache(maxsize=4096)
-_PARENT_MAP_CACHE: LRUCache = LRUCache(maxsize=8192)
+_REACH_CACHE: LRUCache = LRUCache(maxsize=8192)
 
 # ── Cache-sizing model (used by configure_caches_for_grid) ──────────────────
 # Every cache entry holds O(valid block positions) cells, so its byte cost is
-# modelled as  slope * valid_positions + base.  A parent_map entry is a dict
-# (hash node + key tuple + value tuple per cell), so its slope is far larger
-# than the usable/valid sets (one cell tuple per element). Numbers are coarse
-# RAM estimates from observed entry sizes; they only need to be the right order
-# of magnitude — the runtime MemoryGuard is the actual safety net, not these.
-_PM_ENTRY_BYTES_PER_CELL = 160
-_SET_ENTRY_BYTES_PER_CELL = 60
+# modelled as  slope * valid_positions + base.  A reach entry is a tuple of
+# ints — one pointer per placement plus the int object where the index is too
+# large to be interned. A valid or usable entry is one to three bitmasks, a
+# bit per placement each, so its slope is a fraction of a byte and those two
+# caches are cheap enough that their caps rarely bind. Numbers are coarse RAM
+# estimates; they only need to be the right order of magnitude — the runtime
+# MemoryGuard is the actual safety net.
+_REACH_ENTRY_BYTES_PER_CELL = 40
+_MASK_ENTRY_BYTES_PER_CELL = 0.5
 _ENTRY_BYTES_OVERHEAD = 200
 
-# How the per-worker byte budget is split across the three caches. parent_map
-# dominates lookups, so it gets the lion's share.
-_PM_BUDGET_SHARE = 0.70
+# How the per-worker byte budget is split across the three caches. The reach
+# cache takes the most lookups, so it gets the lion's share.
+_REACH_BUDGET_SHARE = 0.70
 _USABLE_BUDGET_SHARE = 0.25
 _VALID_BUDGET_SHARE = 0.05
 
-# Smallest cap allowed per cache. Kept tiny on purpose: under a tight per-worker
-# budget on a large grid a single parent_map entry is big, so a generous floor
-# would itself overrun the budget. Caching is pure memoization, so a small cap
-# only means more recomputation — never a wrong answer.
-_PM_MIN_ENTRIES = 16
+# Smallest cap allowed per cache. Caching is pure memoization, so a small cap
+# only means more recomputation — never a wrong answer. Reach entries are
+# small, so their floor can be generous; the set caches stay tight because one
+# entry on a large grid is already sizeable.
+_REACH_MIN_ENTRIES = 256
 _USABLE_MIN_ENTRIES = 16
 _VALID_MIN_ENTRIES = 8
 
@@ -73,29 +90,31 @@ _VALID_MIN_ENTRIES = 8
 def configure_caches_for_grid(rows: int, cols: int, n: int, target_mb: int = 150) -> None:
     """Resize module-level LRU caches so total memory scales with grid area.
 
-    Each parent_map / usable / valid_pos entry stores O(valid_positions)
-    cell tuples; per-entry size grows roughly linearly with grid area. At a
-    fixed cache count, 30x30 uses ~50x more memory than 4x4. This sizes the
-    caps so the per-worker footprint stays near `target_mb`.
+    Each reach / usable / valid_pos entry stores O(valid_positions) cells;
+    per-entry size grows roughly linearly with grid area. At a fixed cache
+    count, 30x30 uses ~50x more memory than 4x4. This sizes the caps so the
+    per-worker footprint stays near `target_mb`.
     """
-    global _VALID_POS_CACHE, _USABLE_CACHE, _PARENT_MAP_CACHE
+    global _VALID_POS_CACHE, _USABLE_CACHE, _REACH_CACHE
     valid_positions = max(1, (rows - n + 1) * (cols - n + 1))
-    pm_bytes_per_entry = valid_positions * _PM_ENTRY_BYTES_PER_CELL + _ENTRY_BYTES_OVERHEAD
-    set_bytes_per_entry = valid_positions * _SET_ENTRY_BYTES_PER_CELL + _ENTRY_BYTES_OVERHEAD
+    reach_bytes_per_entry = valid_positions * _REACH_ENTRY_BYTES_PER_CELL + _ENTRY_BYTES_OVERHEAD
+    mask_bytes_per_entry = valid_positions * _MASK_ENTRY_BYTES_PER_CELL + _ENTRY_BYTES_OVERHEAD
 
     budget_bytes = target_mb * 1024 * 1024
 
-    pm_cap = max(_PM_MIN_ENTRIES, int(budget_bytes * _PM_BUDGET_SHARE / pm_bytes_per_entry))
+    reach_cap = max(
+        _REACH_MIN_ENTRIES, int(budget_bytes * _REACH_BUDGET_SHARE / reach_bytes_per_entry)
+    )
     usable_cap = max(
-        _USABLE_MIN_ENTRIES, int(budget_bytes * _USABLE_BUDGET_SHARE / set_bytes_per_entry)
+        _USABLE_MIN_ENTRIES, int(budget_bytes * _USABLE_BUDGET_SHARE / mask_bytes_per_entry)
     )
     valid_cap = max(
-        _VALID_MIN_ENTRIES, int(budget_bytes * _VALID_BUDGET_SHARE / set_bytes_per_entry)
+        _VALID_MIN_ENTRIES, int(budget_bytes * _VALID_BUDGET_SHARE / mask_bytes_per_entry)
     )
 
     _VALID_POS_CACHE = LRUCache(maxsize=valid_cap)
     _USABLE_CACHE = LRUCache(maxsize=usable_cap)
-    _PARENT_MAP_CACHE = LRUCache(maxsize=pm_cap)
+    _REACH_CACHE = LRUCache(maxsize=reach_cap)
 
 
 def shrink_caches(factor: float = 0.5) -> None:
@@ -103,7 +122,7 @@ def shrink_caches(factor: float = 0.5) -> None:
     down. Entries are pure memoization, so this only forces recomputation."""
     _VALID_POS_CACHE.set_maxsize(int(_VALID_POS_CACHE.maxsize * factor))
     _USABLE_CACHE.set_maxsize(int(_USABLE_CACHE.maxsize * factor))
-    _PARENT_MAP_CACHE.set_maxsize(int(_PARENT_MAP_CACHE.maxsize * factor))
+    _REACH_CACHE.set_maxsize(int(_REACH_CACHE.maxsize * factor))
 
 
 _INVERSE_CMD = {"U": "D", "D": "U", "L": "R", "R": "L"}
@@ -111,26 +130,33 @@ _INVERSE_CMD = {"U": "D", "D": "U", "L": "R", "R": "L"}
 
 def _clear_caches():
     _USABLE_CACHE.clear()
-    _PARENT_MAP_CACHE.clear()
+    _REACH_CACHE.clear()
     _VALID_POS_CACHE.clear()
 
 
 # ---------------------------------------------------------------------------
-# Flood fill (unchanged, set-based)
+# Flood fill
 # ---------------------------------------------------------------------------
 
 
 def _original_flood_fill(usable, pos_moving) -> dict:
-    """BFS inside one robot's reach (other robot static). Returns parent_map:
-    {pos: (prev_pos, cmd_to_reach_pos)}. Cmd paths are rebuilt lazily by callers."""
+    """Queue BFS inside one robot's reach (other robot static). Returns a
+    parent_map {pos: (prev_pos, cmd_to_reach_pos)}; cmd paths are rebuilt
+    lazily by callers.
+
+    Used only where parent pointers are wanted — `_parent_map`, for turning a
+    finished path's segments into moves. The search itself asks `flood_fill`
+    for the reachable *set*, which `BitGrid.flood` computes bit-parallel.
+    `usable` is a BitGrid; its membership test bounds-checks before forming
+    an index, so off-grid neighbours fall out naturally.
+    """
     parent_map = {pos_moving: (None, None)}
     queue = deque([pos_moving])
     while queue:
         pos = queue.popleft()
         row, col = pos
         for name, (dr, dc) in DIRECTIONS.items():
-            nr, nc = row + dr, col + dc
-            npos = (nr, nc)
+            npos = (row + dr, col + dc)
             if npos in parent_map:
                 continue
             if npos not in usable:
@@ -151,71 +177,84 @@ def _cmds_from_parent_map(parent_map: dict, pos_moving, target) -> list:
     return cmds
 
 
-def pack_cells_mask(cells, stride: int) -> int:
-    """Pack a collection of (r, c) positions into a single int bitmask where
-    bit `r * stride + c` is 1 iff (r, c) is present.
+def _workspace_free_key(workspace) -> int:
+    """The grid's free-cell bitmask — the value every cache keys on.
 
-    Use `stride = cols` for free-cell masks (on the full grid), and
-    `stride = cols - n + 1` for valid-top-left masks (on the block-position
-    grid). Same encoding, different stride — any two inputs with the same
-    (cells, stride) yield the same int, and different inputs yield different
-    ints.
+    It is the grid's own storage, not a derived copy, so it is always current:
+    a caller that swaps the free set (the dig search does, once per candidate)
+    has nobody to notify.
     """
-    mask = 0
-    for r, c in cells:
-        mask |= 1 << (r * stride + c)
-    return mask
+    return workspace.grid.free.bits
 
 
-def _workspace_free_key(workspace):
-    """Compact integer identifier of the workspace's free-cell set. Preferred
-    path is the `_free_key` attribute set by callers that know the bitmask
-    already (e.g. find_hardest_workspace). Falls back to computing it from
-    tiles via `pack_cells_mask(..., stride=cols)`."""
-    key = getattr(workspace, "_free_key", None)
-    if key is not None:
-        return key
-    tiles = workspace.grid.tiles
-    cols = workspace.grid.cols
-    free_cells = (
-        (r, c) for r in range(workspace.grid.rows) for c in range(cols) if tiles[r][c] == 0
-    )
-    key = pack_cells_mask(free_cells, cols)
-    workspace._free_key = key
-    return key
+def _geometry(workspace, n: int):
+    """(col_span, pos_stride) for index-based state ids — the same numbers
+    `_make_packers` derives, so an index from `flood_fill` slots straight into
+    a sid with one multiply-add and no (row, col) round trip."""
+    col_span = workspace.grid.cols - n + 1
+    row_span = workspace.grid.rows - n + 1
+    return col_span, row_span * col_span * 2
 
 
-def flood_fill(workspace, pos_moving, pos_static, n) -> dict:
-    free_key = _workspace_free_key(workspace)
+def _usable(workspace, pos_static, n):
+    """The n x n placements the moving robot may occupy while the other stands
+    at `pos_static`: every valid placement that does not overlap it, as a
+    BitGrid in placement space. Cached per (grid, static position, n); the
+    valid placements beneath it per (grid, n).
 
-    valid_key = (free_key, n)
-    valid_positions = _VALID_POS_CACHE.get(valid_key)
-    if valid_positions is None:
-        valid_set = set()
-        for r in range(workspace.grid.rows - n + 1):
-            for c in range(workspace.grid.cols - n + 1):
-                if all(
-                    workspace.grid.is_free(r + dr, c + dc) for dr in range(n) for dc in range(n)
-                ):
-                    valid_set.add((r, c))
-        valid_positions = valid_set
-        _VALID_POS_CACHE[valid_key] = valid_positions
+    Valid placements are one erosion of the grid's free cells — n*n shifts of
+    the whole grid, not n*n tests per placement. The usable set is that minus
+    the overlap block: two n x n squares overlap exactly when both offsets are
+    below n, so the placements colliding with the parked robot are a
+    (2n-1) x (2n-1) rectangle of placement indices around it, clipped to the
+    grid, and `rect` clears it in a handful of shifts.
+    """
+    free = workspace.grid.free
+    valid_key = (free.bits, n)
+    valid = _VALID_POS_CACHE.get(valid_key)
+    if valid is None:
+        valid = free.erode_window(n)
+        _VALID_POS_CACHE[valid_key] = valid
 
-    usable_key = (free_key, pos_static, n)
+    usable_key = (free.bits, pos_static, n)
     usable = _USABLE_CACHE.get(usable_key)
     if usable is None:
         sr, sc = pos_static
-        usable = {
-            (r, c) for (r, c) in valid_positions if not workspace.robots_overlap(r, c, n, sr, sc, n)
-        }
+        usable = valid - valid.rect(sr - n + 1, sc - n + 1, 2 * n - 1, 2 * n - 1)
         _USABLE_CACHE[usable_key] = usable
+    return usable
 
-    pm_key = (free_key, pos_static, n, pos_moving)
-    parent_map = _PARENT_MAP_CACHE.get(pm_key)
-    if parent_map is None:
-        parent_map = _original_flood_fill(usable, pos_moving)
-        _PARENT_MAP_CACHE[pm_key] = parent_map
-    return parent_map
+
+def flood_fill(workspace, pos_moving, pos_static, n) -> tuple:
+    """Every placement the moving robot can reach from `pos_moving` without a
+    switch, with the other robot standing at `pos_static`.
+
+    Returned as a tuple of sid *indices* — ``row * col_span + col`` with
+    ``col_span = cols - n + 1``, the flattening the packed state ids already
+    use — so an expansion turns each into a successor id with one multiply-add
+    and never materialises a (row, col) tuple on the hot path.
+
+    Only this set is cached. The parent map behind it is not: a search asks
+    for thousands of floods and path reconstruction reads a parent map for a
+    handful of segments, once, at the end. Keeping one for every flood made
+    this cache the bulk of a solve's memory for data that was never read.
+    `_parent_map` recomputes the few that are.
+    """
+    usable = _usable(workspace, pos_static, n)
+    key = (_workspace_free_key(workspace), pos_static, n, pos_moving)
+    reach = _REACH_CACHE.get(key)
+    if reach is None:
+        reach = usable.flood(usable.index(*pos_moving)).indices()
+        _REACH_CACHE[key] = reach
+    return reach
+
+
+def _parent_map(workspace, pos_moving, pos_static, n) -> dict:
+    """The flood from `pos_moving` with its parent pointers, for turning one
+    segment of a finished path into moves. Deliberately uncached: it is asked
+    for once per segment of the answer, and caching it for every flood is what
+    made the flood cache the dominant consumer of memory."""
+    return _original_flood_fill(_usable(workspace, pos_static, n), pos_moving)
 
 
 # ---------------------------------------------------------------------------
@@ -283,21 +322,26 @@ def _expand_one(workspace, sid, pack, unpack, n: int, direction: str):
     else:
         mover_pos, static_pos = pos_b, pos_a
 
-    pm = flood_fill(workspace, mover_pos, static_pos, n)
-    # Pre-calculate packer offsets to avoid if-checks inside the loop
+    reach = flood_fill(workspace, mover_pos, static_pos, n)
+    col_span, pos_stride = _geometry(workspace, n)
+    ctrl_bit = 0 if new_ctrl is robot_a else 1
+    # The reach is already in sid index units, so a successor id is one
+    # multiply-add; the static robot's half of the id is fixed for the loop.
     if mover is robot_a:
-        for new_pos in pm:
-            yield pack(new_pos, pos_b, new_ctrl), new_pos, mover
+        fixed = (pos_b[0] * col_span + pos_b[1]) * 2 + ctrl_bit
+        for idx in reach:
+            yield idx * pos_stride + fixed, idx, mover
     else:
-        for new_pos in pm:
-            yield pack(pos_a, new_pos, new_ctrl), new_pos, mover
+        fixed = (pos_a[0] * col_span + pos_a[1]) * pos_stride + ctrl_bit
+        for idx in reach:
+            yield fixed + idx * 2, idx, mover
 
 
 def _successor_sids(workspace, sid, pack, unpack, n: int, direction: str):
     """Lean successor generator for the switch-count-only path: yields just the
-    packed successor sid (no target_pos / mover). Lets the caller expand a layer
+    packed successor sid (no target / mover). Lets the caller expand a layer
     without building parent pointers — which exist only for path reconstruction.
-    Mirrors _expand_one minus the per-successor (pos, mover) tuple."""
+    Mirrors _expand_one minus the per-successor tuple."""
     pos_a, pos_b, ctrl = unpack(sid)
     robot_a = workspace.robot_a
     robot_b = workspace.robot_b
@@ -315,13 +359,17 @@ def _successor_sids(workspace, sid, pack, unpack, n: int, direction: str):
     else:
         mover_pos, static_pos = pos_b, pos_a
 
-    pm = flood_fill(workspace, mover_pos, static_pos, n)
+    reach = flood_fill(workspace, mover_pos, static_pos, n)
+    col_span, pos_stride = _geometry(workspace, n)
+    ctrl_bit = 0 if new_ctrl is robot_a else 1
     if mover is robot_a:
-        for new_pos in pm:
-            yield pack(new_pos, pos_b, new_ctrl)
+        fixed = (pos_b[0] * col_span + pos_b[1]) * 2 + ctrl_bit
+        for idx in reach:
+            yield idx * pos_stride + fixed
     else:
-        for new_pos in pm:
-            yield pack(pos_a, new_pos, new_ctrl)
+        fixed = (pos_a[0] * col_span + pos_a[1]) * pos_stride + ctrl_bit
+        for idx in reach:
+            yield fixed + idx * 2
 
 
 def _expand_layer(
@@ -372,29 +420,31 @@ def _seed_fwd(workspace, initial_ctrls, pack, build_parent: bool = True) -> dict
     """
     n = workspace.robot_a.n
     robot_a = workspace.robot_a
+    robot_b = workspace.robot_b
     start_a = robot_a.position()
-    start_b = workspace.robot_b.position()
+    start_b = robot_b.position()
+    col_span, pos_stride = _geometry(workspace, n)
     visited: dict = {}
     parent: dict = {}
     frontier: set = set()
     for ic in initial_ctrls:
         if ic is robot_a:
-            pm = flood_fill(workspace, start_a, start_b, n)
-            for new_pa in pm:
-                sid = pack(new_pa, start_b, robot_a)
+            fixed = (start_b[0] * col_span + start_b[1]) * 2  # ctrl bit 0 = robot_a
+            for idx in flood_fill(workspace, start_a, start_b, n):
+                sid = idx * pos_stride + fixed
                 if sid not in visited:
                     visited[sid] = 0
                     if build_parent:
-                        parent[sid] = (None, new_pa, robot_a)
+                        parent[sid] = (None, idx, robot_a)
                     frontier.add(sid)
         else:
-            pm = flood_fill(workspace, start_b, start_a, n)
-            for new_pb in pm:
-                sid = pack(start_a, new_pb, workspace.robot_b)
+            fixed = (start_a[0] * col_span + start_a[1]) * pos_stride + 1  # ctrl bit 1
+            for idx in flood_fill(workspace, start_b, start_a, n):
+                sid = fixed + idx * 2
                 if sid not in visited:
                     visited[sid] = 0
                     if build_parent:
-                        parent[sid] = (None, new_pb, workspace.robot_b)
+                        parent[sid] = (None, idx, robot_b)
                     frontier.add(sid)
     return {"visited": visited, "parent": parent, "frontier": frontier}
 
@@ -421,11 +471,12 @@ def _reconstruct_fwd(parent: dict, end_sid, workspace, unpack) -> list:
     robot_a = workspace.robot_a
     start_a = robot_a.position()
     start_b = workspace.robot_b.position()
+    col_span, _ = _geometry(workspace, n)
 
     path = []
     sid = end_sid
     while sid in parent:
-        prev_sid, target_pos, mover = parent[sid]
+        prev_sid, target_idx, mover = parent[sid]
         if mover is None:
             break
         if prev_sid is None:
@@ -437,8 +488,8 @@ def _reconstruct_fwd(parent: dict, end_sid, workspace, unpack) -> list:
                 source_pos, static_pos = prev_pa, prev_pb
             else:
                 source_pos, static_pos = prev_pb, prev_pa
-        pm = flood_fill(workspace, source_pos, static_pos, n)
-        cmds = _cmds_from_parent_map(pm, source_pos, target_pos)
+        pm = _parent_map(workspace, source_pos, static_pos, n)
+        cmds = _cmds_from_parent_map(pm, source_pos, divmod(target_idx, col_span))
         for cmd in reversed(cmds):
             path.append(cmd)
         if prev_sid is not None:
@@ -476,13 +527,14 @@ def _reconstruct_bwd(bwd_parent: dict, meeting_sid, workspace, unpack) -> list:
     """Walk bwd parent from meeting forward-in-time to goal. Returns cmd list."""
     n = workspace.robot_a.n
     robot_a = workspace.robot_a
+    col_span, _ = _geometry(workspace, n)
     path = []
     sid = meeting_sid
     while True:
         bp = bwd_parent.get(sid)
         if bp is None:
             break
-        next_sid, new_pos, mover = bp
+        next_sid, new_idx, mover = bp
         next_pa, next_pb, _ = unpack(next_sid)
         if mover is robot_a:
             flood_root = next_pa
@@ -490,9 +542,9 @@ def _reconstruct_bwd(bwd_parent: dict, meeting_sid, workspace, unpack) -> list:
         else:
             flood_root = next_pb
             static_pos = next_pa
-        pm = flood_fill(workspace, flood_root, static_pos, n)
+        pm = _parent_map(workspace, flood_root, static_pos, n)
         cmds = []
-        curr = new_pos
+        curr = divmod(new_idx, col_span)
         while curr != flood_root:
             prev_pos, cmd = pm[curr]
             cmds.append(_INVERSE_CMD[cmd])
@@ -538,6 +590,7 @@ def _fwd_segments(parent: dict, end_sid, workspace, unpack) -> list:
     robot_a = workspace.robot_a
     start_a = robot_a.position()
     start_b = workspace.robot_b.position()
+    col_span, _ = _geometry(workspace, robot_a.n)
 
     segments = []
     sid = end_sid
@@ -545,7 +598,7 @@ def _fwd_segments(parent: dict, end_sid, workspace, unpack) -> list:
         entry = parent.get(sid)
         if not entry:
             break
-        prev_sid, target_pos, mover = entry
+        prev_sid, target_idx, mover = entry
         if mover is None:
             break
         if prev_sid is None:
@@ -557,7 +610,7 @@ def _fwd_segments(parent: dict, end_sid, workspace, unpack) -> list:
                 source_pos, static_pos = prev_pa, prev_pb
             else:
                 source_pos, static_pos = prev_pb, prev_pa
-        segments.append((mover, source_pos, static_pos, target_pos))
+        segments.append((mover, source_pos, static_pos, divmod(target_idx, col_span)))
         if prev_sid is None:
             break
         sid = prev_sid
@@ -616,7 +669,7 @@ def _render_segments(segments: list, workspace, n: int) -> list:
     for index, (_mover, source_pos, static_pos, target_pos) in enumerate(segments):
         if index:
             path.append(COMMANDS["CONTROL_SWITCH"])
-        pm = flood_fill(workspace, source_pos, static_pos, n)
+        pm = _parent_map(workspace, source_pos, static_pos, n)
         path.extend(_cmds_from_parent_map(pm, source_pos, target_pos))
     return path
 

@@ -15,7 +15,8 @@ import shutil
 import threading
 import time
 
-from src.bfs import bfs_mirror, pack_cells_mask
+from src.bfs import bfs_mirror
+from src.bitgrid import BitGrid
 from src.canonical import (
     Canonicalizer,
     all_adjacent_placements,
@@ -116,7 +117,7 @@ def _init_transform_tables(rows, cols, n, cache_mb=150, mem_budget_mb=None):
     _bfs.configure_caches_for_grid(rows, cols, n, target_mb=cache_mb)
     print(
         f"Cache sizing (budget={cache_mb:.0f} MB/worker): "
-        f"parent_map={_bfs._PARENT_MAP_CACHE.maxsize}  "
+        f"reach={_bfs._REACH_CACHE.maxsize}  "
         f"usable={_bfs._USABLE_CACHE.maxsize}  "
         f"valid_pos={_bfs._VALID_POS_CACHE.maxsize}"
     )
@@ -220,16 +221,10 @@ def _dig_options_n_strip(free_cells, frontier, valid, rows, cols, n):
 # ---------------------------------------------------------------------------
 
 
-def _decode_free_key(mask, cols):
+def _decode_free_key(mask, rows, cols):
     """Decode a free-cell bitmask (bit r*cols+c set iff (r, c) is free) back to a
-    set of (r, c) cells. O(number of free cells) via lowest-set-bit iteration."""
-    cells = set()
-    while mask:
-        lsb = mask & -mask
-        idx = lsb.bit_length() - 1
-        cells.add((idx // cols, idx % cols))
-        mask ^= lsb
-    return cells
+    set of (r, c) cells."""
+    return set(BitGrid(rows, cols, mask).cells())
 
 
 def _tf_from_cells(free_cells):
@@ -302,21 +297,16 @@ def dig_search(
     #               payload and the queue cannot blow the memory budget.
     queue: list = []
     seq = 0
-    heapq.heappush(queue, (0, seq, pack_cells_mask(init_free, cols)))
+    heapq.heappush(queue, (0, seq, BitGrid.from_cells(rows, cols, init_free).bits))
     seq += 1
 
     shared_ws = _build_workspace(rows, cols, set(init_free), pos_a, pos_b, n)
-    shared_tiles = shared_ws.grid.tiles
-    current_free_set = set(init_free)
 
     def sync_tiles_to(target_free):
-        for r, c in target_free - current_free_set:
-            shared_tiles[r][c] = 0
-        for r, c in current_free_set - target_free:
-            shared_tiles[r][c] = 1
-        current_free_set.clear()
-        current_free_set.update(target_free)
-        shared_ws._free_key = pack_cells_mask(target_free, cols)  # type: ignore
+        # The grid's free set is one bitmask and it is what every solver cache
+        # keys on, so pointing the shared workspace at the next candidate is a
+        # single assignment — nothing else needs telling.
+        shared_ws.grid.free = BitGrid.from_cells(rows, cols, target_free)
 
     best_switches = -1
     best_free_max, best_free_min = None, None
@@ -406,7 +396,7 @@ def dig_search(
                 # `valid` is skipped unless the active strategy needs it; `tf` is
                 # deferred to Phase 3 so it is built only for nodes that expand
                 # (solvable / depth-capped nodes never use it).
-                free_cells = decode_free(free_key_int, cols)
+                free_cells = decode_free(free_key_int, rows, cols)
                 frontier = init_frontier(rows, cols, free_cells)
                 valid = valid_positions_of(rows, cols, free_cells, n) if need_valid else None
 
@@ -619,10 +609,10 @@ def _worker(args, solver_pool=None):
     # Capture bfs-level LRU snapshots (populated by all solver calls this
     # worker made). Imported lazily so the module-level import order stays
     # clean for the multiprocessing spawn path.
-    from src.bfs import _PARENT_MAP_CACHE, _USABLE_CACHE
+    from src.bfs import _REACH_CACHE, _USABLE_CACHE
 
     cache_stats["usable"] = _lru_snapshot(_USABLE_CACHE)
-    cache_stats["parent_map"] = _lru_snapshot(_PARENT_MAP_CACHE)
+    cache_stats["reach"] = _lru_snapshot(_REACH_CACHE)
 
     out = {
         "pos_a": pos_a,
@@ -1044,7 +1034,7 @@ def find_hardest(
     if agg:
         summary.append("")
         summary.append("CACHE USAGE (aggregated across all placements)")
-        for cache_name in ("solver", "precheck", "usable", "parent_map"):
+        for cache_name in ("solver", "precheck", "usable", "reach"):
             a = agg.get(cache_name)
             if a is None:
                 continue
