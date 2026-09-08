@@ -536,6 +536,22 @@ el('turns').innerHTML = RUN.turns.map(t => {
 // ── recipes: table, thumbnails, and a player for the one you pick ──
 // The whole section is hidden when the run had no recipes, so a plain solve
 // does not show an empty heading.
+const ORIG_WALLS = [...G.walls].filter(ch => ch === '1').length;
+// Same unit rule as run_tests prints: us below a millisecond, ms below a
+// second, s above. Older run.json files carry no timings, hence the dash.
+const fmtSecs = s => s == null ? '—'
+  : s < 1e-3 ? (s*1e6).toFixed(1) + 'us' : s < 1 ? (s*1e3).toFixed(1) + 'ms' : s.toFixed(2) + 's';
+const fmtNum = v => v == null ? '—' : v.toLocaleString();
+// Change against the original as a signed percent -- the one convention every
+// page uses: −43% is 43% less, +35% is 35% more, negative is better. Green when
+// cheaper, red when dearer, muted when within half a percent.
+const ratioCell = (v, base) => {
+  if(!v || !base) return '<span class="muted">—</span>';
+  const pct = (v / base - 1) * 100;
+  if(Math.abs(pct) < 0.5) return '<span class="muted">±0%</span>';
+  const cls = pct < 0 ? 'ok' : 'bad';
+  return `<span class="${cls}">${pct < 0 ? '−' : '+'}${Math.abs(pct).toFixed(0)}%</span>`;
+};
 if(!RUN.recipes.length){
   for(const id of ['rhead','rhint','recipes','rplayer']) el(id).style.display = 'none';
 } else {
@@ -547,10 +563,26 @@ if(!RUN.recipes.length){
   el('recipes').innerHTML =
    `<table><tr><th>recipe</th><th>walls before</th><th>walls after</th>
       <th>untouched</th><th>thinned</th><th>uncrossable</th><th>cropped</th>
-      <th>total removed</th><th>switches</th><th>status</th><th>page</th></tr>` +
+      <th>total removed</th><th>switches</th>
+      <th>solve time</th><th>vs original</th>
+      <th>states held</th><th>vs original</th>
+      <th>status</th><th>page</th></tr>` +
+   // The original solve as the first row, so every recipe's cost has its
+   // reference visible on the same table rather than in the stats strip above.
+   `<tr class="muted"><td><b>original</b></td>
+      <td>${ORIG_WALLS}</td><td>${ORIG_WALLS}</td><td>-</td><td>-</td><td>-</td><td>-</td>
+      <td>-</td><td>${RUN.meta.switches}</td>
+      <td>${fmtSecs(RUN.meta.solver_seconds)}</td><td>±0%</td>
+      <td>${fmtNum(RUN.meta.solver_states)}</td><td>±0%</td>
+      <td>-</td><td>-</td></tr>` +
    RUN.recipes.map((r, n) => {
      if(r.error)
-       return `<tr><td>${r.mode??'?'}</td><td colspan="10" class="bad">ERROR: ${r.error}</td></tr>`;
+       return `<tr><td>${r.mode??'?'}</td><td colspan="14" class="bad">ERROR: ${r.error}</td></tr>`;
+     // Cost of the re-solve against the original's. A ratio under 1 means the
+     // simplified workspace is cheaper to solve; over 1 means the recipe made
+     // the search do more work to reach the same answer.
+     const tr = ratioCell(r.solve_seconds, RUN.meta.solver_seconds);
+     const sr = ratioCell(r.solve_states, RUN.meta.solver_states);
      const st = r.preserved ? '<span class="ok">PRESERVED</span>'
                             : '<span class="bad">FAILED</span>';
      const pct = r.walls_before ? (100*(r.removed||0)/r.walls_before).toFixed(1) : '0.0';
@@ -567,8 +599,10 @@ if(!RUN.recipes.length){
        <td>${r.removed_uncrossable??'-'}</td>
        <td>${r.removed_cropped??'-'}</td>
        <td>${r.removed??'-'} (${pct}%)</td>
-       <td>${r.new_switches??'-'} / ${RUN.meta.switches}</td><td>${st}</td>
-       <td>${link}</td></tr>`;
+       <td>${r.new_switches??'-'} / ${RUN.meta.switches}</td>
+       <td>${fmtSecs(r.solve_seconds)}</td><td>${tr}</td>
+       <td>${fmtNum(r.solve_states)}</td><td>${sr}</td>
+       <td>${st}</td><td>${link}</td></tr>`;
    }).join('') + `</table><div class="strip" style="margin-top:12px">` +
    RUN.recipes.filter(r => r.grid).map(r =>
      `<figure class="cell" style="margin:0">

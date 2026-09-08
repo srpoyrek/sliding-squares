@@ -170,23 +170,23 @@ not decide the figure by itself.</p>
     <td class="num">{% if row.failed %}<span class="bad">{{ row.failed }}</span>
         {%- else -%}0{% endif %}</td>
     <td class="num">{{ row.states | num }}</td>
-    <td class="num">{{ row.states_ratio_avg | delta }}<br>
+    <td class="num">{{ row.states_ratio_avg | change }}<br>
         <span class="unit">best on {{ row.states_wins }}/{{ row.cases_compared }}</span></td>
     <td class="num">{{ row.warm_min | seconds }}</td>
-    <td class="num">{{ row.warm_min_ratio_avg | delta }}<br>
+    <td class="num">{{ row.warm_min_ratio_avg | change }}<br>
         <span class="unit">best on {{ row.warm_min_wins }}/{{ row.cases_compared }}</span></td>
     <td class="num">{{ row.peak_bytes | bytes }}</td>
-    <td class="num">{{ row.peak_bytes_ratio_avg | delta }}<br>
+    <td class="num">{{ row.peak_bytes_ratio_avg | change }}<br>
         <span class="unit">best on {{ row.peak_bytes_wins }}/{{ row.cases_compared }}</span></td>
   </tr>
   {% endfor %}
 </table>
 <p class="muted note"><b>avg per case</b> is the <em>geometric</em> mean of the
-per-case ratios against <code>{{ baseline }}</code> — how much this search saves
-on a typical case, with every case counting once. Geometric because a ratio's
-natural centre is multiplicative: <code>2.00x</code> and <code>0.50x</code> are
-opposite results and must cancel to <code>1.00x</code>, which an ordinary mean
-would put at <code>1.25x</code>.</p>
+per-case change against <code>{{ baseline }}</code> — how much this search saves
+on a typical case, with every case counting once. Geometric because the centre
+of a ratio is multiplicative: <code>+100%</code> and <code>&minus;50%</code> are
+opposite results and must cancel to <code>&plusmn;0%</code>, which an ordinary
+mean would put at <code>+25%</code>.</p>
 <p class="muted note">It is a different question from the total beside it, and
 the two can point opposite ways. <b>The cases here span four orders of
 magnitude</b> — a 200 KB solve counts once and so does a 95 MB one — so the
@@ -217,9 +217,9 @@ marked: all three searches are exact, so that column must be identical.</p>
     <th colspan="3" class="grp">solution</th>
   </tr>
   <tr>
-    <th class="num">count</th><th class="num">&times; {{ baseline }}</th>
-    <th class="num">seconds</th><th class="num">&times; {{ baseline }}</th>
-    <th class="num">bytes</th><th class="num">&times; {{ baseline }}</th>
+    <th class="num">count</th><th class="num">vs {{ baseline }}</th>
+    <th class="num">seconds</th><th class="num">vs {{ baseline }}</th>
+    <th class="num">bytes</th><th class="num">vs {{ baseline }}</th>
     <th class="num">moves</th><th>moves first</th><th>replay</th>
   </tr>
   {% for record in case.variants %}
@@ -231,11 +231,11 @@ marked: all three searches are exact, so that column must be identical.</p>
        convention every other report on the site prints. #}
     <td class="num">{{ record.switches + 1 }}</td>
     <td class="num{% if record.states_best %} win{% endif %}">{{ record.states | num }}</td>
-    <td class="num muted">{{ record.states_ratio | ratio }}</td>
+    <td class="num muted">{{ record.states_ratio | change }}</td>
     <td class="num{% if record.warm_min_best %} win{% endif %}">{{ record.warm_min | seconds }}</td>
-    <td class="num muted">{{ record.warm_min_ratio | ratio }}</td>
+    <td class="num muted">{{ record.warm_min_ratio | change }}</td>
     <td class="num{% if record.peak_bytes_best %} win{% endif %}">{{ record.peak_bytes | bytes }}</td>
-    <td class="num muted">{{ record.peak_bytes_ratio | ratio }}</td>
+    <td class="num muted">{{ record.peak_bytes_ratio | change }}</td>
     <td class="num">{{ record.steps | num }}</td>
     <td>{{ record.first_mover or '—' }}</td>
     <td>{% if record.valid %}<span class="ok">valid</span>
@@ -306,12 +306,13 @@ many state sets it holds at once. Everything above follows from those two.</p>
     of it is the shared flood cache that all three searches fill identically.</td>
   </tr>
   <tr>
-    <td><b>&times; {{ baseline }}</b></td><td>multiple</td>
-    <td style="white-space:normal">This search's value divided by
-    <code>{{ baseline }}</code>'s, same measurement, same cases.
-    <code>0.50x</code> is half as much, <code>2.00x</code> twice as much.
-    <b>Lower is better</b>; <code>{{ baseline }}</code> is <code>1.00x</code> by
-    definition.</td>
+    <td><b>vs {{ baseline }}</b></td><td>% change</td>
+    <td style="white-space:normal">This search against <code>{{ baseline }}</code>
+    on the same measurement and the same cases, as a signed percent change:
+    <code>&minus;50%</code> is half as much, <code>+100%</code> twice as much,
+    <code>&plusmn;0%</code> the same. <b>Negative is better</b>, for every
+    measurement on this page; <code>{{ baseline }}</code> is
+    <code>&plusmn;0%</code> by definition.</td>
   </tr>
 </table>
 

@@ -200,7 +200,7 @@ xdg-open plots/tests/index.html   # Linux
 |---|---|
 | `plots/index.html` | The landing page. Links the report trees; the BFS-comparison card appears once that page has been built. Rewritten by both `make_gallery.py` and `benchmark_bfs.py`, so it reflects what is on disk rather than the order they were run in |
 | `plots/benchmark/index.html` | The [BFS comparison](#bfs-comparison) |
-| `plots/tests/index.html` | Every run in one table — grid, robot size, switches, recipe verdicts, and the **best recipe** for that test: every recipe leaving the fewest walls *while preserving the switch count*, each linked to its own page. Recipes tie often, so all winners are listed rather than one being picked arbitrarily; they are ordered so the result with more walls freed by the placement rule reads first, those being lossless by construction. A failed recipe usually leaves fewer walls, but it has changed the problem, so it cannot win |
+| `plots/tests/index.html` | Every run in one table — grid, robot size, switches, recipe verdicts, and the **best recipe** for that test: every recipe leaving the fewest walls *while preserving the switch count*, each linked to its own page. Recipes tie often, so all winners are listed rather than one being picked arbitrarily; they are ordered so the result with more walls freed by the placement rule reads first, those being lossless by construction. A failed recipe usually leaves fewer walls, but it has changed the problem, so it cannot win. Below the table, **two charts per test** — solve time and states held — show each recipe's re-solve against that test's original solve as a signed percent change, with the absolute time or state count beside it and a dashed line at `±0%`; a bar ending left of it is a cheaper solve, negative is better, and a failed recipe is drawn hollow because its cheaper solve is for an easier problem. **Solve cost vs robot size** then overlays every recipe and the original on one chart for solve time and one for states held — solid for no-holes tests, dashed for holes, log axis since the cases span four orders of magnitude — so how each recipe's cost *scales* is visible, not only its size on one test. The **Recipes ranked** table adds the same two ratios per recipe across all tests (geometric mean over the runs it held) |
 | `plots/tests/<name>/index.html` | One run, end to end (below) |
 
 The index also carries two **robot-size charts** — minimum control switches, and
@@ -251,7 +251,23 @@ The per-test page holds:
   leans on. A variant that solves in fewer switches simply holds at its final
   state once the longer one continues. Hidden when the run had no recipes.
 - **The simplification recipes** — the full stats table (walls before/after, the
-  untouched / thinned / uncrossable breakdown, total removed, switches, verdict).
+  untouched / thinned / uncrossable breakdown, total removed, switches, verdict),
+  plus **what each recipe did to the cost of solving**: the re-solve's time and
+  states held, each as a ratio against the original solve, which sits as the
+  first row of the table for reference. Negative is cheaper.
+
+  **Expect the two to disagree.** Removing walls opens the grid, so the search
+  visits *more* positions for the same answer — states usually rise after
+  simplification. But the recipes also crop the grid, and every flood fill
+  scans the grid's legal positions, so each step gets cheaper — time can fall
+  while states rise. To keep the times comparable, the original is solved
+  twice and the second solve timed, with the flood caches cleared in between:
+  the first solve in a fresh worker pays one-off costs the recipe re-solves
+  never do, and clearing the caches stops the timed solve being handed the
+  warm-up's floods. Peak RAM is deliberately not measured here — it would need
+  `tracemalloc` inside the same worker as the timed solve, inflating the
+  timings; the [BFS comparison](#bfs-comparison) measures it properly, one
+  process per solve.
   Clicking a row plays that recipe's solution inline; its **page** column opens
   the recipe's own standalone report at
   `plots/tests/<name>/simplified/<recipe>/index.html`, which carries the same
@@ -318,17 +334,23 @@ What each measurement means:
 | `states` | count of states | States held in the search's `visited` map. **The structural cost, and exact** — the same number on every machine and every run. This is the number to judge the searches by |
 | `time` | seconds | Wall clock for one solve, fastest of `--repeat` runs, with the flood caches already warm. Warm because that isolates each search's own bookkeeping from the flood fills all three share. Machine-dependent: a trend, not a constant |
 | `ram` | bytes | Most memory held at once during one solve — `tracemalloc` peak on the first solve, in a fresh process with cold caches |
-| `× bidirectional` | multiple | That search's value ÷ `bidirectional`'s, same measurement, same cases. `0.50x` is half as much; lower is better |
+| `vs bidirectional` | % change | That search against `bidirectional`, same measurement, same cases, as a signed percent change: `−50%` is half as much, `+100%` twice as much, `±0%` the same. **Negative is better** |
+
+**One convention for every comparison, on every page:** signed percent change
+against the reference — the original solve, or `bidirectional` — where negative
+is always better. This is the form the wall-reduction column already used
+(`−84%`), so solve time, states held and peak RAM now read the same way, and the
+same number is never a multiple in one place and a percentage in another.
 
 **`ram` moves much less than `states` does**, and that is expected: `flood_fill`
 keeps its results in the LRU caches in [`src/bfs.py`](src/bfs.py), all three
 searches fill them identically, and that shared cache dominates the peak. The
 state count is where the searches actually differ.
 
-**`avg per case` is a geometric mean**, not an ordinary one. A ratio's centre is
-multiplicative — `2.00x` and `0.50x` are opposite results and must cancel to
-`1.00x`, which an arithmetic mean puts at `1.25x`, biasing every comparison
-towards "worse".
+**`avg per case` is a geometric mean**, not an ordinary one. The centre of a
+ratio is multiplicative — `+100%` and `−50%` are opposite results and must
+cancel to `±0%`, which an arithmetic mean puts at `+25%`, biasing every
+comparison towards "worse".
 
 **Read the average and the total together; they can disagree.** These cases span
 four orders of magnitude, so the average lets a 200 KB solve outvote a 95 MB one

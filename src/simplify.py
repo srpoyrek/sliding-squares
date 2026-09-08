@@ -21,6 +21,7 @@ generator can reuse it. Public entry point: `run_simplification`.
 from __future__ import annotations
 
 import os
+import time
 
 from src.grid import Grid
 from src.report import (
@@ -493,8 +494,16 @@ def run_simplification(
         status["new_switches"] = control_turns(target_switches)
         return status
 
-    # Verify the simplification with one solver call.
+    # Verify the simplification with one solver call. Its cost is recorded
+    # beside the verdict: a recipe that holds the switch count but makes the
+    # solve slower or larger has not simplified anything worth having, and the
+    # report compares these against the original solve's own numbers.
+    # perf_counter for the same reason run_tests uses it -- the wall clock on
+    # Windows ticks every ~15 ms, and small grids solve faster than that.
+    started = time.perf_counter()
     res = Solver(simplified, goal_a, goal_b, strategy=strategy).solve()
+    status["solve_seconds"] = time.perf_counter() - started
+    status["solve_states"] = len(res.visited) if res.solvable else None
     status["new_switches"] = control_turns(res.switches) if res.solvable else None
     status["preserved"] = res.solvable and res.switches == target_switches
     if not res.solvable:

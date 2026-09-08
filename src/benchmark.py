@@ -467,8 +467,8 @@ def _summarise(entries, variants) -> list[dict]:
         # the page asks both.
         #
         # Averaged geometrically, not arithmetically. A ratio's natural centre is
-        # multiplicative: 2.0x and 0.5x are opposite results and must cancel to
-        # 1.00x, which the arithmetic mean puts at 1.25x. Averaging ratios the
+        # multiplicative: +100% and -50% are opposite results and must cancel to
+        # ±0%, which the arithmetic mean puts at +25%. Averaging ratios the
         # ordinary way biases every comparison towards "worse".
         per_case = {metric: [] for metric in metrics}
         wins = dict.fromkeys(metrics, 0)
@@ -552,22 +552,20 @@ def fmt_num(value) -> str:
     return "—" if value is None else f"{value:,}"
 
 
-def fmt_ratio(value) -> str:
-    return "—" if value is None else f"{value:.2f}x"
+def fmt_change(ratio) -> str:
+    """A ratio against the reference as a signed percent change: ``-43%`` is
+    43% less than the reference, ``+35%`` is 35% more, ``±0%`` is unchanged.
 
-
-def fmt_ratio_delta(value) -> str:
-    """A ratio with the saving spelled out, e.g. ``0.57x (43% less)``.
-
-    The multiple alone makes the reader do the subtraction, and "how much less"
-    is the question the chart exists to answer.
+    The one convention every page uses for every measurement -- walls, time,
+    states, RAM -- so that negative always reads as better and the same number
+    never appears as ``0.57x`` in one place and ``-43%`` in another.
     """
-    if value is None:
+    if ratio is None:
         return "—"
-    pct = abs(value - 1.0) * 100.0
-    if pct < 0.5:
-        return f"{value:.2f}x (same)"
-    return f"{value:.2f}x ({pct:.0f}% {'less' if value < 1 else 'more'})"
+    pct = (ratio - 1.0) * 100.0
+    if abs(pct) < 0.5:
+        return "±0%"
+    return f"{'−' if pct < 0 else '+'}{abs(pct):.0f}%"
 
 
 # ── charts ──────────────────────────────────────────────────────────────
@@ -737,7 +735,7 @@ def _headline_chart(data) -> dict:
     ticks = []
     tick = 0.0
     while tick <= hi + 1e-9:
-        ticks.append((tick, f"{tick:.2f}x"))
+        ticks.append((tick, fmt_change(tick)))
         tick += step
 
     groups = []
@@ -746,16 +744,15 @@ def _headline_chart(data) -> dict:
         for variant in data["variants"]:
             row = summary.get(variant)
             value = row.get(key) if row else None
-            bars.append((variant, value, fmt_ratio_delta(value)))
+            bars.append((variant, value, fmt_change(value)))
         groups.append((label, bars))
 
     return _render(
         f"Head to head — average per case, against {BASELINE}",
         f"How much each search saves on a typical case: the mean of its per-case "
-        f"ratios against {BASELINE}, over the cases both solved. Shorter is "
-        f"better, {BASELINE} is 1.00x by definition, and the bracket says how "
-        f"much less (or more) than it.",
-        f"multiple of {BASELINE} (1.00x = no change)",
+        f"change against {BASELINE}, over the cases both solved. Negative is "
+        f"better; {BASELINE} is ±0% by definition.",
+        f"change vs {BASELINE} (±0% = same)",
         groups,
         ticks,
         scale,
@@ -833,8 +830,7 @@ def write_benchmark_report(data: dict, out_dir: str | None = None) -> str:
     env.filters["seconds"] = fmt_seconds
     env.filters["bytes"] = fmt_bytes
     env.filters["num"] = fmt_num
-    env.filters["ratio"] = fmt_ratio
-    env.filters["delta"] = fmt_ratio_delta
+    env.filters["change"] = fmt_change
     page = env.get_template("benchmark.html.j2").render(
         data=data,
         charts=build_charts(data),

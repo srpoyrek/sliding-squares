@@ -39,6 +39,7 @@ from __future__ import annotations
 import glob
 import json
 import os
+import statistics
 from datetime import datetime, timezone
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -68,6 +69,42 @@ _ENV = Environment(
     trim_blocks=True,
     lstrip_blocks=True,
 )
+
+
+def fmt_change(ratio) -> str:
+    """A ratio against a reference as a signed percent change: ``−43%`` is 43%
+    less than the reference, ``+35%`` is 35% more, ``±0%`` is unchanged.
+
+    The single convention for every comparison on every page -- walls, solve
+    time, states -- chosen to match the wall-reduction column that already read
+    ``−84%``. Negative is always better, and the same number never appears as a
+    multiple in one place and a percentage in another.
+    """
+    if ratio is None:
+        return "—"
+    pct = (ratio - 1.0) * 100.0
+    if abs(pct) < 0.5:
+        return "±0%"
+    return f"{'−' if pct < 0 else '+'}{abs(pct):.0f}%"
+
+
+_ENV.filters["change"] = fmt_change
+
+
+def fmt_seconds(value) -> str:
+    """Elapsed seconds with an explicit unit -- the same convention run_tests
+    prints and the per-run page renders, so every surface reads alike."""
+    if value is None:
+        return "—"
+    if value < 1e-3:
+        return f"{value * 1e6:.1f}us"
+    if value < 1:
+        return f"{value * 1e3:.1f}ms"
+    return f"{value:.2f}s"
+
+
+def fmt_thousands(value) -> str:
+    return "—" if value is None else f"{value:,}"
 
 
 # ── encoding ────────────────────────────────────────────────────────────
@@ -268,6 +305,7 @@ def build_run(
     switches,
     path,
     solver_seconds=None,
+    solver_states=None,
     recipes=None,
 ) -> dict:
     """Assemble the run record. Pure: it reads state, writes nothing.
@@ -275,7 +313,10 @@ def build_run(
     ``solver_seconds`` is elapsed solve time in **seconds**, as a float. The
     record stores the raw number rather than a display string so its unit is
     unambiguous and it stays comparable across runs; the report picks µs / ms /
-    s when rendering.
+    s when rendering. ``solver_states`` is the size of the search's visited map
+    -- its memory cost in states, exact and machine-independent. Each recipe
+    carries the same two numbers for its own re-solve, so the report can show
+    what a simplification did to the cost of solving, not only to the walls.
     """
     return {
         "schema": SCHEMA_VERSION,
@@ -286,6 +327,7 @@ def build_run(
             "n": robot_a.n,
             "switches": control_turns(switches),
             "solver_seconds": solver_seconds,
+            "solver_states": solver_states,
             "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         },
         "grid": encode_grid(grid),
@@ -383,6 +425,15 @@ def _index_row(run_path: str) -> dict:
     meta, recipes = run["meta"], run.get("recipes", [])
     survivors = [r for r in recipes if r.get("preserved") and not r.get("error")]
     best = min(survivors, key=_rank, default=None)
+    # The original solve's cost, which every recipe's re-solve is measured
+    # against. Older run.json files predate these fields; a missing baseline
+    # simply leaves the ratios empty rather than failing the row.
+    base_seconds = meta.get("solver_seconds")
+    base_states = meta.get("solver_states")
+
+    def _ratio(value, base):
+        return (value / base) if value and base else None
+
     row = {
         "folder": folder,
         "error": None,
@@ -392,6 +443,8 @@ def _index_row(run_path: str) -> dict:
         "n": meta["n"],
         "switches": meta["switches"],
         "steps": len(run["frames"]),
+        "solver_seconds": base_seconds,
+        "solver_states": base_states,
         "recipe_total": len(recipes),
         "recipe_kept": len(survivors),
         "generated": meta["generated"],
@@ -405,10 +458,15 @@ def _index_row(run_path: str) -> dict:
                 "walls_before": r.get("walls_before", 0),
                 "walls_after": r.get("walls_after", 0),
                 "provable": r.get("removed_uncrossable", 0),
+                "solve_seconds": r.get("solve_seconds"),
+                "solve_states": r.get("solve_states"),
+                "time_ratio": _ratio(r.get("solve_seconds"), base_seconds),
+                "states_ratio": _ratio(r.get("solve_states"), base_states),
             }
             for r in recipes
         ],
     }
+
     if best:
         before, after = best.get("walls_before", 0), best.get("walls_after", 0)
         # Every recipe that reached the winning wall count, not just the one the
@@ -449,17 +507,129 @@ def _chart_points(rows: list[dict]) -> list[dict]:
             continue
         name = row["name"]
         best = row.get("best") or {}
-        points.append(
+        point = {
+            "name": name,
+            "n": row["n"],
+            "holes": "no_holes" not in name and "holes" in name,
+            "switches": row["switches"],
+            "walls_before": best.get("walls_before"),
+            "walls_after": best.get("walls_after"),
+            # Absolute solve cost per series, keyed ``<metric>__<series>``, so
+            # the size charts can overlay one line-pair per recipe on the same
+            # axes as the original. Held recipes only: a failed one solved an
+            # easier problem, and its cost on that test is not this recipe's.
+            "time__original": row.get("solver_seconds"),
+            "states__original": row.get("solver_states"),
+        }
+        for d in row.get("detail", []):
+            if d["preserved"]:
+                point[f"time__{d['mode']}"] = d.get("solve_seconds")
+                point[f"states__{d['mode']}"] = d.get("solve_states")
+        points.append(point)
+    return sorted(points, key=lambda p: (p["holes"], p["n"]))
+
+
+def _chart_modes(rows: list[dict]) -> list[str]:
+    """Every recipe seen across the runs, sorted. The same sorted order assigns
+    colours in the per-test chart, so a recipe keeps one colour site-wide."""
+    return sorted(
+        {d["mode"] for row in rows if not row.get("error") for d in row.get("detail", [])}
+    )
+
+
+#: One colour per recipe, assigned in sorted-name order so a recipe keeps its
+#: colour across both charts and across rebuilds. Fixed hues, not theme
+#: variables, for the same reason the other index charts keep a light face.
+_RECIPE_COLOURS = ("#2f6fd0", "#d9822b", "#2a9d5c", "#8e44ad", "#c0392b", "#7f8c8d", "#16a085")
+
+_CC_W, _CC_LABEL, _CC_BAR = 700, 210, 380
+_CC_ROW, _CC_GAP, _CC_HEAD, _CC_GROUP_GAP, _CC_TOP = 14, 2, 18, 12, 24
+
+
+def _cost_charts(rows: list[dict]) -> list[dict]:
+    """Two grouped bar charts for the index: per test, each recipe's re-solve
+    cost as a ratio against that test's own original solve -- one chart for
+    time, one for states held.
+
+    Per test rather than averaged, because that is where the answer lives: a
+    recipe can be a bargain on a loose grid and a tax on a tight one, and a mean
+    hides exactly that. Geometry is laid out here so the template only places
+    rectangles. A failed recipe is drawn hollow and labelled, since its cheaper
+    solve is for an easier problem and must not read as a saving.
+    """
+    live = [r for r in rows if not r.get("error")]
+    modes = sorted({d["mode"] for r in live for d in r.get("detail", [])})
+    colour = {m: _RECIPE_COLOURS[i % len(_RECIPE_COLOURS)] for i, m in enumerate(modes)}
+    # Each spec: the ratio key, the absolute-value keys on the recipe and on
+    # the original, and how to print that absolute -- so every bar reads as
+    # both the change and the actual figure, and every heading carries the
+    # original's figure the bars are measured against.
+    specs = (
+        (
+            "time_ratio",
+            "solve_seconds",
+            "solver_seconds",
+            fmt_seconds,
+            "Solve time after simplification",
+            "change vs the original solve, with the re-solve's time",
+        ),
+        (
+            "states_ratio",
+            "solve_states",
+            "solver_states",
+            fmt_thousands,
+            "States held after simplification",
+            "change vs the original solve, with the re-solve's state count",
+        ),
+    )
+    charts = []
+    for key, abs_key, base_key, fmt, title, axis in specs:
+        ratios = [d[key] for r in live for d in r.get("detail", []) if d.get(key)]
+        if not ratios:
+            continue
+        top = max(ratios + [1.0])
+        scale = lambda v: _CC_BAR * v / top  # noqa: E731 -- tiny, local, and named
+        groups = []
+        y = _CC_TOP
+        for r in live:
+            heading_y = y + _CC_HEAD - 5
+            y += _CC_HEAD
+            bars = []
+            for d in r.get("detail", []):
+                v = d.get(key)
+                label = fmt_change(v)
+                if d.get(abs_key) is not None:
+                    label += f" · {fmt(d[abs_key])}"
+                bars.append(
+                    {
+                        "mode": d["mode"],
+                        "y": y,
+                        "w": round(max(2.0, scale(v)), 1) if v else 0.0,
+                        "label": label,
+                        "held": d["preserved"],
+                        "fill": colour[d["mode"]],
+                    }
+                )
+                y += _CC_ROW + _CC_GAP
+            heading = r["name"]
+            if r.get(base_key) is not None:
+                heading += f" · original {fmt(r[base_key])}"
+            groups.append({"name": heading, "heading_y": heading_y, "bars": bars})
+            y += _CC_GROUP_GAP
+        charts.append(
             {
-                "name": name,
-                "n": row["n"],
-                "holes": "no_holes" not in name and "holes" in name,
-                "switches": row["switches"],
-                "walls_before": best.get("walls_before"),
-                "walls_after": best.get("walls_after"),
+                "title": title,
+                "axis": axis,
+                "groups": groups,
+                "width": _CC_W,
+                "height": y + 4,
+                "bar_x": _CC_LABEL,
+                "bar_h": _CC_ROW - 3,
+                "ref_x": round(_CC_LABEL + scale(1.0), 1),
+                "legend": [{"mode": m, "fill": colour[m]} for m in modes],
             }
         )
-    return sorted(points, key=lambda p: (p["holes"], p["n"]))
+    return charts
 
 
 def _leaderboard(rows: list[dict]) -> list[dict]:
@@ -477,7 +647,16 @@ def _leaderboard(rows: list[dict]) -> list[dict]:
         winners = {r["mode"] for r in (row.get("best") or {}).get("recipes", [])}
         for entry in row.get("detail", []):
             acc = stats.setdefault(
-                entry["mode"], {"mode": entry["mode"], "runs": 0, "kept": 0, "wins": 0, "pcts": []}
+                entry["mode"],
+                {
+                    "mode": entry["mode"],
+                    "runs": 0,
+                    "kept": 0,
+                    "wins": 0,
+                    "pcts": [],
+                    "time_ratios": [],
+                    "states_ratios": [],
+                },
             )
             acc["runs"] += 1
             if not entry["preserved"]:
@@ -488,12 +667,24 @@ def _leaderboard(rows: list[dict]) -> list[dict]:
                 acc["pcts"].append(100.0 * (before - after) / before)
             if entry["mode"] in winners:
                 acc["wins"] += 1
+            # Solve-cost ratios against the original, over held runs only for
+            # the same reason as the reduction: a failed recipe solved an
+            # easier problem, and its cheaper solve is not a saving.
+            if entry.get("time_ratio"):
+                acc["time_ratios"].append(entry["time_ratio"])
+            if entry.get("states_ratio"):
+                acc["states_ratios"].append(entry["states_ratio"])
 
     board = []
     for acc in stats.values():
         pcts = acc.pop("pcts")
         acc["avg_pct"] = round(sum(pcts) / len(pcts), 1) if pcts else 0.0
         acc["always_held"] = acc["kept"] == acc["runs"]
+        # Geometric means: a ratio's centre is multiplicative, and 2.0x against
+        # 0.5x must average to 1.0x, which an arithmetic mean puts at 1.25x.
+        for key in ("time_ratios", "states_ratios"):
+            values = acc.pop(key)
+            acc[key[:-1]] = statistics.geometric_mean(values) if values else None
         board.append(acc)
     # Reduction first; a recipe that never failed breaks a tie over one that did.
     return sorted(board, key=lambda a: (-a["avg_pct"], -a["kept"], a["mode"]))
@@ -535,8 +726,10 @@ def write_global_index(tests_dir: str) -> str | None:
     page = _ENV.get_template("index.html.j2").render(
         rows=rows,
         leaderboard=_leaderboard(rows),
+        cost_charts=_cost_charts(rows),
         # Marked safe in the template: it is JSON, not markup.
         chart_json=json.dumps(_chart_points(rows), separators=(",", ":")).replace("</", "<\\/"),
+        modes_json=json.dumps(_chart_modes(rows), separators=(",", ":")).replace("</", "<\\/"),
         palette=palette(),
         report_filename=REPORT_FILENAME,
     )

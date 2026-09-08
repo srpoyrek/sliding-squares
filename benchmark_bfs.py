@@ -39,7 +39,7 @@ from src.benchmark import (  # noqa: E402 — needs BASE_DIR on the path first
     BASELINE,
     VARIANTS,
     discover_cases,
-    fmt_ratio_delta,
+    fmt_change,
     run_benchmark,
     write_benchmark,
     write_benchmark_report,
@@ -73,13 +73,13 @@ def _print_summary(data: dict) -> None:
             print(f"  {case['name']}: {counts}")
 
     print(f"\nAverage per case against {BASELINE} (geometric mean of the per-case ratios).")
-    print("Lower is better. 'best on N/M' counts the cases the search actually won.")
+    print("Negative is better. 'best on N/M' counts the cases the search actually won.")
     for row in data["summary"]:
         compared = row["cases_compared"]
         print(f"  {row['variant']:<15} solved={row['solved']:<3} failed={row['failed']:<3}")
         for label, key in (("states", "states"), ("time", "warm_min"), ("ram", "peak_bytes")):
             print(
-                f"      {label:<7}{fmt_ratio_delta(row[f'{key}_ratio_avg']):<24}"
+                f"      {label:<7}{fmt_change(row[f'{key}_ratio_avg']):<24}"
                 f"best on {row[f'{key}_wins']}/{compared}"
             )
     print("\nSuite totals — the largest grid decides these almost on its own,")

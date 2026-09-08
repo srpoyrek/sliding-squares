@@ -34,6 +34,7 @@ import sys
 import time
 import traceback
 
+from src.bfs import _clear_caches
 from src.directories import get_plots_dir, get_testcases_dir
 from src.grid import Grid
 from src.report import build_run, control_turns, write_global_index, write_local_report, write_run
@@ -167,9 +168,21 @@ def run_one(args) -> TestResult:
     try:
         ws, goal_a, goal_b = tc.setup()
 
+        # Solved twice, the second timed. This is the first solve in a freshly
+        # spawned worker, and a first solve pays one-off costs -- heap growth,
+        # the first execution of every code path -- that the recipe re-solves
+        # further down never pay. Their times are compared against this one, so
+        # the original has to be measured on the same footing: process warm.
+        # The flood caches are cleared in between so the timed solve is not
+        # handed the warm-up's floods either -- a recipe's re-solve starts with
+        # no floods cached for its grid, and neither should this. The answer is
+        # deterministic, so the timed result is the one used throughout.
+        #
         # perf_counter, not time(): on Windows the wall clock ticks about every
         # 15.6 ms, so any solve faster than that measures as exactly 0.0. This is
         # a monotonic high-resolution timer, which is what a duration needs.
+        Solver(ws, goal_a, goal_b, strategy=strategy).solve()
+        _clear_caches()
         start = time.perf_counter()
         solver_result = Solver(ws, goal_a, goal_b, strategy=strategy).solve()
         elapsed = time.perf_counter() - start
@@ -250,6 +263,7 @@ def run_one(args) -> TestResult:
             switches=solver_result.switches,
             path=solver_result.path,
             solver_seconds=elapsed,
+            solver_states=len(solver_result.visited),
             recipes=result.simplification,
         )
         write_run(run, plot_dir)

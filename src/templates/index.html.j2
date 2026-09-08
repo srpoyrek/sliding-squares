@@ -101,10 +101,22 @@ minimal; <b>obstacles after</b> is the fewest walls any recipe reached while
 still costing that same number of switches.</p>
 <div class="strip" id="charts"></div>
 
+<h2 style="font-size:17px;margin:32px 0 4px">Solve cost vs robot size</h2>
+<p class="muted" style="margin:0 0 12px">How the cost of <em>solving</em> grows
+with robot size — every recipe and the original on the same axes, so their
+curves can be compared directly. Solid lines and filled dots are the no-holes
+tests, dashed lines and hollow dots the holes tests. The vertical axis is
+logarithmic: the cases span four orders of magnitude, and a linear axis would
+flatten every small grid to nothing. A recipe appears only on the tests it held.
+Hover a dot for its exact value.</p>
+<div class="strip" id="costsize"></div>
+
 <script type="application/json" id="pts">{{ chart_json | safe }}</script>
+<script type="application/json" id="modes">{{ modes_json | safe }}</script>
 {% raw %}
 <script>
 const PTS = JSON.parse(document.getElementById('pts').textContent);
+const MODES = JSON.parse(document.getElementById('modes').textContent);
 
 // Small scatter+line chart. Inline SVG rather than a library: the page has to
 // stay self-contained and openable straight from disk.
@@ -189,8 +201,127 @@ function chart(title, yKey, yLabel){
 document.getElementById('charts').innerHTML =
   chart('Minimum control turns', 'switches', 'control turns') +
   chart('Obstacles after simplification', 'walls_after', 'walls left');
+
+// ── solve cost vs robot size, all series overlaid ──
+// Same unit rules as everywhere else on the site.
+const fmtSecs = s => s < 1e-3 ? (s*1e6).toFixed(1)+'us' : s < 1 ? (s*1e3).toFixed(1)+'ms' : s.toFixed(2)+'s';
+const fmtK = v => v.toLocaleString();
+// The same palette, in the same sorted-mode order, as the per-test chart above
+// -- so a recipe is one colour everywhere on the page. The original is black.
+const SERIES_COLOURS = ['#2f6fd0','#d9822b','#2a9d5c','#8e44ad','#c0392b','#7f8c8d','#16a085'];
+const seriesColour = m => m === 'original' ? '#1a1a1a'
+  : SERIES_COLOURS[MODES.indexOf(m) % SERIES_COLOURS.length];
+
+// One chart, every series on it. Log y with a gridline per decade; the point
+// values are on hover rather than printed, since ten lines' worth of labels
+// would bury the curves. Solid/filled = no holes, dashed/hollow = holes, so
+// the two families stay apart even where colours are close.
+function overlay(title, prefix, yLabel, fmt){
+  const series = ['original', ...MODES];
+  const all = [];
+  for(const p of PTS) for(const m of series){ const v = p[prefix+m]; if(v != null && v > 0) all.push(v); }
+  if(!all.length) return '';
+  const W = 660, H = 340, L = 66, R = 18, T = 18, B = 46;
+  const xs = PTS.map(p => p.n), x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const lo = Math.floor(Math.log10(Math.min(...all)));
+  const hiRaw = Math.ceil(Math.log10(Math.max(...all))), hi = hiRaw > lo ? hiRaw : lo + 1;
+  const px = n => L + (x1 === x0 ? (W-L-R)/2 : (n - x0) / (x1 - x0) * (W - L - R));
+  const py = v => H - B - (Math.log10(v) - lo) / (hi - lo) * (H - T - B);
+  const out = [`<svg class="chart" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img">`,
+    `<rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff" rx="6"/>`];
+  for(let e = lo; e <= hi; e++){
+    const v = Math.pow(10, e), y = py(v);
+    out.push(`<line class="grid" x1="${L}" y1="${y}" x2="${W-R}" y2="${y}" stroke-width="1"/>
+      <text x="${L-8}" y="${y}" font-size="11" text-anchor="end" dominant-baseline="central">${fmt(v)}</text>`);
+  }
+  for(let n = x0; n <= x1; n++){
+    out.push(`<line class="grid" x1="${px(n)}" y1="${T}" x2="${px(n)}" y2="${H-B}" stroke-width="1" stroke-dasharray="2 3"/>
+      <text x="${px(n)}" y="${H-B+17}" font-size="11" text-anchor="middle">${n}&times;${n}</text>`);
+  }
+  out.push(`<line class="axis" x1="${L}" y1="${T}" x2="${L}" y2="${H-B}" stroke-width="1"/>
+    <line class="axis" x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke-width="1"/>
+    <text x="${(L+W-R)/2}" y="${H-7}" font-size="11" text-anchor="middle">robot size</text>
+    <text x="14" y="${(T+H-B)/2}" font-size="11" text-anchor="middle"
+      transform="rotate(-90 14 ${(T+H-B)/2})">${yLabel} (log)</text>`);
+  for(const m of series){
+    const colour = seriesColour(m), k = prefix + m;
+    for(const holes of [false, true]){
+      const s = PTS.filter(p => p.holes === holes && p[k] != null && p[k] > 0).sort((a,b) => a.n - b.n);
+      if(!s.length) continue;
+      // Stepped, as the charts above: robot size is discrete, and a diagonal
+      // would draw values at sizes that do not exist.
+      const step = [];
+      s.forEach((p, i) => {
+        const x = px(p.n), y = py(p[k]);
+        if(i) step.push(`${x},${py(s[i-1][k])}`);
+        step.push(`${x},${y}`);
+      });
+      out.push(`<polyline points="${step.join(' ')}" fill="none" stroke="${colour}" stroke-width="2"
+        ${holes ? 'stroke-dasharray="6 4"' : ''} stroke-linejoin="miter" stroke-linecap="butt"/>`);
+      for(const p of s)
+        out.push(`<circle cx="${px(p.n)}" cy="${py(p[k])}" r="3.5" fill="${holes ? '#fff' : colour}"
+          stroke="${colour}" stroke-width="2"><title>${p.name} · ${m}: ${fmt(p[k])} ${yLabel}</title></circle>`);
+    }
+  }
+  out.push('</svg>');
+  const sw = (c, t) => `<span style="display:inline-flex;align-items:center;gap:5px">
+    <i style="width:14px;height:3px;background:${c};display:inline-block"></i>${t}</span>`;
+  return `<figure style="margin:0"><b style="font-size:13px">${title}</b>${out.join('')}
+    <figcaption style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)">
+    ${series.map(m => sw(seriesColour(m), m)).join('')}
+    <span>&mdash;&mdash; no holes &nbsp; - - - holes</span></figcaption></figure>`;
+}
+
+document.getElementById('costsize').innerHTML =
+  overlay('Solve time vs robot size', 'time__', 'seconds', fmtSecs) +
+  overlay('States held vs robot size', 'states__', 'states', fmtK);
 </script>
 {% endraw %}
+
+{% if cost_charts %}
+<h2 style="font-size:17px;margin:32px 0 4px">Solve cost after simplification, per test</h2>
+<p class="muted" style="margin:0 0 12px">For every test, what each recipe did to
+the cost of <em>solving</em> — its re-solve as a multiple of that test's original
+solve. The dashed line is <b>&plusmn;0%</b>, unchanged; a bar ending left of it
+is a cheaper solve, and negative is better. A hollow bar is a recipe that
+<b>failed</b> on that test: its solve is cheaper because it changed the problem,
+not because it simplified it. States going <em>up</em> after simplification is
+expected — fewer walls means more positions to search — while time can still
+fall because the cropped grid makes every flood fill cheaper.</p>
+<div class="strip">
+{% for ch in cost_charts %}
+<figure style="margin:0">
+  <b style="font-size:13px">{{ ch.title }}</b>
+  <svg class="chart" viewBox="0 0 {{ ch.width }} {{ ch.height }}" width="{{ ch.width }}"
+       height="{{ ch.height }}" role="img" aria-label="{{ ch.title }}, per test and recipe">
+    <rect x="0" y="0" width="{{ ch.width }}" height="{{ ch.height }}" fill="#ffffff" rx="6"/>
+    <line class="axis" x1="{{ ch.ref_x }}" y1="14" x2="{{ ch.ref_x }}" y2="{{ ch.height - 4 }}"
+          stroke-dasharray="3 3" stroke-width="1"/>
+    <text x="{{ ch.ref_x }}" y="11" font-size="11" text-anchor="middle">&plusmn;0%</text>
+    <text x="{{ ch.bar_x }}" y="11" font-size="10">{{ ch.axis }}</text>
+    {% for g in ch.groups %}
+    <text x="0" y="{{ g.heading_y }}" font-size="12" font-weight="700">{{ g.name }}</text>
+    {% for b in g.bars %}
+    <text x="{{ ch.bar_x - 8 }}" y="{{ b.y + 10 }}" font-size="10" text-anchor="end"
+          fill="{{ b.fill }}">{{ b.mode }}</text>
+    {% if b.w %}
+    <rect x="{{ ch.bar_x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ ch.bar_h }}" rx="2"
+          {% if b.held %}fill="{{ b.fill }}"{% else %}fill="none" stroke="{{ b.fill }}" stroke-width="1.5"{% endif %}/>
+    {% endif %}
+    <text x="{{ ch.bar_x + b.w + 6 }}" y="{{ b.y + 10 }}" font-size="10"
+          >{{ b.label }}{% if not b.held %} <tspan font-weight="700">FAILED</tspan>{% endif %}</text>
+    {% endfor %}
+    {% endfor %}
+  </svg>
+  <figcaption style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)">
+    {% for l in ch.legend %}
+    <span style="display:inline-flex;align-items:center;gap:5px"><i style="width:11px;height:11px;border-radius:2px;background:{{ l.fill }};display:inline-block"></i>{{ l.mode }}</span>
+    {% endfor %}
+  </figcaption>
+</figure>
+{% endfor %}
+</div>
+{% endif %}
 
 {% if leaderboard %}
 <h2 style="font-size:17px;margin:32px 0 4px">Recipes ranked</h2>
@@ -201,6 +332,7 @@ failed run would reward it, since a broken workspace is the smallest of all.</p>
   <tr>
     <th>#</th><th>recipe</th><th>avg reduction</th><th>preserved</th>
     <th>best on</th><th></th>
+    <th>solve time vs original</th><th>states held vs original</th>
   </tr>
   {% for r in leaderboard %}
   <tr>
@@ -216,7 +348,16 @@ failed run would reward it, since a broken workspace is the smallest of all.</p>
         <span class="bad">failed {{ r.runs - r.kept }}</span>
       {%- endif -%}
     </td>
+    {# Geometric mean over the runs the recipe held; negative is cheaper. #}
+    <td><span class="{{ 'ok' if r.time_ratio and r.time_ratio < 0.995 else ('bad' if r.time_ratio and r.time_ratio > 1.005 else 'muted') }}">{{ r.time_ratio | change }}</span></td>
+    <td><span class="{{ 'ok' if r.states_ratio and r.states_ratio < 0.995 else ('bad' if r.states_ratio and r.states_ratio > 1.005 else 'muted') }}">{{ r.states_ratio | change }}</span></td>
   </tr>
   {% endfor %}
 </table>
+<p class="muted" style="margin:8px 0 0">The two cost columns are geometric means
+over the runs each recipe held. <b>Expect them to disagree:</b> removing walls
+opens the grid, so the search visits <em>more</em> positions for the same answer
+and states usually rise; but the recipes also crop the grid, and every flood fill
+scans its legal positions, so each step gets cheaper and time can fall. Both are
+measured process-warm with no floods cached for the grid being solved.</p>
 {% endif %}
