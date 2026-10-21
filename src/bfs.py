@@ -913,8 +913,8 @@ def bfs_bidirectional(workspace, goal_a, goal_b, draw=False, need_path=True):
     meeting_sid, total = best
 
     # Switch-count-only fast path: callers that just need (solvable, switches)
-    # — e.g. find_hardest's millions of solves — skip both the path
-    # reconstruction and the O(|states|) visited-dict copy, which they discard.
+    # skip both the path reconstruction and the O(|states|) visited-dict copy,
+    # which they would discard.
     if not need_path:
         return {"switches": total, "path": None, "visited": None}
 

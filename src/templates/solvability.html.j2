@@ -51,7 +51,7 @@
   .twoboards figure { margin: 0; }
   .twoboards figcaption { font-size: 13px; color: var(--muted); margin-top: 4px; }
   svg.flat { max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--free); }
-  #state-matrix { border: 1px solid var(--line); border-radius: 4px; image-rendering: pixelated; max-width: 100%; }
+  .boardzoom canvas { display: block; height: 100%; aspect-ratio: 1 / 1; margin: 0 auto; image-rendering: pixelated; }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 0; color: var(--muted); font-size: 13px; }
   .thumbrow { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; margin: 10px 0; }
   .thumbrow figure { margin: 0; }
@@ -172,7 +172,19 @@
   start and the goal: the puzzle is solvable exactly when they end up the same
   colour. Hover any square to read its slot number, its snapshot, what it
   currently holds, and its leader.</p>
-  <div class="boardbox"><canvas id="state-matrix"></canvas></div>
+  <p>The second colouring answers a different question: <b>how far is every
+  square from the start, in switches?</b> Blue is near, red is the farthest
+  state on the board, dark grey is unreachable. Hardness is visible as the
+  number of rings — an easy board shows two or three, a hard one a long
+  rainbow. This colouring always shows the finished map, whatever the slider
+  position.</p>
+  <div class="controls">
+    <span class="muted">colour the squares by:</span>
+    <button class="mx-mode" data-mx="island">island</button>
+    <button class="mx-mode" data-mx="dist">switches from the start</button>
+    <span class="num muted" id="mx-note"></span>
+  </div>
+  <div id="matrix-box"></div>
   <p class="muted">Under the board: the joining itself. Each region's pictures
   are union-joined into one group — once with the parked robot playing B, once
   playing A — and the step's effect on the island count is stated.</p>
@@ -356,34 +368,124 @@
   const VIDX = new Map();
   D.valid.forEach((v, i) => VIDX.set(v, i));
   const NV = D.valid.length;
-  const MPX = Math.max(3, Math.min(12, Math.floor(640 / NV)));
-  const mcv = document.getElementById("state-matrix");
+  // Internal resolution floor: big boards use 8px cells; tiny ones get larger
+  // cells so the canvas never drops below ~160px and the START/GOAL words
+  // stay legible. The shared player viewport does the on-screen sizing, so
+  // every case renders at the same screen size, zoomable and pannable.
+  const MPX = Math.max(8, Math.ceil(160 / NV));
+  document.getElementById("matrix-box").innerHTML = frame("", { key: "matrix", h: 560 });
+  const mcv = document.createElement("canvas");
+  mcv.id = "state-matrix";
   mcv.width = NV * MPX;
   mcv.height = NV * MPX;
+  document.querySelector("#matrix-box .boardzoom").appendChild(mcv);
   let MP = null;
+  let MXMODE = "island";
+  // Distance rings: breadth-first over EVERY clique from the start's two,
+  // with no goal to stop at. A state's distance is the shallowest ring of the
+  // (at most two) cliques holding it, minus one — exactly min_switches to it.
+  const RING = new Map();
+  {
+    const ckey = c => c[0] + ":" + c[1] + ":" + c[2];
+    const q = [];
+    for (const cid of [[0, D.start.b, pieceIdx(D.start.b, D.start.a)],
+                       [1, D.start.a, pieceIdx(D.start.a, D.start.b)]]) {
+      const k = ckey(cid);
+      if (!RING.has(k)) { RING.set(k, 1); q.push(cid); }
+    }
+    let qi = 0;
+    while (qi < q.length) {
+      const cid = q[qi++];
+      const r = RING.get(ckey(cid));
+      for (const member of PIECES.get(cid[1])[cid[2]]) {
+        const ncid = [1 - cid[0], member, pieceIdx(member, cid[1])];
+        const nk = ckey(ncid);
+        if (!RING.has(nk)) { RING.set(nk, r + 1); q.push(ncid); }
+      }
+    }
+  }
+  const distOf = (a, b) => {
+    const r0 = RING.get("0:" + b + ":" + pieceIdx(b, a));
+    const r1 = RING.get("1:" + a + ":" + pieceIdx(a, b));
+    const best = Math.min(r0 === undefined ? Infinity : r0, r1 === undefined ? Infinity : r1);
+    return best === Infinity ? null : best - 1;
+  };
+  let MAXD = 0;
+  for (const s of STATES) {
+    const d = distOf(Math.floor(s / MAXPOS), s % MAXPOS);
+    if (d !== null && d > MAXD) MAXD = d;
+  }
+  // Hue runs blue -> red with distance, and lightness ALTERNATES per ring, so
+  // ring k and ring k+1 always contrast instead of smearing into a gradient.
+  const distColor = d => d === null
+    ? "#2b2f35"
+    : "hsl(" + Math.round(220 - 220 * (MAXD ? d / MAXD : 0)) + ",75%," + (d % 2 ? 63 : 45) + "%)";
   function drawMatrix(p) {
     MP = p;
     const ctx = mcv.getContext("2d");
+    // Dark backing shows through the 1px gap each cell leaves — a hairline
+    // grid, so squares read as squares instead of merging into fields.
+    ctx.fillStyle = "#394049";
+    ctx.fillRect(0, 0, mcv.width, mcv.height);
+    // Island colours are labels, not values: assigned in discovery order per
+    // redraw, so the first group found is always the first palette colour and
+    // a finished one-island board is always the same blue, case after case.
+    const order = new Map();
     for (let i = 0; i < NV; i++) for (let j = 0; j < NV; j++) {
       const a = D.valid[i], b = D.valid[j];
-      ctx.fillStyle = (a === b || overlap(a, b))
-        ? "#e5e7eb"
-        : MPAL[find(p, a * MAXPOS + b) % MPAL.length];
-      ctx.fillRect(j * MPX, i * MPX, MPX, MPX);
-    }
-    const mark = (s, label) => {
-      const i = VIDX.get(Math.floor(s / MAXPOS)), j = VIDX.get(s % MAXPOS);
-      ctx.strokeStyle = "#000";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(j * MPX + 1, i * MPX + 1, MPX - 2, MPX - 2);
-      if (MPX >= 9) {
-        ctx.fillStyle = "#000";
-        ctx.font = "bold " + (MPX - 3) + "px sans-serif";
-        ctx.fillText(label, j * MPX + 2, i * MPX + MPX - 3);
+      let fill = "#e5e7eb";
+      if (a !== b && !overlap(a, b)) {
+        if (MXMODE === "dist") fill = distColor(distOf(a, b));
+        else {
+          const root = find(p, a * MAXPOS + b);
+          let ci = order.get(root);
+          if (ci === undefined) { ci = order.size; order.set(root, ci); }
+          fill = MPAL[ci % MPAL.length];
+        }
       }
+      ctx.fillStyle = fill;
+      ctx.fillRect(j * MPX, i * MPX, MPX - 1, MPX - 1);
+      // Unreachable gets a light slash on near-black, so it cannot be read
+      // as background or grid.
+      if (MXMODE === "dist" && a !== b && !overlap(a, b) && distOf(a, b) === null) {
+        ctx.strokeStyle = "#b9c0c9";
+        ctx.lineWidth = Math.max(1.5, (MPX - 1) / 6);
+        ctx.beginPath();
+        ctx.moveTo(j * MPX + 1, i * MPX + MPX - 2);
+        ctx.lineTo(j * MPX + MPX - 2, i * MPX + 1);
+        ctx.stroke();
+      }
+    }
+    // Start and goal markers that survive any zoom: a translucent crosshair
+    // band spanning the full row and column of each, meeting at the state
+    // itself — start a solid black square, goal a white square in a black
+    // frame, as the legend under the buttons says.
+    const marker = (s, inner, label) => {
+      const i = VIDX.get(Math.floor(s / MAXPOS)), j = VIDX.get(s % MAXPOS);
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, i * MPX, mcv.width, MPX - 1);
+      ctx.fillRect(j * MPX, 0, MPX - 1, mcv.height);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#000";
+      ctx.fillRect(j * MPX - 2, i * MPX - 2, MPX + 3, MPX + 3);
+      ctx.fillStyle = inner;
+      ctx.fillRect(j * MPX, i * MPX, MPX - 1, MPX - 1);
+      // The word itself, haloed, flipped inward so it never clips off an edge.
+      ctx.font = "700 13px ui-sans-serif, system-ui, sans-serif";
+      ctx.textBaseline = "middle";
+      const leftward = j * MPX > mcv.width / 2;
+      ctx.textAlign = leftward ? "right" : "left";
+      const x = leftward ? j * MPX - 6 : j * MPX + MPX + 5;
+      const y = Math.min(Math.max(i * MPX + MPX / 2, 9), mcv.height - 9);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "#fff";
+      ctx.strokeText(label, x, y);
+      ctx.fillStyle = "#000";
+      ctx.fillText(label, x, y);
     };
-    mark(D.start.a * MAXPOS + D.start.b, "S");
-    mark(D.start.b * MAXPOS + D.start.a, "G");
+    marker(D.start.a * MAXPOS + D.start.b, "#000", "START");
+    marker(D.start.b * MAXPOS + D.start.a, "#fff", "GOAL");
   }
   mcv.addEventListener("mousemove", ev => {
     if (!MP) return;
@@ -394,9 +496,37 @@
     const a = D.valid[i], b = D.valid[j];
     if (a === b || overlap(a, b)) { mcv.title = "illegal: the robots would overlap"; return; }
     const s = a * MAXPOS + b;
+    const d = distOf(a, b);
     mcv.title = "slot " + s + ": A (" + pr(a) + "), B (" + pr(b) + ") — holds " + MP[s] +
-      ", leader " + find(MP, s);
+      ", leader " + find(MP, s) +
+      (d === null ? " — unreachable from the start" : " — " + d + " switch(es) from the start");
   });
+  const MARKER_NOTE = " — ■ black crosshair = the start, □ white-in-black crosshair = the goal";
+  const ISLAND_NOTE = "colours are group labels in discovery order, not values — one colour left = one island" + MARKER_NOTE;
+  // The scale, spelled out: one numbered chip per ring, so a shade is read by
+  // matching it here rather than by guessing what a hue means.
+  const distLegend = () => {
+    const step = Math.max(1, Math.ceil((MAXD + 1) / 16));
+    let html = "switches from the start:&nbsp; ";
+    for (let d = 0; d <= MAXD; d += step) {
+      html += '<span class="chip" style="background:' + distColor(d) + '"></span>' + d + "&nbsp; ";
+    }
+    const goalD = distOf(D.start.b, D.start.a);
+    html += '&middot; <span class="chip" style="background:#2b2f35"></span>unreachable (near-black, slashed)' +
+      " &middot; the goal sits at " + (goalD === null ? "—" : goalD) + MARKER_NOTE;
+    return html;
+  };
+  document.querySelectorAll(".mx-mode").forEach(btn => btn.addEventListener("click", () => {
+    MXMODE = btn.dataset.mx;
+    document.querySelectorAll(".mx-mode").forEach(other => {
+      other.style.borderColor = other === btn ? "var(--ink)" : "var(--line)";
+    });
+    if (MXMODE === "dist") document.getElementById("mx-note").innerHTML = distLegend();
+    else document.getElementById("mx-note").textContent = ISLAND_NOTE;
+    if (MP) drawMatrix(MP);
+  }));
+  document.querySelector('.mx-mode[data-mx="island"]').style.borderColor = "var(--ink)";
+  document.getElementById("mx-note").textContent = ISLAND_NOTE;
 
   function renderStep(k) {
     const p = makeUF();

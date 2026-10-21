@@ -25,7 +25,6 @@ import shutil
 import threading
 import time
 
-from src.bfs import bfs_mirror
 from src.bitgrid import BitGrid
 from src.canonical import (
     Canonicalizer,
@@ -41,6 +40,7 @@ from src.directories import get_plots_dir
 from src.frontier import initial_frontier as _initial_frontier
 from src.lru import LRUCache
 from src.memory import MB, MemoryGuard, SpillableSet, plan_budget, rss_bytes, tree_rss_bytes
+from src.solvability import SwapSolvability
 from src.visualizer import plot_proof as _plot_proof
 from src.workspace import Workspace
 
@@ -67,25 +67,27 @@ _valid_block_positions = Workspace.valid_block_positions
 
 
 def _solve_payload(payload):
-    """Worker function: rebuild workspace and run solver.
+    """Worker function: measure one candidate with the clique-map finder.
     Used by the batch-parallel solver pool in dig_search.
     Payload: (rows, cols, n, free_bits, pos_a, pos_b, goal_a, goal_b)
     Returns: (solvable, switches)
 
     The candidate region travels as the raw bits of its BitGrid, so a batch of
-    5000 nodes pickles as 5000 ints and the worker rebuilds the mask for free.
+    5000 nodes pickles as 5000 ints and the finder coerces the mask for free.
     Sending the free cells as a set of (row, col) instead would put ~2.6 KB per
     node on the pipe and a second copy of it in the worker.
 
-    Every candidate here swaps the two robots (`dig_search` sets the goal to
-    `pos_b, pos_a`), so the single-tree mirror search always applies — worth
-    having in the hot loop, since it holds one BFS tree in memory instead of
-    two under the same per-worker budget.
+    The finder rather than a BFS search because every candidate here is a new
+    free mask, and the flood caches key on that mask — so a search would run
+    effectively cold per candidate, the matchup the finder wins. Its count is
+    exact per `SwapSolvability.shortest_trail`'s argument, cross-checked
+    against both searches in the test suite.
     """
     rows, cols, n, free_bits, pos_a, pos_b, goal_a, goal_b = payload
-    ws = _build_workspace(rows, cols, free_bits, pos_a, pos_b, n)
-    out = bfs_mirror(ws, goal_a, goal_b, need_path=False)
-    return (False, None) if out is None else (True, out["switches"])
+    switches = SwapSolvability(rows, cols, free_bits, n).min_switches(
+        (pos_a, pos_b), (goal_a, goal_b)
+    )
+    return (switches is not None, switches)
 
 
 # ---------------------------------------------------------------------------
@@ -321,14 +323,6 @@ def dig_search(
     heapq.heappush(queue, (0, seq, init_free.bits))
     seq += 1
 
-    shared_ws = _build_workspace(rows, cols, init_free, pos_a, pos_b, n)
-
-    def sync_free_to(free_bits):
-        # The grid's free set is one bitmask and it is what every solver cache
-        # keys on, so pointing the shared workspace at the next candidate is a
-        # single assignment — nothing else needs telling.
-        shared_ws.grid.free = BitGrid(rows, cols, free_bits)
-
     best_switches = -1
     best_free_max, best_free_min = None, None
     min_free_at_max = 999
@@ -448,14 +442,7 @@ def dig_search(
                 if solver_pool is not None and len(need_solve_payloads) > 1:
                     batch_results = list(solver_pool.map(_solve_payload, need_solve_payloads))
                 else:
-                    batch_results = []
-                    for p in need_solve_payloads:
-                        _rows, _cols, _n, fb, _pa, _pb, _ga, _gb = p
-                        sync_free_to(fb)
-                        out = bfs_mirror(shared_ws, goal_a, goal_b, need_path=False)
-                        batch_results.append(
-                            (False, None) if out is None else (True, out["switches"])
-                        )
+                    batch_results = [_solve_payload(p) for p in need_solve_payloads]
                 t_solver += time.perf_counter() - t0
                 solver_calls += len(need_solve_payloads)
                 for idx, res in zip(need_solve_indices, batch_results):

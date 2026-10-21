@@ -66,8 +66,7 @@ class Solver:
         #
         # need_path=False is the fast path for callers that only need
         # (solvable, switches) — it skips path reconstruction, the visited-dict
-        # copy, and the first-mover inference below. Used by find_hardest, which
-        # solves millions of candidates and discards the path.
+        # copy, and the first-mover inference below.
         start_a = self.ws.robot_a.position()
         start_b = self.ws.robot_b.position()
         swapped_goal = self.goal_a == start_b and self.goal_b == start_a
