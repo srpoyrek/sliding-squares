@@ -30,13 +30,15 @@ Which robot moved last is ignored here: it changes the switch count, never
 whether a state can be reached, since a robot may be handed control and not
 move.
 
-The build also remembers its proof pairs — the two states whose joining caused
-each pointer write. Those pairs form a spanning trail of every island, so
-`trail` can replay a legal solution between any two states with no search at
-all; its switch count follows the filing order, not the minimum. When the
-minimum is wanted, `shortest_trail` / `min_switches` run breadth-first over the
-stored cliques themselves — far fewer nodes than states — and return a provably
-switch-minimal solution, cross-checked against the solver in the tests.
+With ``remember=True`` the build also keeps its proof pairs — the two states
+whose joining caused each pointer write. Those pairs form a spanning trail of
+every island, so `trail` can replay a legal solution between any two states
+with no search at all; its switch count follows the filing order, not the
+minimum. Off by default: only `trail` reads the pairs, so every other caller
+would pay the build-time appends for nothing. The minimum needs none of it —
+`shortest_trail` / `min_switches` run breadth-first over the stored cliques
+themselves, far fewer nodes than states, and return a provably switch-minimal
+solution, cross-checked against the solver in the tests.
 """
 
 from __future__ import annotations
@@ -75,10 +77,13 @@ class SwapSolvability:
                  build's cost in the same unit a solve pays its floods in
     """
 
-    def __init__(self, rows: int, cols: int, free, n: int):
+    def __init__(self, rows: int, cols: int, free, n: int, remember: bool = False):
         self.rows = rows
         self.cols = cols
         self.n = n
+        # Whether the build files a proof pair per union. Only `trail` reads
+        # them, so the default skips the appends and the memory.
+        self._remember_enabled = remember
         self.free = BitGrid.coerce(rows, cols, free)
         self.valid = self.free.erode_window(n)
         self._col_span = self.valid.cols
@@ -122,10 +127,10 @@ class SwapSolvability:
                 # the same either way.
                 for m in members[1:]:
                     first, second = head * max_pos + parked, m * max_pos + parked
-                    if union(first, second):
+                    if union(first, second) and self._remember_enabled:
                         self._remember(first, second)
                     first, second = parked * max_pos + head, parked * max_pos + m
-                    if union(first, second):
+                    if union(first, second) and self._remember_enabled:
                         self._remember(first, second)
             # The cliques themselves are kept: `shortest_trail` walks them, and
             # unlike the union-find skeleton they include every connection.
@@ -317,7 +322,13 @@ class SwapSolvability:
         the same state. Every segment is legal; the segment count follows the
         order the build filed things and is NOT minimal. `shortcut=True` runs
         the greedy collapse over it (see `_shortcut`) — shorter, still not
-        proven minimal; `shortest_trail` is the exact one."""
+        proven minimal; `shortest_trail` is the exact one. Needs the proof
+        pairs, so the map must have been built with ``remember=True``."""
+        if not self._remember_enabled:
+            raise ValueError(
+                "built with remember=False, so the proof pairs behind trail() were "
+                "not kept; construct SwapSolvability(..., remember=True) for it"
+            )
         s0, g0 = self._state(*start), self._state(*goal)
         if self._find(s0) != self._find(g0):
             return None

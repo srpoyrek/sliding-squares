@@ -316,7 +316,7 @@ def test_trail_is_a_legal_solution_from_start_to_goal():
     for rows, cols, n in [(2, 5, 1), (3, 4, 1), (4, 4, 2)]:
         for _ in range(5):
             free = _random_free(rng, rows, cols, density=0.8)
-            sol = SwapSolvability(rows, cols, free, n)
+            sol = SwapSolvability(rows, cols, free, n, remember=True)
             for a, b in _states_of(sol)[:6]:
                 t = sol.trail((a, b), (b, a))
                 if not sol.solvable(a, b):
@@ -324,8 +324,11 @@ def test_trail_is_a_legal_solution_from_start_to_goal():
                     continue
                 _assert_trail_legal(sol, t, (a, b), (b, a))
     # no island, no trail
-    sol = SwapSolvability(1, 4, BitGrid.full(1, 4), 1)
+    sol = SwapSolvability(1, 4, BitGrid.full(1, 4), 1, remember=True)
     assert sol.trail(((0, 0), (0, 1)), ((0, 1), (0, 0))) is None
+    # remember off is the default, and trail says so instead of lying
+    with pytest.raises(ValueError):
+        SwapSolvability(2, 2, BitGrid.full(2, 2), 1).trail(((0, 0), (0, 1)), ((0, 1), (0, 0)))
 
 
 def test_shortest_trail_matches_the_solver_and_shortcut_stays_between():
@@ -337,7 +340,7 @@ def test_shortest_trail_matches_the_solver_and_shortcut_stays_between():
     for rows, cols, n in [(2, 5, 1), (3, 4, 1), (4, 4, 2), (3, 3, 1)]:
         for _ in range(4):
             free = _random_free(rng, rows, cols, density=0.8)
-            sol = SwapSolvability(rows, cols, free, n)
+            sol = SwapSolvability(rows, cols, free, n, remember=True)
             states = _states_of(sol)
             for a, b in states[:4]:
                 ws = Workspace.from_free_cells(rows, cols, free, a, b, n)
