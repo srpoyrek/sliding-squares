@@ -44,6 +44,17 @@
 </a>
 {% endif %}
 
+{# Only linked once render_solvability.py has built the pages. #}
+{% if has_solvability %}
+<a class="card" href="solvability/index.html">
+  <b>Swap solvability</b>
+  <span class="muted">Whether the robots can swap at all, decided by
+  connectivity alone: the island build replayed step by step in the browser,
+  every state coloured by its group, and the start-against-goal comparison
+  drawn and cross-checked against the solver.</span>
+</a>
+{% endif %}
+
 {# Only linked once built: generate_building_blocks.py + run_tests.py
    --testcases-dir/--out-dir is a separate, manual step. #}
 {% if has_building_blocks %}

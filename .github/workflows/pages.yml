@@ -66,6 +66,10 @@ jobs:
         # timeout keeps the unidirectional search — which expands to depth D
         # rather than D/2 — from stalling the workflow on the larger cases.
         run: python benchmark_bfs.py --repeat 5 --timeout 180
+      - name: Build the solvability pages
+        # Before make_gallery.py for the same reason as the benchmark: the
+        # landing page links a card only when its page is already on disk.
+        run: python render_solvability.py
       - name: Render the recipe gallery and the landing page
         run: python make_gallery.py
       - name: Disable Jekyll so no path is filtered

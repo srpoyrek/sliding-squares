@@ -63,6 +63,11 @@ BENCHMARK_DIRNAME = "benchmark"
 #: BENCHMARK_DIRNAME above.
 BUILDING_BLOCKS_DIRNAME = "building_blocks"
 
+#: Sub-tree of plots/ holding the interactive solvability pages
+#: (render_solvability.py). Named here for the same reason as
+#: BENCHMARK_DIRNAME above.
+SOLVABILITY_DIRNAME = "solvability"
+
 #: The markup lives in real ``.html.j2`` files rather than Python strings, so an
 #: editor highlights and lints the HTML, CSS and JS, and Jinja's autoescaping
 #: covers every interpolation instead of each call site remembering to escape.
@@ -825,6 +830,9 @@ def write_site_index(plots_dir: str) -> str:
         generated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
         has_benchmark=os.path.exists(os.path.join(plots_dir, BENCHMARK_DIRNAME, REPORT_FILENAME)),
         has_building_blocks=_write_building_blocks_index(plots_dir),
+        has_solvability=os.path.exists(
+            os.path.join(plots_dir, SOLVABILITY_DIRNAME, REPORT_FILENAME)
+        ),
     )
     dest = os.path.join(plots_dir, REPORT_FILENAME)
     with open(dest, "w", encoding="utf-8") as fh:

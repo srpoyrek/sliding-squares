@@ -34,7 +34,15 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from run_tests import discover_test_cases
 from src.bfs import _make_mirror, _make_packers, bfs_mirror, configure_caches_for_grid
 from src.directories import get_plots_dir
-from src.report import REPORT_FILENAME, encode_grid, fmt_seconds, fmt_thousands, palette
+from src.report import (
+    REPORT_FILENAME,
+    SOLVABILITY_DIRNAME,
+    encode_grid,
+    fmt_seconds,
+    fmt_thousands,
+    palette,
+    write_site_index,
+)
 from src.solvability import SwapSolvability, _pieces
 
 #: Bumped when the shape of solvability.json changes incompatibly, so a stale
@@ -42,9 +50,6 @@ from src.solvability import SwapSolvability, _pieces
 SCHEMA_VERSION = 2
 
 RECORD_FILENAME = "solvability.json"
-
-#: Sub-tree of plots/ these pages live in.
-SOLVABILITY_DIRNAME = "solvability"
 
 _ENV = Environment(
     loader=FileSystemLoader(
@@ -267,6 +272,10 @@ def render_all(name_filter: str | None = None, out_dir: str | None = None) -> li
 
     index = write_index(records, root)
     print(f"\nOpen: {index}")
+    # Relink the landing page so its solvability card appears — but only for
+    # the site layout; a custom --out is not the site, so nothing is relinked.
+    if out_dir is None:
+        print(f"Linked: {write_site_index(get_plots_dir())}")
     return written + [index]
 
 
