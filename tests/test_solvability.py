@@ -175,6 +175,9 @@ def test_agrees_with_the_solver_on_the_shipped_cases(case):
     print("\n" + "\n".join("  " + line for line in lines))
     assert says == found
     assert sol.is_swap_combination((start_a, start_b), (start_b, start_a)) == found
+    if found:
+        # The clique-graph minimum must reproduce the solver's exact count.
+        assert sol.min_switches((start_a, start_b), (start_b, start_a)) == out["switches"]
 
 
 @pytest.mark.parametrize("case", discover_test_cases(), ids=lambda case: case.name)
@@ -290,6 +293,74 @@ def test_swap_combinations_are_component_wide():
             # A state is never paired with itself; `solvable` is that question.
             with pytest.raises(ValueError):
                 sol.is_swap_combination(p, p)
+
+
+def _assert_trail_legal(sol, segments, start, goal):
+    """Every segment really is one robot sliding inside one region around the
+    other, and the chain runs from `start` to `goal` without a gap."""
+    n = sol.n
+    cur = start
+    for mover, src, dst, parked in segments:
+        moving, still = cur if mover == "A" else (cur[1], cur[0])
+        assert moving == src and still == parked
+        r, c = parked
+        usable = sol.valid - sol.valid.rect(r - n + 1, c - n + 1, 2 * n - 1, 2 * n - 1)
+        assert dst in usable.flood(usable.index(*src))
+        cur = (dst, cur[1]) if mover == "A" else (cur[0], dst)
+    assert cur == goal
+
+
+def test_trail_is_a_legal_solution_from_start_to_goal():
+    rng = random.Random(21)
+    for rows, cols, n in [(2, 5, 1), (3, 4, 1), (4, 4, 2)]:
+        for _ in range(5):
+            free = _random_free(rng, rows, cols, density=0.8)
+            sol = SwapSolvability(rows, cols, free, n)
+            for a, b in _states_of(sol)[:6]:
+                t = sol.trail((a, b), (b, a))
+                if not sol.solvable(a, b):
+                    assert t is None
+                    continue
+                _assert_trail_legal(sol, t, (a, b), (b, a))
+    # no island, no trail
+    sol = SwapSolvability(1, 4, BitGrid.full(1, 4), 1)
+    assert sol.trail(((0, 0), (0, 1)), ((0, 1), (0, 0))) is None
+
+
+def test_shortest_trail_matches_the_solver_and_shortcut_stays_between():
+    # The exactness claim, checked against both searches: `min_switches` must
+    # equal the solver's minimum on swaps (bfs_mirror) and on arbitrary goals
+    # (bfs_bidirectional); the shortcut trail must stay legal, no longer than
+    # the raw trail, and never beat the proven minimum.
+    rng = random.Random(33)
+    for rows, cols, n in [(2, 5, 1), (3, 4, 1), (4, 4, 2), (3, 3, 1)]:
+        for _ in range(4):
+            free = _random_free(rng, rows, cols, density=0.8)
+            sol = SwapSolvability(rows, cols, free, n)
+            states = _states_of(sol)
+            for a, b in states[:4]:
+                ws = Workspace.from_free_cells(rows, cols, free, a, b, n)
+                best = bfs_mirror(ws, b, a, need_path=False)
+                shortest = sol.shortest_trail((a, b), (b, a))
+                minimum = sol.min_switches((a, b), (b, a))
+                if best is None:
+                    assert shortest is None and minimum is None
+                    continue
+                _assert_trail_legal(sol, shortest, (a, b), (b, a))
+                assert minimum == len(shortest) - 1 == best["switches"]
+                raw = sol.trail((a, b), (b, a))
+                cut = sol.trail((a, b), (b, a), shortcut=True)
+                _assert_trail_legal(sol, cut, (a, b), (b, a))
+                assert len(cut) <= len(raw)
+                assert len(cut) - 1 >= minimum
+            if len(states) >= 2:
+                (a, b), (ga, gb) = states[0], states[-1]
+                ws = Workspace.from_free_cells(rows, cols, free, a, b, n)
+                best = bfs_bidirectional(ws, ga, gb, need_path=False)
+                minimum = sol.min_switches((a, b), (ga, gb))
+                assert (minimum is None) == (best is None)
+                if best is not None:
+                    assert minimum == best["switches"]
 
 
 def test_rejects_anything_that_is_not_a_state():

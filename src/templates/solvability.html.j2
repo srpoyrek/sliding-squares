@@ -15,49 +15,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ record.name }} — swap solvability</title>
 <style>
-  {# Chrome colours match site.html.j2, dark scheme included; the board colours
-     stay the palette's own, since boards look the same on the PNGs. #}
+{% include "_theme.css" %}
+  {# Board palette only — the chrome above comes from the shared theme. The
+     full set the shared player's board() uses, same names as report.html.j2. #}
   :root {
-    --bg: #fff; --ink: #1a1a1a; --muted: #666; --line: #ddd; --card: #fafafa;
-    --bad: #b91c1c; --ok: #15803d;
-    --wall: {{ record.palette.wall }};
-    --free: {{ record.palette.free }};
-    --gridline: {{ record.palette.grid }};
-    --a: {{ record.palette.a }};
-    --b: {{ record.palette.b }};
+    --wall: {{ record.palette.wall }}; --free: {{ record.palette.free }};
+    --grid: {{ record.palette.grid }}; --a: {{ record.palette.a }};
+    --b: {{ record.palette.b }}; --arrow-a: {{ record.palette.arrow_a }};
+    --arrow-b: {{ record.palette.arrow_b }}; --hot: {{ record.palette.hot }};
+    --label: {{ record.palette.label }};
   }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #24262b; --ink: #f2f2f2; --muted: #a9adb5; --line: #3d414a;
-            --card: #2d3038; --bad: #f87171; --ok: #4ade80; }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; padding: 28px 16px; font: 15px/1.6 ui-sans-serif, system-ui, sans-serif; color: var(--ink); background: var(--bg); }
+  body { padding: 28px 16px; }
+  {# The shared player's viewport — the same rules report.html.j2 carries. #}
+  .seg { background: var(--card); border: 1px solid var(--line); border-radius: 5px;
+         padding: 3px 8px; font-family: ui-monospace, monospace; font-size: 13px; }
+  .boardbox { display: inline-block; vertical-align: top; max-width: 100%; }
+  .boardbox.wide { display: block; }
+  .board { position: relative; width: var(--bw, 100%); height: var(--bh, 420px); max-width: 100%;
+           overflow: hidden; resize: both; background: var(--bg); border: 1px solid var(--line);
+           border-radius: 6px; cursor: grab; touch-action: none; user-select: none; }
+  .board.dragging { cursor: grabbing; }
+  .boardbox.wide .board { resize: vertical; }
+  .boardzoom { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
+  .boardzoom svg { display: block; width: 100%; height: 100%; }
+  .zoomctl { display: flex; gap: 4px; align-items: center; margin-top: 4px; font-size: 12px; }
+  .zoomctl button { padding: 1px 7px; font-size: 12px; line-height: 1.4; }
+  .zoomctl .zpct { min-width: 3.5em; text-align: center; color: var(--muted);
+                   font-variant-numeric: tabular-nums; }
   main { max-width: 980px; margin: 0 auto; }
   h1 { font-size: 21px; margin: 0 0 2px; }
   h2 { font-size: 16px; margin: 40px 0 6px; }
   p { max-width: 76ch; margin: 6px 0; }
-  .muted { color: var(--muted); }
-  a { color: #2563eb; text-decoration: none; }
-  code { background: var(--card); padding: 1px 4px; border-radius: 3px; font-size: 13px; }
-  table.stats { border-collapse: collapse; margin: 14px 0; }
-  table.stats td, table.stats th { padding: 5px 12px 5px 0; text-align: left; border-bottom: 1px solid var(--line); }
-  table.stats th { font-weight: 600; }
-  .num { font-variant-numeric: tabular-nums; }
-  .ok { color: var(--ok); font-weight: 600; }
-  .bad { color: var(--bad); font-weight: 600; }
   .boardbox { margin: 10px 0; }
   .twoboards { display: flex; flex-wrap: wrap; gap: 18px; }
   .twoboards figure { margin: 0; }
   .twoboards figcaption { font-size: 13px; color: var(--muted); margin-top: 4px; }
-  svg.board { max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--free); }
+  svg.flat { max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--free); }
   #state-matrix { border: 1px solid var(--line); border-radius: 4px; image-rendering: pixelated; max-width: 100%; }
-  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
-  .controls button { font: inherit; padding: 4px 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--card); color: var(--ink); cursor: pointer; }
-  .controls button:hover { border-color: var(--muted); }
-  .controls input[type=range] { width: 280px; }
-  .readout { font-variant-numeric: tabular-nums; padding: 8px 10px; background: var(--card); border: 1px solid var(--line); border-radius: 4px; margin: 8px 0; max-width: 76ch; }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 0; color: var(--muted); font-size: 13px; }
-  .chip { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; border: 1px solid rgba(0,0,0,.2); }
   .thumbrow { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; margin: 10px 0; }
   .thumbrow figure { margin: 0; }
   .thumb-label { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
@@ -73,6 +68,10 @@
   .arrow { font-size: 20px; color: var(--muted); }
   .slotno { font-size: 11px; color: var(--muted); text-align: center; margin-top: 2px; }
   .islandhead { margin: 16px 0 2px; font-weight: 600; }
+  .trailwrap { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  .trailwrap .boardbox { flex: 0 1 auto; }
+  .trailwrap ol { flex: 1 1 280px; min-width: 260px; margin: 10px 0; max-height: 520px; overflow-y: auto; padding-right: 8px; }
+  .trailwrap li.now { color: var(--ink); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -105,7 +104,8 @@
         {% endif %}
       </td>
       <td class="num">{{ record.map.build_seconds | seconds }} to build,
-          {{ record.map.floods }} flood fills</td>
+          {{ record.map.floods }} flood fills, shortest path
+          <span id="stat-path-ms">&mdash;</span></td>
     </tr>
     <tr>
       <th>State space</th>
@@ -197,6 +197,30 @@
   see which parked position wrote that pointer. The chain certifies the route
   exists; the route itself is made of section 3's regions.</p>
   <div id="chain-view"></div>
+  <div class="islandhead">Remember how we came — the log unfolded into a real solution</div>
+  <p>Every pointer was written because one clique proved two snapshots mutually
+  reachable. Keep those proof pairs and the writes form a trail through the
+  island. Below, that trail is unfolded from the start to the goal: each row is
+  one segment, one robot sliding while the other stands still. Every step is
+  legal; the switch count follows the order the build happened to file things,
+  so it is a real solution but not promised to be the shortest one.</p>
+  <p>Three versions of the same journey, toggleable below: <strong>remembered</strong>
+  is the trail exactly as filed; <strong>shortcut</strong> greedily jumps from each
+  boundary state to the farthest later one a single slide can reach, legal but
+  still unproven; <strong>shortest</strong> walks the stored cliques breadth-first,
+  nearest ring first, and its count is the exact minimum — compare it with the
+  solver's number in the grey line.</p>
+  <div class="readout" id="trail-readout">No trail: the start and the goal are on different islands.</div>
+  <div class="controls" id="trail-controls">
+    <button class="trail-mode" data-mode="remembered">remembered</button>
+    <button class="trail-mode" data-mode="shortcut">shortcut</button>
+    <button class="trail-mode" data-mode="shortest">shortest</button>
+  </div>
+  <div class="trailwrap">
+    <div id="trail-player" style="flex: 1 1 560px; min-width: 320px"></div>
+    <ol id="trail-list" class="muted"></ol>
+  </div>
+  <div class="readout num" id="trail-path"></div>
   <table class="stats" id="island-table">
     <thead><tr><th></th><th>Island</th><th class="num">states</th><th>holds the start</th><th>holds the goal</th></tr></thead>
     <tbody></tbody>
@@ -240,7 +264,11 @@
     <button id="q-clear">clear</button>
   </div>
   <div class="readout" id="q-readout">No start chosen yet.</div>
-  <div class="boardbox" id="board-query"></div>
+  <div class="trailwrap">
+    <div class="boardbox" id="board-query"></div>
+    <ol id="q-trail" class="muted"></ol>
+  </div>
+  <div class="readout num" id="q-path" hidden></div>
 
   {% if record.solver.solvable %}
   <h2>9 &middot; Midway swap combinations — read off the solver</h2>
@@ -271,6 +299,7 @@
   const RS = D.placement_rows, CS = D.placement_cols, MAXPOS = RS * CS;
   const WALLS = D.grid.walls, HOLES = D.holes;
   const CELL = 20;
+  const LAB = { a: "A", b: "B" };
   const REGION_COLORS = ["#2563eb","#d97706","#059669","#db2777","#7c3aed","#0891b2","#ca8a04","#dc2626"];
 
   const pr = i => [Math.floor(i / CS), i % CS];
@@ -318,73 +347,13 @@
   const islandNo = new Map(); ISLANDS.forEach((e, i) => islandNo.set(e[0], i + 1));
   const islandColor = root => REGION_COLORS[(islandNo.get(root) - 1) % REGION_COLORS.length];
 
-  // ── drawing ──────────────────────────────────────────────────────────
-  const SVGNS = "http://www.w3.org/2000/svg";
-  function el(name, attrs) { const e = document.createElementNS(SVGNS, name); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
-  function makeBoard(containerId, pxCap, clickable) {
-    // Scale the board up to fill the column, capped so a wide grid fits and a
-    // tiny one does not balloon; the viewBox keeps the contents proportional.
-    const px = Math.min(pxCap || 880, Math.max(COLS * 32, 420));
-    const svg = el("svg", { class: "board", viewBox: "0 0 " + (COLS * CELL) + " " + (ROWS * CELL), width: px });
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-      const i = r * COLS + c;
-      const wall = WALLS[i] === "1", hole = HOLES[i] === "1";
-      const rect = el("rect", { x: c * CELL, y: r * CELL, width: CELL, height: CELL,
-        fill: wall ? "var(--wall)" : "var(--free)", stroke: "var(--gridline)", "stroke-width": 0.5 });
-      if (clickable) { rect.dataset.r = r; rect.dataset.c = c; rect.style.cursor = "pointer"; }
-      svg.appendChild(rect);
-      if (hole) svg.appendChild(el("circle", { cx: c * CELL + CELL / 2, cy: r * CELL + CELL / 2, r: 2.4, fill: "#ffffff", opacity: 0.9 }));
-    }
-    const overlay = el("g", {});
-    svg.appendChild(overlay);
-    document.getElementById(containerId).appendChild(svg);
-    return { svg, overlay };
-  }
-  function clearOverlay(b) { while (b.overlay.firstChild) b.overlay.removeChild(b.overlay.firstChild); }
-  function markCorner(b, idx, color, radius) {
-    const [r, c] = pr(idx);
-    const m = el("rect", { x: c * CELL + CELL / 2 - radius, y: r * CELL + CELL / 2 - radius,
-      width: radius * 2, height: radius * 2, rx: 1.5, fill: color });
-    const tip = el("title", {});
-    tip.textContent = "placement (" + r + ", " + c + ")";
-    m.appendChild(tip);
-    b.overlay.appendChild(m);
-  }
-  function drawRobot(b, idx, color, label) {
-    const [r, c] = pr(idx);
-    b.overlay.appendChild(el("rect", { x: c * CELL + 1, y: r * CELL + 1, width: N * CELL - 2, height: N * CELL - 2,
-      rx: 3, fill: color, opacity: 0.88, stroke: "#00000033" }));
-    const t = el("text", { x: c * CELL + N * CELL / 2, y: r * CELL + N * CELL / 2 + 4.5,
-      "text-anchor": "middle", "font-size": 12, "font-weight": 700, fill: "#ffffff" });
-    t.textContent = label;
-    b.overlay.appendChild(t);
-  }
-  const dots = b => { for (const v of D.valid) markCorner(b, v, "#374151", 2.6); };
+  // The board renderer and clique machinery are shared — see _board.js — and
+  // the zoomable viewport, board() and makePlayer come verbatim from the
+  // report pages' _player.js, so robots, arrows, labels and controls match.
+{% include "_board.js" %}
+{% include "_player.js" %}
 
-  // A state drawn as a small picture: the whole board on a canvas, both
-  // robots in place. Canvas, not SVG, so hundreds of thumbnails stay cheap.
-  const stateTitle = s => "A (" + pr(Math.floor(s / MAXPOS)) + "), B (" + pr(s % MAXPOS) + ")";
-  function thumb(s, mark) {
-    const a = Math.floor(s / MAXPOS), b = s % MAXPOS;
-    const cpx = COLS > 24 ? 4 : COLS > 14 ? 6 : 10;
-    const cv = document.createElement("canvas");
-    cv.width = COLS * cpx; cv.height = ROWS * cpx;
-    cv.className = "thumb" + (mark ? " " + mark : "");
-    cv.title = stateTitle(s);
-    const ctx = cv.getContext("2d");
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-      ctx.fillStyle = WALLS[r * COLS + c] === "1" ? D.palette.wall : D.palette.free;
-      ctx.fillRect(c * cpx, r * cpx, cpx, cpx);
-    }
-    const block = (idx, color) => {
-      const rr = Math.floor(idx / CS), cc = idx % CS;
-      ctx.fillStyle = color;
-      ctx.fillRect(cc * cpx + 1, rr * cpx + 1, N * cpx - 2, N * cpx - 2);
-    };
-    block(a, D.palette.a);
-    block(b, D.palette.b);
-    return cv;
-  }
+
 
   // ── 1: the board as read ─────────────────────────────────────────────
   const bRead = makeBoard("board-read");
@@ -626,13 +595,25 @@
     // Which parked position wrote each pointer, so the drawing can say why a
     // hop exists rather than leaving it to look like a move.
     const CAUSE = new Map();
+    // PROOF: for every write, also remember the two STATES whose joining
+    // caused it — both lie in one clique, so each proof pair is one legal
+    // segment. The write-causing pairs form a spanning trail of the island.
+    const PROOF = new Map();
+    const proofEdge = (x, y, parked) => {
+      if (!PROOF.has(x)) PROOF.set(x, []);
+      if (!PROOF.has(y)) PROOF.set(y, []);
+      PROOF.get(x).push({ to: y, parked });
+      PROOF.get(y).push({ to: x, parked });
+    };
     for (const st of D.steps) for (const region of st.regions) {
       const head = region[0];
       for (let j = 1; j < region.length; j++) {
-        let a = rawRoot(head * MAXPOS + st.parked), b = rawRoot(region[j] * MAXPOS + st.parked);
-        if (a !== b) { RAW[b] = a; CAUSE.set(b, st.parked); }
-        a = rawRoot(st.parked * MAXPOS + head); b = rawRoot(st.parked * MAXPOS + region[j]);
-        if (a !== b) { RAW[b] = a; CAUSE.set(b, st.parked); }
+        const x1 = head * MAXPOS + st.parked, y1 = region[j] * MAXPOS + st.parked;
+        let a = rawRoot(x1), b = rawRoot(y1);
+        if (a !== b) { RAW[b] = a; CAUSE.set(b, st.parked); proofEdge(x1, y1, st.parked); }
+        const x2 = st.parked * MAXPOS + head, y2 = st.parked * MAXPOS + region[j];
+        a = rawRoot(x2); b = rawRoot(y2);
+        if (a !== b) { RAW[b] = a; CAUSE.set(b, st.parked); proofEdge(x2, y2, st.parked); }
       }
     }
     const rawChain = s => { const out = [s]; while (RAW[s] !== s) { s = RAW[s]; out.push(s); } return out; };
@@ -684,6 +665,79 @@
       ? "Both chains arrive at the same root picture: one tree, one island, swap possible."
       : "The chains arrive at two different root pictures: two separate trees, swap impossible.";
     chainView.appendChild(chainNote);
+
+    // Three journeys from the same stored data, via the shared helpers above;
+    // the exact walk is timed so the page can report its own cost.
+    let modes = null, shortestMs = null;
+    if (rootS === rootG) {
+      const parentOf = new Map([[S0, null]]);
+      const stack = [S0];
+      while (stack.length) {
+        const v = stack.pop();
+        if (v === G0) break;
+        for (const e of PROOF.get(v) || []) {
+          if (!parentOf.has(e.to)) { parentOf.set(e.to, v); stack.push(e.to); }
+        }
+      }
+      const pairs = [];
+      let curv = G0;
+      while (parentOf.get(curv) !== null) { pairs.push([parentOf.get(curv), curv]); curv = parentOf.get(curv); }
+      pairs.reverse();
+      const remembered = segsFromPairs(pairs);
+      const tp0 = performance.now();
+      const shortest = shortestSegs(S0, G0);
+      shortestMs = performance.now() - tp0;
+      modes = { remembered, shortcut: shortcutSegs(S0, remembered), shortest };
+    }
+    const tReadout = document.getElementById("trail-readout");
+    const tControls = document.getElementById("trail-controls");
+    const tList = document.getElementById("trail-list");
+    if (!modes) {
+      tControls.hidden = true;
+      document.getElementById("trail-player").hidden = true;
+      tReadout.className = "readout bad";
+    } else {
+      const sw = s => (s && s.length ? s.length - 1 : 0);
+      const exact = modes.shortest && sw(modes.shortest) === D.solver.switches;
+      tReadout.className = "readout " + (exact ? "ok" : "bad");
+      tReadout.textContent = "Remembered: " + modes.remembered.length + " segments, " +
+        sw(modes.remembered) + " switches · shortcut: " + modes.shortcut.length + " segments, " +
+        sw(modes.shortcut) + " switches · shortest: " +
+        (modes.shortest ? modes.shortest.length + " segments, " + sw(modes.shortest) + " switches" : "—") +
+        ". The solver's minimum is " + D.solver.switches +
+        (exact ? " — the clique walk matches it exactly." : " — MISMATCH, the clique walk disagrees.") +
+        (shortestMs === null ? "" : " Shortest computed here in " + shortestMs.toFixed(1) + "ms.");
+      const statMs = document.getElementById("stat-path-ms");
+      if (statMs && shortestMs !== null) statMs.textContent = shortestMs.toFixed(1) + "ms in this browser";
+      // The journey plays in the SAME player the report pages use: the
+      // zoomable viewport, prev/Play/next, the scrubber, the per-switch
+      // caption with its move string — identical robots, arrows and labels.
+      const GRID = { walls: WALLS, rows: ROWS, cols: COLS };
+      const modeButtons = document.querySelectorAll(".trail-mode");
+      let mode = "remembered";
+      const renderList = () => {
+        tList.innerHTML = "";
+        for (const g of modes[mode]) {
+          const li = document.createElement("li");
+          li.textContent = g.mover + " slides from (" + pr(g.from) + ") to (" + pr(g.to) +
+            ") while " + (g.mover === "A" ? "B" : "A") + " stands at (" + pr(g.parked) +
+            ")  —  " + (segCmds(g) || "·");
+          tList.appendChild(li);
+        }
+        // The same journey in the project's command units, S between segments.
+        document.getElementById("trail-path").textContent = pathString(modes[mode]);
+        modeButtons.forEach(b => { b.style.borderColor = b.dataset.mode === mode ? "var(--ink)" : "var(--line)"; });
+      };
+      const mount = () => makePlayer(document.getElementById("trail-player"), GRID,
+        playerSteps(S0, modes[mode]), N, 40, "trail");
+      modeButtons.forEach(btn => btn.addEventListener("click", () => {
+        mode = btn.dataset.mode;
+        renderList();
+        mount();
+      }));
+      renderList();
+      mount();
+    }
 
     // Every island as a row of its pictures — the start and goal first where
     // they belong, then a sample, with the remainder counted honestly.
@@ -763,12 +817,16 @@
   }
 
   // ── 8: ask it yourself — any start, same comparison ──────────────────
-  const bQuery = makeBoard("board-query", 880, true);
+  const bQuery = makeBoard("board-query", 560, true);
   const qReadout = document.getElementById("q-readout");
   let qA = null, qB = null;
   function renderQuery() {
     clearOverlay(bQuery);
     dots(bQuery);
+    const qTrail = document.getElementById("q-trail");
+    const qPath = document.getElementById("q-path");
+    qTrail.innerHTML = "";
+    qPath.hidden = true;
     if (qA !== null && qB !== null) {
       const s = qA * MAXPOS + qB;
       const can = find(FULL, s) === find(FULL, exchange(s));
@@ -789,6 +847,21 @@
         (can
           ? "Same island, so the swap IS possible. Swap combinations for this start: " + combos.toLocaleString() + "."
           : "A different island, so the swap is NOT possible.");
+      if (can) {
+        const tq0 = performance.now();
+        const best = shortestSegs(s, exchange(s));
+        const ms = performance.now() - tq0;
+        qReadout.innerHTML += " Shortest swap from here: <b>" + Math.max(0, best.length - 1) +
+          " switch(es)</b>, found in " + ms.toFixed(1) + "ms.";
+        for (const g of best) {
+          const li = document.createElement("li");
+          li.textContent = g.mover + ": (" + pr(g.from) + ") → (" + pr(g.to) +
+            ")  —  " + (segCmds(g) || "·");
+          qTrail.appendChild(li);
+        }
+        qPath.hidden = false;
+        qPath.textContent = pathString(best);
+      }
     } else {
       qReadout.className = "readout";
       qReadout.textContent = qA === null

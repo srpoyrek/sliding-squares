@@ -1,0 +1,36 @@
+{# _theme.css — the shared page chrome, included inside each page's <style> so
+   every generated page stays one self-contained file. One definition for the
+   colour tokens (light and dark), base type, links, and the small primitives
+   (readouts, controls, chips, stats tables). Board colours are NOT here: they
+   come from visualizer via report.palette(), declared per page. #}
+:root {
+  --bg: #fff; --ink: #1a1a1a; --muted: #666; --line: #ddd; --card: #fafafa;
+  --ok: #15803d; --bad: #b91c1c;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #24262b; --ink: #f2f2f2; --muted: #a9adb5; --line: #3d414a;
+          --card: #2d3038; --ok: #4ade80; --bad: #f87171; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 15px/1.6 ui-sans-serif, system-ui, sans-serif; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { background: var(--card); padding: 1px 4px; border-radius: 3px; font-size: 13px; }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+.ok { color: var(--ok); font-weight: 600; }
+.bad { color: var(--bad); font-weight: 600; }
+.chip { display: inline-block; width: 11px; height: 11px; border-radius: 2px;
+        margin-right: 4px; vertical-align: -1px; border: 1px solid rgba(0,0,0,.2); }
+.readout { font-variant-numeric: tabular-nums; padding: 8px 10px; background: var(--card);
+           border: 1px solid var(--line); border-radius: 4px; margin: 8px 0; max-width: 76ch; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+.controls button { font: inherit; padding: 4px 12px; border: 1px solid var(--line);
+                   border-radius: 4px; background: var(--card); color: var(--ink); cursor: pointer; }
+.controls button:hover { border-color: var(--muted); }
+.controls input[type=range] { width: 280px; }
+table.stats { border-collapse: collapse; margin: 14px 0; }
+table.stats td, table.stats th { padding: 5px 12px 5px 0; text-align: left;
+                                 border-bottom: 1px solid var(--line); }
+table.stats th { font-weight: 600; }
