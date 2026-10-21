@@ -1,12 +1,13 @@
 <!doctype html>
 {#
-  BFS comparison over every test case.
+  Solver benchmark — every solving variant over every test case: the three BFS
+  searches plus the clique-map finder.
   Rendered by src.benchmark.write_benchmark_report from benchmark.json with:
   data, charts, colors, blurbs, baseline, healthy.
   Autoescaping is on, so case names and error text are safe to interpolate.
 #}
 <meta charset="utf-8">
-<title>sliding-squares — BFS comparison</title>
+<title>sliding-squares — solver benchmark</title>
 <style>
  :root{--bg:#fff;--fg:#1a1a1a;--muted:#666;--line:#ddd;--ok:#1a7f37;--bad:#b3261e;
        --card:#fafafa;--winbg:#e6f4ea}
@@ -67,27 +68,28 @@
          color:var(--muted);font-weight:600;margin-top:10px}
 </style>
 
-<h1>sliding-squares — BFS comparison</h1>
+<h1>sliding-squares — solver benchmark</h1>
 <p class="muted note">{{ data.cases | length }} test case(s) &middot;
-{{ data.variants | length }} search(es) &middot; {{ data.repeat }} warm repeat(s)
+{{ data.variants | length }} variant(s) &middot; {{ data.repeat }} warm repeat(s)
 &middot; {{ data.timeout }}s timeout. Each measurement ran in its own process, so
-the flood caches started empty and the peak allocation is that search alone.
+the flood caches started empty and the peak allocation is that variant alone.
 Built {{ data.generated }}.</p>
 
-{# The comparison is only meaningful if the searches agree. Lead with that. #}
+{# The comparison is only meaningful if the variants agree. Lead with that. #}
 {% if healthy %}
 <div class="banner">
-  <span class="ok">All searches agree.</span>
+  <span class="ok">All variants agree.</span>
   <span class="muted">Every variant returned the same switch count on every case,
-  and every path it produced was accepted by the validator. The timings below
-  compare three routes to the same answer.</span>
+  and every path it produced was accepted by the validator. A case every variant
+  proves unsolvable counts as agreement — unsolvable is an answer. The timings
+  below compare different routes to the same answers.</span>
 </div>
 {% else %}
 <div class="banner bad">
-  <span class="bad">Searches disagree.</span>
+  <span class="bad">Variants disagree.</span>
   <span class="muted">At least one case below has a switch count that differs
   between variants, a path the validator rejected, or a variant that did not
-  finish. All three searches are exact, so a disagreement is a defect — read the
+  finish. Every variant here is exact, so a disagreement is a defect — read the
   per-case tables before trusting any timing here.</span>
 </div>
 {% endif %}
@@ -149,14 +151,14 @@ not decide the figure by itself.</p>
 
 <table>
   <tr class="grouphead">
-    <th rowspan="2">search</th><th rowspan="2">what it does</th>
-    <th colspan="2" class="num grp">cases</th>
+    <th rowspan="2">variant</th><th rowspan="2">what it does</th>
+    <th colspan="3" class="num grp">cases</th>
     <th colspan="2" class="num grp">memory — states held</th>
     <th colspan="2" class="num grp">execution time</th>
     <th colspan="2" class="num grp">memory — peak RAM</th>
   </tr>
   <tr>
-    <th class="num">solved</th><th class="num">failed</th>
+    <th class="num">solved</th><th class="num">unsolvable</th><th class="num">failed</th>
     <th class="num">total</th><th class="num">avg per case</th>
     <th class="num">total seconds</th><th class="num">avg per case</th>
     <th class="num">worst case</th><th class="num">avg per case</th>
@@ -167,6 +169,7 @@ not decide the figure by itself.</p>
         <b>{{ row.variant }}</b></td>
     <td class="muted" style="white-space:normal">{{ row.blurb }}</td>
     <td class="num">{{ row.solved }}</td>
+    <td class="num">{{ row.unsolvable }}</td>
     <td class="num">{% if row.failed %}<span class="bad">{{ row.failed }}</span>
         {%- else -%}0{% endif %}</td>
     <td class="num">{{ row.states | num }}</td>
@@ -197,19 +200,23 @@ which is the tiebreaker when those two disagree.</p>
 <h2>Per case</h2>
 <p class="muted note">The best value for each measurement is marked
 <span class="winkey">like this</span> in every table below. Control turns are not
-marked: all three searches are exact, so that column must be identical.</p>
+marked: every variant is exact, so that column must be identical.</p>
 {% for case in data.cases %}
 <h3>{{ case.name }}
   <span class="muted">— {{ case.rows }}x{{ case.cols }} grid, {{ case.n }}x{{ case.n }} robot</span>
   {% if case.healthy %}
+  {% if case.unsolvable %}
+  <span class="ok">&#10003; unsolvable — every variant agrees</span>
+  {% else %}
   <span class="ok">&#10003; agree</span>
+  {% endif %}
   {% else %}
   <span class="bad">&#10007; disagree</span>
   {% endif %}
 </h3>
 <table>
   <tr class="grouphead">
-    <th rowspan="2">search</th>
+    <th rowspan="2">variant</th>
     <th rowspan="2" class="num">control<br>turns</th>
     <th colspan="2" class="num grp">memory — states held</th>
     <th colspan="2" class="num grp">execution time</th>
@@ -240,6 +247,15 @@ marked: all three searches are exact, so that column must be identical.</p>
     <td>{{ record.first_mover or '—' }}</td>
     <td>{% if record.valid %}<span class="ok">valid</span>
         {%- else -%}<span class="bad">INVALID: {{ record.invalid_reason }}</span>{% endif %}</td>
+    {% elif record.status == 'unsolvable' %}
+    {# An answer, not a failure: the board has no swap, and this variant proved
+       it. Cold time and peak RAM are what the proof cost. #}
+    <td class="num">&mdash;</td>
+    <td class="num">&mdash;</td><td class="num muted">&mdash;</td>
+    <td class="num">{{ record.cold_seconds | seconds }}</td><td class="num muted">cold</td>
+    <td class="num">{{ record.peak_bytes | bytes }}</td><td class="num muted">&mdash;</td>
+    <td class="num">&mdash;</td><td>&mdash;</td>
+    <td><span class="ok">proved unsolvable</span></td>
     {% else %}
     <td class="bad" colspan="10">{{ record.status }}: {{ record.error or 'no result' }}</td>
     {% endif %}
@@ -247,15 +263,15 @@ marked: all three searches are exact, so that column must be identical.</p>
   {% endfor %}
 </table>
 {% if not case.agree %}
-<p class="bad">Switch counts differ between searches on this case. All three are
-exact, so exactly one of them is wrong.</p>
+<p class="bad">Switch counts differ between variants on this case. Every variant
+is exact, so at least one of them is wrong.</p>
 {% endif %}
 {% endfor %}
 
-<h2>How each search works</h2>
+<h2>How each variant works</h2>
 <p class="muted note"><b>Depth</b> is how far it must expand before it can
-answer, where D is the number of switches in the solution. <b>Trees</b> is how
-many state sets it holds at once. Everything above follows from those two.</p>
+answer, where D is the number of switches in the solution. <b>Trees</b> is what
+it holds at once. Everything above follows from those two.</p>
 
 {% for variant in data.variants %}
 {% set doc = docs[variant] %}
@@ -281,15 +297,16 @@ many state sets it holds at once. Everything above follows from those two.</p>
   <tr>
     <td><b>Control turns</b></td><td>count</td>
     <td style="white-space:normal">The answer itself: the minimum number of turns
-    to swap the robots. All three searches are exact, so this <b>must</b> be
+    to swap the robots. Every variant is exact, so this <b>must</b> be
     identical across them.</td>
   </tr>
   <tr>
     <td><b>Memory — states held</b></td><td>count of states</td>
-    <td style="white-space:normal">How many states the search keeps in its
-    <code>visited</code> map. This is the structural cost and it is <b>exact</b> —
+    <td style="white-space:normal">How many states the variant keeps: the
+    searches' <code>visited</code> maps, and for the clique-map finder the
+    state count of the map it builds. The structural cost, and <b>exact</b> —
     the same number on every machine, every run. It is the number to judge the
-    searches by.</td>
+    variants by.</td>
   </tr>
   <tr>
     <td><b>Execution time</b></td><td>seconds (us / ms / s)</td>
@@ -320,5 +337,5 @@ many state sets it holds at once. Everything above follows from those two.</p>
 <p class="muted note" style="margin-top:30px">
 <a href="../index.html">&larr; all reports</a> &middot;
 Record: <code>benchmark.json</code> beside this page. This page is generated from
-it — regenerate with <code>python benchmark_bfs.py</code> rather than editing
+it — regenerate with <code>python benchmark_solvers.py</code> rather than editing
 either by hand.</p>

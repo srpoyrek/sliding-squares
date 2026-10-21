@@ -34,10 +34,11 @@
    a separate run, and a card pointing at a missing page is worse than none. #}
 {% if has_benchmark %}
 <a class="card" href="benchmark/index.html">
-  <b>BFS comparison</b>
-  <span class="muted">The three searches — mirror, bidirectional and
-  unidirectional — measured against each other on every test case for states
-  held, solve time and peak memory, with the switch counts cross-checked.</span>
+  <b>Solver benchmark</b>
+  <span class="muted">Every solving variant — the mirror, bidirectional and
+  unidirectional searches plus the clique-map finder — measured against each
+  other on every test case for states held, solve time and peak memory, with
+  every switch count and path cross-checked.</span>
 </a>
 {% endif %}
 

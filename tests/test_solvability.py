@@ -32,6 +32,7 @@ from src.bfs import (
 from src.bitgrid import BitGrid
 from src.canonical import blocks_overlap, robot_block
 from src.solvability import SwapSolvability
+from src.validator import Validator
 from src.workspace import Workspace
 
 SHAPES = [(1, 4), (2, 2), (2, 5), (3, 3), (3, 4), (4, 4)]
@@ -348,6 +349,14 @@ def test_shortest_trail_matches_the_solver_and_shortcut_stays_between():
                     continue
                 _assert_trail_legal(sol, shortest, (a, b), (b, a))
                 assert minimum == len(shortest) - 1 == best["switches"]
+                # The rendered command string must replay: same bar every
+                # search's path is held to.
+                cmds = sol.commands(shortest)
+                ws2 = Workspace.from_free_cells(rows, cols, free, a, b, n)
+                first = shortest[0][0] if shortest else "A"
+                ws2._control = ws2.robot_a if first == "A" else ws2.robot_b
+                vr = Validator(ws2, b, a).run(cmds, plot=False)
+                assert vr.valid, vr.failed_reason
                 raw = sol.trail((a, b), (b, a))
                 cut = sol.trail((a, b), (b, a), shortcut=True)
                 _assert_trail_legal(sol, cut, (a, b), (b, a))

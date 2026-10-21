@@ -48,7 +48,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 #: template, render_run.py, the global index) check it before trusting a file,
 #: so a stale run.json left over from an older version fails loudly instead of
 #: rendering a subtly wrong picture.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 RUN_FILENAME = "run.json"
 REPORT_FILENAME = "index.html"
@@ -124,6 +124,12 @@ def fmt_seconds(value) -> str:
 
 def fmt_thousands(value) -> str:
     return "—" if value is None else f"{value:,}"
+
+
+# Registered once the formatters exist; the index template's solvability table
+# prints times and counts with them.
+_ENV.filters["seconds"] = fmt_seconds
+_ENV.filters["thousands"] = fmt_thousands
 
 
 # ── encoding ────────────────────────────────────────────────────────────
@@ -326,6 +332,7 @@ def build_run(
     solver_seconds=None,
     solver_states=None,
     recipes=None,
+    solvability=None,
 ) -> dict:
     """Assemble the run record. Pure: it reads state, writes nothing.
 
@@ -336,6 +343,9 @@ def build_run(
     -- its memory cost in states, exact and machine-independent. Each recipe
     carries the same two numbers for its own re-solve, so the report can show
     what a simplification did to the cost of solving, not only to the walls.
+    ``solvability`` is the clique-map finder's record for the same board --
+    its verdict, agreement with the solver, build and answer times and sizes --
+    so the global index can compare the two on every test.
     """
     return {
         "schema": SCHEMA_VERSION,
@@ -361,6 +371,7 @@ def build_run(
         # and the comparison view can treat them interchangeably.
         **encode_sequence(grid, snapshots, titles),
         "recipes": recipes or [],
+        "solvability": solvability,
     }
 
 
@@ -467,6 +478,7 @@ def _index_row(run_path: str) -> dict:
         "recipe_total": len(recipes),
         "recipe_kept": len(survivors),
         "generated": meta["generated"],
+        "solvability": run.get("solvability"),
         "best": None,
         # Kept per row so the page can rank recipes across every test, not just
         # name a winner per test.

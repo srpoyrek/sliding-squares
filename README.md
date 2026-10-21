@@ -47,11 +47,11 @@ sliding-squares/
 │   ├── simplify.py         # Workspace simplification — strip redundant walls, preserve switch count
 │   ├── visualizer.py       # Matplotlib visualization (grids, sequences, BFS frontiers, proof rendering)
 │   ├── report.py           # run.json + the HTML reports built from it
-│   ├── benchmark.py        # BFS comparison — measurement, benchmark.json, its report
+│   ├── benchmark.py        # Solver benchmark — every variant measured; benchmark.json + its report
 │   ├── templates/          # Jinja2 templates for every generated page
 │   │   ├── report.html.j2  #   one run: player, heatmap, recipes
 │   │   ├── index.html.j2   #   the table over every run
-│   │   ├── benchmark.html.j2 # the BFS comparison: charts, per-case tables, how each search works
+│   │   ├── benchmark.html.j2 # the solver benchmark: charts, per-case tables, how each variant works
 │   │   ├── gallery.html.j2 #   every fixture x every simplify recipe
 │   │   ├── site.html.j2    #   the landing page linking the report trees
 │   │   ├── _theme.css      #   shared page chrome — colour tokens (light + dark), type, readouts
@@ -83,7 +83,7 @@ sliding-squares/
 ├── find_hardest_workspace.py      # Parallel search for the workspace requiring the most switches
 ├── render_solvability.py          # Interactive solvability pages: the island build replayed in the browser
 ├── generate_building_blocks.py    # Building-block test cases: every canonical placement, no walls
-├── benchmark_bfs.py               # Compare the three BFS searches (see BFS comparison)
+├── benchmark_solvers.py           # Compare the solver variants (see Solver benchmark)
 ├── make_gallery.py                # Recipe gallery: every fixture x every recipe
 ├── render_run.py                  # run.json -> PNGs, offline (see Reports)
 ├── run_tests.py
@@ -105,7 +105,7 @@ The solver runs a **single-tree layered breadth-first search** over the state sp
 
 Commands: `U` (up), `D` (down), `L` (left), `R` (right), `S` (switch control).
 
-`bfs_bidirectional` — the earlier forward-plus-backward pair — is still in [`src/bfs.py`](src/bfs.py) so the two searches can be cross-checked against each other (`run_tests.py --bidirectional`). It is also what `Solver` falls back to for a goal that is not a straight swap, which `bfs_mirror` rejects outright.
+`bfs_bidirectional` — the earlier forward-plus-backward pair — is still in [`src/bfs.py`](src/bfs.py) so the two searches can be cross-checked against each other (`run_tests.py --solver bidirectional`). It is also what `Solver` falls back to for a goal that is not a straight swap, which `bfs_mirror` rejects outright. A third exact strategy, `solvability`, answers from the clique map in [`src/solvability.py`](src/solvability.py) rather than a state search; it is `run_tests.py`'s default solver, and the [Solver benchmark](#solver-benchmark) keeps every variant honest against the others.
 
 ## Usage
 
@@ -126,7 +126,8 @@ python run_tests.py 4x4_robot_holes --simplified uncrossable untouched_spaced
 | `--simplified` | off | After solving, also run the wall-simplification recipes (below). Bare `--simplified` runs **every** recipe; name recipes after it to run a subset. Without the flag, behaviour is unchanged: solve + plot only |
 | `-v`, `--verbose` | off | Print every recipe's full result. Without it each test gets one summary line: how many recipes held, which left the fewest walls, and which failed |
 | `--png` | off | Also render the matplotlib images — the per-switch frames and each recipe's `summary.png`. Off by default: the HTML report (below) covers the same ground without paying matplotlib's per-frame cost, which dominates a run. Use it to cross-check the report against the images, or for paper figures |
-| `--bidirectional` | off | Solve with the older forward+backward search instead of the single-tree mirror search (see [Algorithm](#algorithm)). Both are exact, so the switch counts must agree; the flag exists to check that they do. It applies to the recipe re-solves too, so a comparison covers the simplified workspaces as well |
+| `--solver` | `solvability` | Which exact solver produces the reports: the clique-map finder (default), `mirror`, or `bidirectional`. All are exact, so the switch counts must agree — the [Solver benchmark](#solver-benchmark) is the standing cross-check. Applies to the recipe re-solves too, so a comparison covers the simplified workspaces as well |
+| `--bidirectional` | off | Alias for `--solver bidirectional`, kept for existing scripts |
 | `--testcases-dir` | `testcases/` | Scan a different folder — e.g. `testcases_building_blocks/` (see [Building blocks](#building-blocks)) |
 | `--out-dir` | `plots/tests/` | Write reports into a different folder, paired with `--testcases-dir` so a separate series never touches `plots/tests/` |
 | `--no-size-charts` | off | Skip "Robot size vs difficulty" and "Solve cost vs robot size" on the index page, and skip computing their data — meaningless when many tests share one robot size, as the building-block series does |
@@ -199,8 +200,9 @@ Solving and validating the generated cases is a separate, manual step — this s
 ### Reports
 
 Every run writes `plots/tests/<name>/run.json` — the encoded record of that
-solve: the wall bitstring, both robots at every step, the per-switch turns, and
-each simplification recipe's outcome. Everything else derives from it, and it is
+solve: the wall bitstring, both robots at every step, the per-switch turns,
+each simplification recipe's outcome, and the clique-map finder's record for
+the board (its verdict, agreement, build and answer times, and sizes). Everything else derives from it, and it is
 regenerated (never hand-edited) on the next run.
 
 Two HTML views are built from it automatically. **Where they land:**
@@ -241,10 +243,10 @@ xdg-open plots/tests/index.html   # Linux
 
 | File | What it is |
 |---|---|
-| `plots/index.html` | The landing page. Links the report trees; the BFS-comparison, solvability and building-blocks cards appear once those pages have been built. Rewritten by `run_tests.py`, `make_gallery.py`, `benchmark_bfs.py` and `render_solvability.py`, so it reflects what is on disk rather than the order they were run in |
-| `plots/benchmark/index.html` | The [BFS comparison](#bfs-comparison) |
+| `plots/index.html` | The landing page. Links the report trees; the BFS-comparison, solvability and building-blocks cards appear once those pages have been built. Rewritten by `run_tests.py`, `make_gallery.py`, `benchmark_solvers.py` and `render_solvability.py`, so it reflects what is on disk rather than the order they were run in |
+| `plots/benchmark/index.html` | The [Solver benchmark](#solver-benchmark) |
 | `plots/building_blocks/index.html` | Only if you ran `run_tests.py --out-dir plots/building_blocks[/n{n}]` — see [Building blocks](#building-blocks). If run per robot size, this is an aggregator linking each `n{n}/index.html` |
-| `plots/tests/index.html` | Every run in one table — grid, robot size, switches, recipe verdicts, and the **best recipe** for that test: every recipe leaving the fewest walls *while preserving the switch count*, each linked to its own page. Recipes tie often, so all winners are listed rather than one being picked arbitrarily; they are ordered so the result with more walls freed by the placement rule reads first, those being lossless by construction. A failed recipe usually leaves fewer walls, but it has changed the problem, so it cannot win. Below the table, **Average reduction in solve time, vs the original** gives one bar per recipe: the mean of `(re-solve − original) / original` over the tests, each measured against *its own* original solve, so a single slow fixture cannot decide the ranking. The scale is symmetric about `±0%`, a bar to the left is a reduction (`−40%` = 40% less time than the original it replaced), and only the tests where the recipe held are averaged. Then **two charts per test** — solve time and states held — show each recipe's re-solve against that test's original solve as a signed percent change, with the absolute time or state count beside it and a dashed line at `±0%`; a bar ending left of it is a cheaper solve, negative is better, and a failed recipe is drawn hollow because its cheaper solve is for an easier problem. **Solve cost vs robot size** then overlays every recipe and the original on one chart for solve time and one for states held — solid for no-holes tests, dashed for holes, log axis since the cases span four orders of magnitude — so how each recipe's cost *scales* is visible, not only its size on one test. The **Recipes ranked** table adds the same two ratios per recipe across all tests (geometric mean over the runs it held) |
+| `plots/tests/index.html` | Every run in one table — grid, robot size, switches, recipe verdicts, and the **best recipe** for that test: every recipe leaving the fewest walls *while preserving the switch count*, each linked to its own page. Recipes tie often, so all winners are listed rather than one being picked arbitrarily; they are ordered so the result with more walls freed by the placement rule reads first, those being lossless by construction. A failed recipe usually leaves fewer walls, but it has changed the problem, so it cannot win. Below the table, **Average reduction in solve time, vs the original** gives one bar per recipe: the mean of `(re-solve − original) / original` over the tests, each measured against *its own* original solve, so a single slow fixture cannot decide the ranking. The scale is symmetric about `±0%`, a bar to the left is a reduction (`−40%` = 40% less time than the original it replaced), and only the tests where the recipe held are averaged. Then **two charts per test** — solve time and states held — show each recipe's re-solve against that test's original solve as a signed percent change, with the absolute time or state count beside it and a dashed line at `±0%`; a bar ending left of it is a cheaper solve, negative is better, and a failed recipe is drawn hollow because its cheaper solve is for an easier problem. **Solve cost vs robot size** then overlays every recipe and the original on one chart for solve time and one for states held — solid for no-holes tests, dashed for holes, log axis since the cases span four orders of magnitude — so how each recipe's cost *scales* is visible, not only its size on one test. The **Recipes ranked** table adds the same two ratios per recipe across all tests (geometric mean over the runs it held). A **Swap solvability** table then puts the clique-map finder beside the solver on every test — verdict agreement, build and answer times, states, placements, islands, and how many starts can swap — with the [Solver benchmark](#solver-benchmark) as the full measurement |
 | `plots/tests/<name>/index.html` | One run, end to end (below) |
 
 The index also carries two **robot-size charts** — minimum control switches, and
@@ -310,7 +312,7 @@ The per-test page holds:
   never do, and clearing the caches stops the timed solve being handed the
   warm-up's floods. Peak RAM is deliberately not measured here — it would need
   `tracemalloc` inside the same worker as the timed solve, inflating the
-  timings; the [BFS comparison](#bfs-comparison) measures it properly, one
+  timings; the [Solver benchmark](#solver-benchmark) measures it properly, one
   process per solve.
   Clicking a row plays that recipe's solution inline; its **page** column opens
   the recipe's own standalone report at
@@ -353,37 +355,41 @@ the zoom/pan viewport and the prev/Play/next controls are identical surfaces;
 python render_solvability.py
 ```
 
-### BFS comparison
+### Solver benchmark
 
-[`benchmark_bfs.py`](benchmark_bfs.py) runs every test case through all three
-searches in [`src/bfs.py`](src/bfs.py) and publishes the comparison to
-`plots/benchmark/index.html`.
+[`benchmark_solvers.py`](benchmark_solvers.py) runs every test case through every
+solving variant — the three searches in [`src/bfs.py`](src/bfs.py) and the
+clique-map finder in [`src/solvability.py`](src/solvability.py) — and publishes
+the comparison to `plots/benchmark/index.html`.
 
-| Search | Depth | Trees | What it does |
+| Variant | Depth | Trees | What it does |
 |---|---|---|---|
 | `mirror` | D/2 | 1 | One forward tree; each state's distance to the goal is read off that same tree through the A↔B relabelling |
 | `bidirectional` | D/2 | 2 | A forward and a backward tree, expanded in lockstep until they meet |
 | `unidirectional` | D | 1 | One forward tree, expanded the whole way to the goal — the baseline |
+| `solvability` | build, then a walk | 1 clique graph | Builds `SwapSolvability`'s clique map, reads the minimum off a breadth-first walk over the cliques, and renders the walk to a path the validator replays |
 
 ```bash
-python benchmark_bfs.py                            # every case, every search
-python benchmark_bfs.py 3x3                        # only cases matching "3x3"
-python benchmark_bfs.py --variants mirror,bidirectional
-python benchmark_bfs.py --repeat 5 --timeout 300
+python benchmark_solvers.py                        # every case, every variant
+python benchmark_solvers.py 3x3                    # only cases matching "3x3"
+python benchmark_solvers.py --variants mirror,bidirectional
+python benchmark_solvers.py --repeat 5 --timeout 300
 ```
 
 | Flag | Default | Purpose |
 |---|---|---|
 | `name` (positional) | all | Substring filter — only benchmark cases whose name contains it |
-| `--variants` | all three | Comma-separated searches to compare, in table order |
+| `--variants` | all four | Comma-separated variants to compare, in table order |
 | `--repeat` | `3` | Warm repeats timed after the cold solve; the minimum and median of these are reported |
 | `--timeout` | `120` | Seconds allowed per case+search before the measurement is killed and recorded as a timeout. The unidirectional search expands to depth D rather than D/2, so it is the one that needs this |
 | `--out` | `plots/benchmark/` | Directory for `benchmark.json` and `index.html`. A custom path is not the site layout, so nothing is relinked |
 
-**All three searches are exact, so this is a correctness check as much as a
+**Every variant is exact, so this is a correctness check as much as a
 performance one.** Their switch counts must agree and every path they return
 must validate; the page leads with whether they did, because no timing below
-that is worth reading until they do.
+that is worth reading until they do. A case every variant proves unsolvable
+counts as agreement — unsolvable is an answer, and mixing it with a solve on
+the same case is the defect.
 
 Each measurement runs in **its own spawned process**. That gives empty flood
 caches (so whichever search runs second is not handed the first one's work), a
@@ -394,8 +400,8 @@ What each measurement means:
 
 | Measurement | Unit | What it is |
 |---|---|---|
-| `turns` | count | The answer: minimum control turns to swap the robots. All three searches are exact, so this must be identical across them |
-| `states` | count of states | States held in the search's `visited` map. **The structural cost, and exact** — the same number on every machine and every run. This is the number to judge the searches by |
+| `turns` | count | The answer: minimum control turns to swap the robots. Every variant is exact, so this must be identical across them |
+| `states` | count of states | States the variant holds — the searches' `visited` maps, the clique-map finder's own state count. **The structural cost, and exact** — the same number on every machine and every run. This is the number to judge the variants by |
 | `time` | seconds | Wall clock for one solve, fastest of `--repeat` runs, with the flood caches already warm. Warm because that isolates each search's own bookkeeping from the flood fills all three share. Machine-dependent: a trend, not a constant |
 | `ram` | bytes | Most memory held at once during one solve — `tracemalloc` peak on the first solve, in a fresh process with cold caches |
 | `vs bidirectional` | % change | That search against `bidirectional`, same measurement, same cases, as a signed percent change: `−50%` is half as much, `+100%` twice as much, `±0%` the same. **Negative is better** |
@@ -412,7 +418,8 @@ search needs floods for the same position pairs — so whatever they hold is a
 common offset in every `ram` figure, and only the part above it tracks the
 search's own state count. That offset is what the reach cache keeps small: it
 stores each flood's reachable set, not its parent map. The state count is where
-the searches actually differ.
+the searches actually differ. The clique-map finder fills no flood cache at
+all — its `ram` is the map itself.
 
 **`avg per case` is a geometric mean**, not an ordinary one. The centre of a
 ratio is multiplicative — `+100%` and `−50%` are opposite results and must
@@ -493,13 +500,13 @@ Enable it once under **Settings → Pages → Source: GitHub Actions**. Then:
 | [Landing page](https://srpoyrek.github.io/sliding-squares/) | Links to the report trees |
 | [Test runs](https://srpoyrek.github.io/sliding-squares/tests/index.html) | Every test case, its solved sequence, heatmap and recipe comparison |
 | [Recipe gallery](https://srpoyrek.github.io/sliding-squares/gallery/index.html) | What each simplification recipe does to corner, edge and junction layouts |
-| [BFS comparison](https://srpoyrek.github.io/sliding-squares/benchmark/index.html) | The three searches side by side — charts and per-case tables for states held, execution time and peak memory, the switch-count cross-check, and for each search why it works that way, its algorithm step by step, and what it costs |
+| [Solver benchmark](https://srpoyrek.github.io/sliding-squares/benchmark/index.html) | Every solving variant side by side — the three searches and the clique-map finder — charts and per-case tables for states held, execution time and peak memory, the cross-check of every switch count and path, and for each variant why it works that way, step by step, and what it costs |
 | [Swap solvability](https://srpoyrek.github.io/sliding-squares/solvability/index.html) | Per test case: the island build replayed in the browser, the whole state space coloured square by square, and the solvable verdict cross-checked against the solver |
 
-CI runs the benchmark with `--repeat 2 --timeout 180`. A shared runner is not a
+CI runs the benchmark with `--repeat 5 --timeout 180`. A shared runner is not a
 benchmarking machine, so treat the published timings as indicative; `states` is
-exact and reproducible, and the switch-count agreement between the three
-searches is the part that must hold.
+exact and reproducible, and the switch-count agreement between the variants is
+the part that must hold.
 
 A pull request gets the verify and build signal without replacing what is live.
 
@@ -559,7 +566,7 @@ Several pieces are factored into `src/` so other tools can import them:
 - [`src/report.py`](src/report.py) — `build_run(...)` / `write_run(...)` encode a solve as `run.json`; `write_local_report(...)` and `write_global_index(...)` render the HTML from it, and `write_site_index(...)` writes the landing page (called by `run_tests.py`, `make_gallery.py`, `benchmark_bfs.py` and `render_solvability.py`, so whichever runs last relinks correctly); `encode_grid`, `encode_sequence` and `palette()` are the pieces `simplify.py` and `render_run.py` reuse.
 - [`src/benchmark.py`](src/benchmark.py) — `discover_cases(...)` / `run_benchmark(...)` measure the searches against each other one spawned process at a time, `write_benchmark(...)` / `write_benchmark_report(...)` emit `benchmark.json` and its page. `VARIANTS` and `VARIANT_DOCS` are the single definition of which searches exist and what each one does.
 - [`src/bfs.py`](src/bfs.py) — `bfs_mirror` / `bfs_bidirectional` / `bfs` are the three searches, all returning `{switches, path, visited, initial_mover}` so a caller can replay a path without guessing who moves first.
-- [`src/solvability.py`](src/solvability.py) — **`SwapSolvability(rows, cols, free, n)`** (or `.for_workspace(ws)`) decides whether a swap *exists*, never in how many switches. It builds the connected components of the two-robot configuration graph once — one bit-parallel flood per connected piece of the placements usable around each parked position, one union-find link per state — and then answers `solvable(pos_a, pos_b)`, `is_swap_combination(start, candidate)`, `swap_combinations(pos_a, pos_b)` and `solvable_starts()` from lookups. A component is either closed under the A↔B relabelling, in which case every state in it is a swap combination — a state some swap passes through, the kind of state `bfs_mirror` meets at — and every start in it swaps, or disjoint from its image, in which case none does. Building it costs O(states) and covers every start pair at once, where one solve costs the start's component times the mean flood size. The build also remembers its proof pairs, so `trail(start, goal)` replays a legal solution as segments with no search — switch count per the filing order, not minimal (`shortcut=True` greedily collapses it) — while `shortest_trail` / `min_switches` run breadth-first over the stored cliques for a provably switch-minimal solution, cross-checked against the solver in the tests.- [`src/bitgrid.py`](src/bitgrid.py) — **`BitGrid`**, the project's one bitmask type: a `rows × cols` cell set as a single int (bit `r·cols + c`), immutable, hashable, with set algebra clipped to the grid, `rect`, `shift` (never wraps onto the next row), `dilate` (one ring outward in all four directions), `flood` (bit-parallel, cost follows the region's width not its area) and `erode_window(n)` (the cells at which an n×n window fits — the bridge from a cell grid to a placement grid). `BitGrid.coerce(rows, cols, x)` takes a grid, its bits, or an iterable of cells, so entry points accept whichever form a caller holds. `Grid.free`, every solver cache key, the flood fill and the dig search's regions, rings and queue keys are all `BitGrid`s or their bits.
+- [`src/solvability.py`](src/solvability.py) — **`SwapSolvability(rows, cols, free, n)`** (or `.for_workspace(ws)`) decides whether a swap *exists*, never in how many switches. It builds the connected components of the two-robot configuration graph once — one bit-parallel flood per connected piece of the placements usable around each parked position, one union-find link per state — and then answers `solvable(pos_a, pos_b)`, `is_swap_combination(start, candidate)`, `swap_combinations(pos_a, pos_b)` and `solvable_starts()` from lookups. A component is either closed under the A↔B relabelling, in which case every state in it is a swap combination — a state some swap passes through, the kind of state `bfs_mirror` meets at — and every start in it swaps, or disjoint from its image, in which case none does. Building it costs O(states) and covers every start pair at once, where one solve costs the start's component times the mean flood size. The build also remembers its proof pairs, so `trail(start, goal)` replays a legal solution as segments with no search — switch count per the filing order, not minimal (`shortcut=True` greedily collapses it) — while `shortest_trail` / `min_switches` run breadth-first over the stored cliques for a provably switch-minimal solution, cross-checked against the solver in the tests; `commands(segments)` renders any trail to the flat command list the validator replays, which is what lets the finder stand as a full `Solver` strategy and a benchmark variant.- [`src/bitgrid.py`](src/bitgrid.py) — **`BitGrid`**, the project's one bitmask type: a `rows × cols` cell set as a single int (bit `r·cols + c`), immutable, hashable, with set algebra clipped to the grid, `rect`, `shift` (never wraps onto the next row), `dilate` (one ring outward in all four directions), `flood` (bit-parallel, cost follows the region's width not its area) and `erode_window(n)` (the cells at which an n×n window fits — the bridge from a cell grid to a placement grid). `BitGrid.coerce(rows, cols, x)` takes a grid, its bits, or an iterable of cells, so entry points accept whichever form a caller holds. `Grid.free`, every solver cache key, the flood fill and the dig search's regions, rings and queue keys are all `BitGrid`s or their bits.
 - [`src/workspace.py`](src/workspace.py) — `Workspace.from_free_cells(...)` builds a wall-filled grid with only the given cells carved free, and `Workspace.valid_block_positions(...)` returns the n×n placements over that region as a placement `BitGrid`. Both take the free region as a `BitGrid`, its bits, or cells.
 
 ## Test Cases

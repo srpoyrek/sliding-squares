@@ -1,20 +1,24 @@
 """
 benchmark.py
 ------------
-Measure the three BFS searches against each other on the real test cases, and
-render the comparison as a self-contained HTML page.
+Measure the solvers against each other on the real test cases — the three BFS
+searches plus the clique-map finder — and render the comparison as a
+self-contained HTML page: the solver benchmark.
 
-The three searches in `bfs.py` answer the same question by different routes:
+The variants answer the same question by different routes:
 
     unidirectional   one forward tree, expanded all the way to depth D
     bidirectional    a forward and a backward tree, each to depth D/2
     mirror           one forward tree to depth D/2; the backward half is that
                      same tree read through the A<->B relabelling
+    solvability      SwapSolvability's clique map, built per solve; the
+                     minimum is a breadth-first walk over the cliques and the
+                     walk renders to a path like any search's
 
 Because they are all exact, their switch counts *must* agree — so the numbers
 here are two things at once: a performance comparison and a correctness check.
 A disagreement in `switches`, or a path the validator rejects, is a defect in
-whichever search stands alone.
+whichever variant stands alone.
 
 Each measurement runs in its own spawned process. That buys three things at
 once: the flood caches start empty, so whichever search runs second is not
@@ -22,7 +26,7 @@ handed the first one's work; `tracemalloc` sees only that search's
 allocations; and a search that runs away can be killed on a timeout instead of
 stalling the whole comparison.
 
-Written by `benchmark_bfs.py`, which drives this module and nothing else.
+Written by `benchmark_solvers.py`, which drives this module and nothing else.
 Outputs land in ``plots/benchmark/``: ``benchmark.json`` is the record, and
 ``index.html`` is rendered from it — the same generated-from-JSON rule the test
 reports follow, so the page is never hand-authored.
@@ -56,8 +60,10 @@ REPORT_FILENAME = "index.html"
 BENCHMARK_DIRNAME = "benchmark"
 
 #: Order matters: it is the row order in every table and chart, and `mirror`
-#: leads because it is the search under test.
-VARIANTS = ("mirror", "bidirectional", "unidirectional")
+#: leads because it is the search under test; `solvability` sits last because
+#: it is not a state search at all, but the clique-map finder measured on the
+#: same footing.
+VARIANTS = ("mirror", "bidirectional", "unidirectional", "solvability")
 
 #: The variant the ratio columns are measured against. Bidirectional is the
 #: search mirror replaced, so "how much did this save" is the useful question.
@@ -67,6 +73,7 @@ VARIANT_BLURB = {
     "mirror": "one forward tree; the backward half is that tree relabelled",
     "bidirectional": "forward and backward trees, each to half depth",
     "unidirectional": "one forward tree, expanded the whole way to the goal",
+    "solvability": "clique map built per solve; the minimum is a walk over cliques",
 }
 
 #: What the page explains about each search. Written here rather than in the
@@ -179,6 +186,43 @@ VARIANT_DOCS = {
             "so only the part above that common offset tracks the state count."
         ),
     },
+    "solvability": {
+        "depth": "none — build, then a walk",
+        "trees": "1 clique graph",
+        "why": (
+            "Stop expanding states one switch at a time and precompute the "
+            "geometry instead. With one robot parked, the other roams one "
+            "connected region — a clique of mutually reachable states. Build "
+            "every clique once with bit-parallel floods; a solution is then a "
+            "walk through cliques that share a state, with switches equal to "
+            "cliques visited minus one, so the minimum comes from a "
+            "breadth-first walk over a few hundred cliques rather than a "
+            "search over thousands of states."
+        ),
+        "steps": [
+            "Erode the free cells into the placements an n x n robot fits on.",
+            "Park each placement in turn and flood the placements usable "
+            "around it into connected regions — each region is one clique, "
+            "and the cliques are kept.",
+            "Union-find over each clique's states gives the islands: the swap "
+            "exists exactly when the start and its exchanged twin share one.",
+            "Walk the clique graph breadth-first from both of the start's "
+            "cliques; the first clique holding the goal gives the minimum, "
+            "and the shared states crossed on the way are the waypoints.",
+            "Render each waypoint pair as one shortest walk inside its "
+            "region, a switch between segments, and validate the command "
+            "string like any other search's path.",
+        ],
+        "cost": (
+            "The build costs one flood per region and near-constant union "
+            "steps per state, independent of how deep the answer is; the walk "
+            "touches at most every clique once. Measured here it is rebuilt "
+            "for every solve, cold and warm alike, because the harness gives "
+            "every variant a fresh start — its real shape is build once per "
+            "board, then answer every start from the same map, which no "
+            "per-solve number on this page can show."
+        ),
+    },
 }
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -202,7 +246,10 @@ def _ensure_paths() -> str:
 
 
 def _case_classes():
-    """Every TestCase subclass under testcases/, sorted by class name.
+    """Every TestCase subclass under testcases/, keyed ``module.Class`` and
+    sorted by that key. Qualified by module deliberately: two files that define
+    a class with the same bare name are two different cases, and matching on
+    the bare name made the first one shadow the other in every measurement.
 
     Discovery is duplicated from run_tests.py rather than imported: that module
     is a ``__main__`` script whose import edits sys.path as a side effect, and
@@ -211,21 +258,25 @@ def _case_classes():
     from src.test_case import TestCase
 
     testcases_dir = _ensure_paths()
-    found = []
+    found: dict = {}
     for fname in sorted(os.listdir(testcases_dir)):
         if not fname.endswith(".py") or fname.startswith("_"):
             continue
         module = __import__(fname[:-3])
         for _, obj in inspect.getmembers(module, inspect.isclass):
             if issubclass(obj, TestCase) and obj is not TestCase:
-                found.append(obj)
-    return sorted(set(found), key=lambda c: c.__name__)
+                found[f"{obj.__module__}.{obj.__name__}"] = obj
+    return [found[key] for key in sorted(found)]
+
+
+def _case_key(cls) -> str:
+    return f"{cls.__module__}.{cls.__name__}"
 
 
 def discover_cases(name_filter: str | None = None) -> list[tuple[str, str]]:
-    """(class name, display name) for every test case, optionally filtered by
-    a case-insensitive substring of the display name."""
-    cases = [(cls.__name__, cls().name) for cls in _case_classes()]
+    """(qualified class key, display name) for every test case, optionally
+    filtered by a case-insensitive substring of the display name."""
+    cases = [(_case_key(cls), cls().name) for cls in _case_classes()]
     if name_filter:
         needle = name_filter.lower()
         cases = [c for c in cases if needle in c[1].lower()]
@@ -233,9 +284,10 @@ def discover_cases(name_filter: str | None = None) -> list[tuple[str, str]]:
 
 
 def _load_case(cls_name: str):
-    """Instantiate one test case by class name, in whichever process asks."""
+    """Instantiate one test case by its qualified key, in whichever process
+    asks."""
     for cls in _case_classes():
-        if cls.__name__ == cls_name:
+        if _case_key(cls) == cls_name:
             return cls()
     raise LookupError(f"no test case class named {cls_name!r}")
 
@@ -254,6 +306,26 @@ def _solve(variant: str, ws, goal_a, goal_b):
         return bfs_bidirectional(ws, goal_a, goal_b)
     if variant == "unidirectional":
         return bfs(ws, goal_a, goal_b)
+    if variant == "solvability":
+        # Not a state search: build the clique map, read the minimum off a
+        # breadth-first walk over cliques, and render the walk to commands so
+        # the validator replays it like any search's path. `states` is the
+        # map's own state count — its structural cost on the same axis the
+        # searches report their visited maps on.
+        from src.solvability import SwapSolvability
+
+        sol = SwapSolvability.for_workspace(ws)
+        start = (ws.robot_a.position(), ws.robot_b.position())
+        segments = sol.shortest_trail(start, (goal_a, goal_b))
+        if segments is None:
+            return None
+        first = segments[0][0] if segments else "A"
+        return {
+            "switches": max(0, len(segments) - 1),
+            "path": sol.commands(segments),
+            "states": sol.states,
+            "initial_mover": ws.robot_a if first == "A" else ws.robot_b,
+        }
     raise ValueError(f"unknown variant {variant!r}")
 
 
@@ -326,7 +398,7 @@ def _measure_worker(payload, out_q) -> None:
             switches=out["switches"],
             first_mover=first_mover,
             steps=len(out["path"]),
-            states=len(out["visited"]),
+            states=out["states"] if "states" in out else len(out["visited"]),
             valid=bool(vr.valid),
             invalid_reason=None if vr.valid else str(vr.failed_reason),
             cold_seconds=cold,
@@ -407,6 +479,11 @@ def run_benchmark(cases, variants, repeat: int, timeout: float, progress=None) -
 
 def _progress_line(display: str, record: dict) -> str:
     variant = record["variant"]
+    if record["status"] == "unsolvable":
+        return (
+            f"  {display:<22} {variant:<15} unsolvable — an answer, not a failure "
+            f"(cold={fmt_seconds(record.get('cold_seconds')):>9})"
+        )
     if record["status"] != "ok":
         detail = record.get("error") or record["status"]
         return f"  {display:<22} {variant:<15} {record['status'].upper()}: {detail}"
@@ -423,13 +500,23 @@ def _progress_line(display: str, record: dict) -> str:
 
 
 def _annotate_case(entry: dict) -> dict:
-    """Add per-case agreement flags and ratios against the baseline variant."""
-    ok = [r for r in entry["variants"] if r["status"] == "ok"]
+    """Add per-case agreement flags and ratios against the baseline variant.
+
+    "Unsolvable" is an answer, not a failure: the clique-map finder proves it
+    and the searches prove it by exhausting the component, so a case every
+    variant calls unsolvable agrees and is healthy. The defect is mixing —
+    some variants solving a case others call unsolvable."""
+    answered = [r for r in entry["variants"] if r["status"] in ("ok", "unsolvable")]
+    ok = [r for r in answered if r["status"] == "ok"]
     counts = {r["switches"] for r in ok}
-    entry["switches"] = next(iter(counts)) if len(counts) == 1 else None
-    entry["agree"] = len(counts) <= 1
+    unanimous = len(ok) in (0, len(answered))
+    entry["switches"] = next(iter(counts)) if len(counts) == 1 and ok else None
+    entry["unsolvable"] = bool(answered) and not ok
+    entry["agree"] = len(counts) <= 1 and unanimous
     entry["all_valid"] = all(r["valid"] for r in ok)
-    entry["healthy"] = entry["agree"] and entry["all_valid"] and len(ok) == len(entry["variants"])
+    entry["healthy"] = (
+        entry["agree"] and entry["all_valid"] and len(answered) == len(entry["variants"])
+    )
 
     base = next((r for r in ok if r["variant"] == BASELINE), None)
     for metric in ("states", "warm_min", "peak_bytes"):
@@ -484,6 +571,7 @@ def _summarise(entries, variants) -> list[dict]:
         peak_worst = 0
         solved = 0
         failed = 0
+        unsolvable = 0
         for entry in entries:
             record = next((r for r in entry["variants"] if r["variant"] == variant), None)
             base = next(
@@ -491,6 +579,10 @@ def _summarise(entries, variants) -> list[dict]:
                 None,
             )
             if record is None:
+                continue
+            if record["status"] == "unsolvable":
+                # An answer, not a failure — see _annotate_case.
+                unsolvable += 1
                 continue
             if record["status"] != "ok":
                 failed += 1
@@ -511,6 +603,7 @@ def _summarise(entries, variants) -> list[dict]:
             "blurb": VARIANT_BLURB.get(variant, ""),
             "solved": solved,
             "failed": failed,
+            "unsolvable": unsolvable,
             "states": totals["states"],
             "warm_min": totals["warm_min"],
             # Worst single case, never a sum -- see the docstring.
@@ -608,6 +701,7 @@ VARIANT_COLORS = {
     "mirror": "#2f6fd0",
     "bidirectional": "#d9822b",
     "unidirectional": "#8a8f98",
+    "solvability": "#2f9e44",
 }
 
 

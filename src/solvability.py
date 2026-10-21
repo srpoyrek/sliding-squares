@@ -415,6 +415,54 @@ class SwapSolvability:
         best = self.shortest_trail(start, goal)
         return None if best is None else max(0, len(best) - 1)
 
+    def commands(self, segments) -> list:
+        """`trail` / `shortest_trail` segments as the flat command list the
+        validator replays: one shortest cell route per segment — the same
+        rendering rule the solver's `_render_segments` applies — with "S"
+        between segments. Commands name no robot, so the caller reads who
+        holds control at step 0 off the first segment's mover."""
+        out: list = []
+        for index, (_mover, src, dst, parked) in enumerate(segments):
+            if index:
+                out.append("S")
+            out.extend(self._route_cmds(src, dst, parked))
+        return out
+
+    def _route_cmds(self, src, dst, parked) -> list:
+        """U/D/L/R steps of one shortest walk src -> dst inside the region
+        around `parked`: a queue BFS over the stored piece, its parent
+        pointers kept only long enough to read the moves back."""
+        if src == dst:
+            return []
+        col_span = self._col_span
+        parked_i = parked[0] * col_span + parked[1]
+        src_i = src[0] * col_span + src[1]
+        piece = self._cliques[parked_i][self._piece_index(parked_i, src_i)]
+        dst_i = dst[0] * col_span + dst[1]
+        prev: dict = {src_i: None}
+        queue = deque([src_i])
+        while queue:
+            v = queue.popleft()
+            if v == dst_i:
+                break
+            r, c = divmod(v, col_span)
+            for dr, dc, cmd in ((-1, 0, "U"), (1, 0, "D"), (0, -1, "L"), (0, 1, "R")):
+                nxt = (r + dr, c + dc)
+                if nxt not in piece:
+                    continue
+                nxt_i = nxt[0] * col_span + nxt[1]
+                if nxt_i in prev:
+                    continue
+                prev[nxt_i] = (v, cmd)
+                queue.append(nxt_i)
+        cmds: list = []
+        cur = dst_i
+        while prev[cur] is not None:
+            cur, cmd = prev[cur]
+            cmds.append(cmd)
+        cmds.reverse()
+        return cmds
+
     def solvable_starts(self) -> Iterator[tuple]:
         """Every ordered (pos_a, pos_b) from which the robots can swap. (a, b)
         and (b, a) are two starts and both are listed: the swap is the same

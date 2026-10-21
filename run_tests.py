@@ -52,6 +52,7 @@ from src.report import (
 )
 from src.robot import Robot
 from src.simplify import RECIPES, describe_recipes, run_simplification
+from src.solvability import SwapSolvability
 from src.solver import Solver
 from src.test_case import TestCase, TestResult
 from src.validator import Validator
@@ -250,6 +251,31 @@ def run_one(args) -> TestResult:
         # state is read back from the test case rather than from `ws`.
         start_ws, _, _ = tc.setup()
 
+        # The swap-solvability record for this board, carried in run.json so
+        # the global index can put the clique-map finder beside the solver on
+        # every test: whether its minimum agrees, what the map cost to build,
+        # and what one answer costs once it is built.
+        t0 = time.perf_counter()
+        sol = SwapSolvability.for_workspace(start_ws)
+        sol_build = time.perf_counter() - t0
+        t0 = time.perf_counter()
+        sol_min = sol.min_switches(
+            (start_ws.robot_a.position(), start_ws.robot_b.position()), (goal_a, goal_b)
+        )
+        sol_query = time.perf_counter() - t0
+        solvability = {
+            "solvable": sol_min is not None,
+            "min_switches": sol_min,
+            "agree": sol_min == solver_result.switches,
+            "build_seconds": sol_build,
+            "query_seconds": sol_query,
+            "states": sol.states,
+            "placements": sol.valid.count(),
+            "floods": sol.floods,
+            "islands": len({sol._find(s) for s in sol._all_states()}),
+            "solvable_starts": sum(1 for _ in sol.solvable_starts()),
+        }
+
         # Simplification passes — only when requested via --simplified. Each
         # recipe writes to its own <plot_dir>/simplified/<mode>/ folder, so they
         # can all run against the same solved test and be compared side by side.
@@ -297,8 +323,11 @@ def run_one(args) -> TestResult:
             switches=solver_result.switches,
             path=solver_result.path,
             solver_seconds=elapsed,
-            solver_states=len(solver_result.visited),
+            solver_states=solver_result.states
+            if solver_result.states is not None
+            else len(solver_result.visited),
             recipes=result.simplification,
+            solvability=solvability,
         )
         write_run(run, plot_dir)
         result.report_path = write_local_report(run, plot_dir)
@@ -506,11 +535,19 @@ if __name__ == "__main__":
         "against the images, or to produce figures for the paper.",
     )
     parser.add_argument(
+        "--solver",
+        choices=("solvability", "mirror", "bidirectional"),
+        default="solvability",
+        help="Which exact solver produces the reports. 'solvability' (the "
+        "default) is the clique-map finder; 'mirror' and 'bidirectional' are "
+        "the BFS searches. All are exact, so the switch counts must agree — "
+        "the Solver benchmark page is the standing cross-check. Applies to "
+        "the recipe re-solves too.",
+    )
+    parser.add_argument(
         "--bidirectional",
         action="store_true",
-        help="Solve with the older forward+backward search instead of the "
-        "single-tree mirror search. Both are exact, so the switch counts must "
-        "agree; the flag exists to check that they do.",
+        help="Alias for --solver bidirectional, kept for existing scripts.",
     )
     parser.add_argument(
         "--testcases-dir",
@@ -562,7 +599,7 @@ if __name__ == "__main__":
     else:
         recipes = list(RECIPES)
 
-    strategy = "bidirectional" if args.bidirectional else "mirror"
+    strategy = "bidirectional" if args.bidirectional else args.solver
 
     if args.name:
         name = args.name.lower()

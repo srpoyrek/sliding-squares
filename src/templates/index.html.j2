@@ -94,6 +94,47 @@ verified on this workspace.</p>
   {% endfor %}
 </table>
 
+{% set sol_rows = rows | selectattr('solvability') | list %}
+{% if sol_rows %}
+<h2 style="font-size:17px;margin:32px 0 4px">Swap solvability — the clique-map
+finder, per test</h2>
+<p class="muted" style="margin:0 0 12px"><code>SwapSolvability</code> built once
+per board, in the same worker as the timed solve. <b>build</b> is the whole map
+— every flood region and the union-find — and <b>answer</b> is the breadth-first
+walk over the cliques that reads the minimum off it. <b>min turns</b> shows the
+finder's answer against the solver's; they must match, and a mismatch is a
+defect. The full comparison with peak RAM per variant is the
+<a href="../benchmark/index.html">solver benchmark</a> page.</p>
+<table>
+  <tr>
+    <th>test</th><th>verdict</th><th>min turns</th><th>build</th><th>answer</th>
+    <th>solver solve</th><th>states</th><th>placements</th><th>islands</th>
+    <th>starts that can swap</th>
+  </tr>
+  {% for row in sol_rows %}
+  {% set s = row.solvability %}
+  <tr>
+    <td><a href="{{ row.folder }}/{{ report_filename }}">{{ row.name }}</a></td>
+    <td>
+      {%- if s.agree -%}
+        <span class="ok">agrees</span>
+      {%- else -%}
+        <span class="bad">DISAGREES</span>
+      {%- endif -%}
+    </td>
+    <td>{% if s.solvable %}{{ s.min_switches + 1 }}{% else %}&mdash;{% endif %} / {{ row.switches }}</td>
+    <td>{{ s.build_seconds | seconds }}</td>
+    <td>{{ s.query_seconds | seconds }}</td>
+    <td class="muted">{{ row.solver_seconds | seconds }}</td>
+    <td>{{ s.states | thousands }}</td>
+    <td>{{ s.placements | thousands }}</td>
+    <td>{{ s.islands }}</td>
+    <td>{{ s.solvable_starts | thousands }} / {{ s.states | thousands }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
 {% if size_charts %}
 <h2 style="font-size:17px;margin:32px 0 4px">Robot size vs difficulty</h2>
 <p class="muted" style="margin:0 0 12px">Each test as a point, split by whether

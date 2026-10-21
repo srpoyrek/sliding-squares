@@ -1,0 +1,181 @@
+"""
+benchmark_solvers.py
+--------------------
+Compare the solvers on every test case — the three BFS searches in `src/bfs.py`
+plus the clique-map finder in `src/solvability.py` — and publish the comparison
+as the solver benchmark, `plots/benchmark/index.html`.
+
+    unidirectional   one forward tree, expanded all the way to depth D
+    bidirectional    a forward and a backward tree, each to depth D/2
+    mirror           one forward tree to depth D/2; the backward half is that
+                     same tree read through the A<->B relabelling
+    solvability      the clique map built per solve; the minimum is a
+                     breadth-first walk over the cliques
+
+All of them are exact, so their switch counts must agree and every path they
+return must validate. The run therefore doubles as a correctness check on the
+variants, and says so at the top of the page: a disagreement is a defect, and
+no timing below it is worth reading until it is fixed. A case every variant
+proves unsolvable counts as agreement — unsolvable is an answer.
+
+Usage::
+
+    python benchmark_solvers.py                   # every case, every variant
+    python benchmark_solvers.py 3x3               # only cases matching "3x3"
+    python benchmark_solvers.py --variants mirror,bidirectional
+    python benchmark_solvers.py --repeat 5 --timeout 300
+
+Each measurement runs in its own spawned process, so the flood caches start
+empty, the peak allocation is that variant alone, and a variant that runs away
+is killed on the timeout instead of stalling the comparison.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
+
+from src.benchmark import (  # noqa: E402 — needs BASE_DIR on the path first
+    BASELINE,
+    VARIANTS,
+    discover_cases,
+    fmt_change,
+    run_benchmark,
+    write_benchmark,
+    write_benchmark_report,
+)
+from src.directories import get_plots_dir  # noqa: E402
+from src.report import write_site_index  # noqa: E402
+
+
+def _rel(path: str) -> str:
+    """Repo-relative path when the file is inside the repo, else absolute."""
+    try:
+        return os.path.relpath(path, BASE_DIR)
+    except ValueError:
+        return path
+
+
+def _print_summary(data: dict) -> None:
+    print("\n" + "=" * 72)
+    healthy = all(case["healthy"] for case in data["cases"]) if data["cases"] else False
+    if healthy:
+        print("AGREE: every variant returned the same answer, every path validated.")
+    else:
+        print("DISAGREE: a variant returned a different count, an invalid path, or no result.")
+        for case in data["cases"]:
+            if case["healthy"]:
+                continue
+            counts = {
+                r["variant"]: r.get("switches") if r["status"] == "ok" else r["status"]
+                for r in case["variants"]
+            }
+            print(f"  {case['name']}: {counts}")
+
+    print(f"\nAverage per case against {BASELINE} (geometric mean of the per-case ratios).")
+    print("Negative is better. 'best on N/M' counts the cases the variant actually won.")
+    for row in data["summary"]:
+        compared = row["cases_compared"]
+        print(
+            f"  {row['variant']:<15} solved={row['solved']:<3} "
+            f"unsolvable={row['unsolvable']:<3} failed={row['failed']:<3}"
+        )
+        for label, key in (("states", "states"), ("time", "warm_min"), ("ram", "peak_bytes")):
+            print(
+                f"      {label:<7}{fmt_change(row[f'{key}_ratio_avg']):<24}"
+                f"best on {row[f'{key}_wins']}/{compared}"
+            )
+    print("\nSuite totals — the largest grid decides these almost on its own,")
+    print("so where they disagree with the averages above, read both.")
+    for row in data["summary"]:
+        print(
+            f"  {row['variant']:<15} states={row['states']:>12,}  "
+            f"time={row['warm_min']:.3f}s  "
+            f"ram_worst={row['peak_bytes'] / (1024 * 1024):>7.1f}MB"
+        )
+
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        description="Compare the solver variants across the test cases and publish the result."
+    )
+    parser.add_argument(
+        "name",
+        nargs="?",
+        help="Substring filter — only benchmark cases whose name contains this.",
+    )
+    parser.add_argument(
+        "--variants",
+        default=",".join(VARIANTS),
+        help="Comma-separated variants to compare, in table order. "
+        f"Available: {', '.join(VARIANTS)}. Default: all of them.",
+    )
+    parser.add_argument(
+        "--repeat",
+        type=int,
+        default=3,
+        help="Warm repeats timed after the cold solve; the minimum and median "
+        "of these are reported. Default 3.",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=120.0,
+        help="Seconds allowed per case+variant before the measurement is killed "
+        "and recorded as a timeout. The unidirectional search expands to depth "
+        "D rather than D/2, so on the larger cases it is the one that needs "
+        "this. Default 120.",
+    )
+    parser.add_argument(
+        "--out",
+        default=None,
+        help="Directory to write benchmark.json and index.html into "
+        "(default: plots/benchmark/).",
+    )
+    args = parser.parse_args(argv)
+
+    variants = [v.strip() for v in args.variants.split(",") if v.strip()]
+    unknown = [v for v in variants if v not in VARIANTS]
+    if unknown:
+        print(f"Unknown variant(s): {', '.join(unknown)}")
+        print(f"Available: {', '.join(VARIANTS)}")
+        return 1
+    if not variants:
+        print("No variants selected.")
+        return 1
+
+    cases = discover_cases(args.name)
+    if not cases:
+        print(f"No test case matching '{args.name}'" if args.name else "No test cases found.")
+        return 1
+
+    print(f"{len(cases)} case(s) x {len(variants)} variant(s)")
+    print("  turns  = minimum control turns to swap the robots (all variants must agree)")
+    print("  states = states the variant holds (exact, machine-independent)")
+    print(f"  time   = one solve, fastest of {args.repeat}, flood caches already warm")
+    print("  ram    = most memory held at once during one solve, flood caches cold")
+    print("=" * 72)
+    data = run_benchmark(cases, variants, args.repeat, args.timeout, progress=print)
+
+    _print_summary(data)
+
+    record = write_benchmark(data, args.out)
+    page = write_benchmark_report(data, args.out)
+    print(f"\nRecord: {_rel(record)}")
+    print(f"Open:   {_rel(page)}")
+
+    if not args.out:
+        # The landing page links this comparison only when the page exists, so
+        # refresh it here: otherwise the card is missing whenever the benchmark
+        # was built after make_gallery.py rather than before it. A custom --out
+        # is not the site layout, so there is nothing to link.
+        print(f"Linked: {_rel(write_site_index(get_plots_dir()))}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -503,7 +503,9 @@ def run_simplification(
     started = time.perf_counter()
     res = Solver(simplified, goal_a, goal_b, strategy=strategy).solve()
     status["solve_seconds"] = time.perf_counter() - started
-    status["solve_states"] = len(res.visited) if res.solvable else None
+    status["solve_states"] = (
+        (res.states if res.states is not None else len(res.visited)) if res.solvable else None
+    )
     status["new_switches"] = control_turns(res.switches) if res.solvable else None
     status["preserved"] = res.solvable and res.switches == target_switches
     if not res.solvable:

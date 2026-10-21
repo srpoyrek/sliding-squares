@@ -1,14 +1,16 @@
 """
 solver.py
 ---------
-Uses BFS to find the minimum number of control switches
-to swap two robots in a given workspace.
-Returns minimum switches and the actual command path.
+Finds the minimum number of control switches to swap two robots in a given
+workspace, and the actual command path. Three exact strategies: the mirror and
+bidirectional BFS searches over states, and the clique-map finder, which builds
+`SwapSolvability`'s map and reads the minimum off a walk over cliques.
 """
 
 from __future__ import annotations
 
 from src.bfs import bfs_bidirectional, bfs_mirror
+from src.solvability import SwapSolvability
 from src.workspace import Workspace
 
 
@@ -17,7 +19,10 @@ class SolverResult:
         self.switches = None
         self.solvable = False
         self.path = []  # flat command list e.g. ['R','U','S','L','L','S','D','R']
-        self.visited = {}  # state -> switch count
+        self.visited = {}  # state -> switch count (the searches only)
+        # States the strategy held: len(visited) for the searches, the clique
+        # map's state count for "solvability" — one axis for every strategy.
+        self.states = None
 
     def __repr__(self):
         if not self.solvable:
@@ -36,13 +41,16 @@ class Solver:
         goal_b: tuple[int, int],
         strategy: str = "mirror",
     ):
-        """`strategy` selects the search. "mirror" grows one forward tree and
+        """`strategy` selects the solver. "mirror" grows one forward tree and
         reads every backward distance off it via the A<->B relabelling;
         "bidirectional" grows the older forward/backward pair and is kept so
-        the two can be cross-checked against each other. The mirror search
-        applies only when the goal is the start with the robots exchanged —
-        with any other goal `solve` falls back to bidirectional whatever the
-        setting, since `bfs_mirror` rejects such a goal outright."""
+        the two can be cross-checked against each other; "solvability" builds
+        the clique map and reads the minimum off a breadth-first walk over the
+        cliques — exact per `SwapSolvability.shortest_trail`'s argument, and
+        its path replays like any search's. The mirror search applies only
+        when the goal is the start with the robots exchanged — with any other
+        goal `solve` falls back to bidirectional whatever the setting, since
+        `bfs_mirror` rejects such a goal outright."""
         self.ws = workspace
         self.goal_a = goal_a
         self.goal_b = goal_b
@@ -63,6 +71,24 @@ class Solver:
         start_a = self.ws.robot_a.position()
         start_b = self.ws.robot_b.position()
         swapped_goal = self.goal_a == start_b and self.goal_b == start_a
+        if self.strategy == "solvability":
+            # The clique-map finder. No visited dict exists; `states` is the
+            # map's own state count. Control at step 0 is the first segment's
+            # mover, read off the segments the same way the searches report
+            # their initial mover.
+            sol = SwapSolvability.for_workspace(self.ws)
+            segments = sol.shortest_trail((start_a, start_b), (self.goal_a, self.goal_b))
+            if segments is None:
+                return result
+            result.solvable = True
+            result.switches = max(0, len(segments) - 1)
+            result.states = sol.states
+            if not need_path:
+                return result
+            result.path = sol.commands(segments)
+            first = segments[0][0] if segments else "A"
+            self.ws._control = self.ws.robot_a if first == "A" else self.ws.robot_b
+            return result
         if self.strategy == "mirror" and swapped_goal:
             out = bfs_mirror(self.ws, self.goal_a, self.goal_b, need_path=need_path)
         else:
@@ -88,4 +114,5 @@ class Solver:
         result.switches = out["switches"]
         result.path = out["path"]
         result.visited = out["visited"]
+        result.states = len(out["visited"])
         return result
