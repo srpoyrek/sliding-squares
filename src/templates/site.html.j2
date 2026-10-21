@@ -44,4 +44,15 @@
 </a>
 {% endif %}
 
+{# Only linked once built: generate_building_blocks.py + run_tests.py
+   --testcases-dir/--out-dir is a separate, manual step. #}
+{% if has_building_blocks %}
+<a class="card" href="building_blocks/index.html">
+  <b>Building blocks</b>
+  <span class="muted">Every canonically-distinct placement on a small,
+  wall-free grid — isolated swap patterns instead of a hand-designed
+  maze.</span>
+</a>
+{% endif %}
+
 <p class="muted">Built {{ generated }}</p>

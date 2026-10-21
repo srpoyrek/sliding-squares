@@ -94,6 +94,7 @@ verified on this workspace.</p>
   {% endfor %}
 </table>
 
+{% if size_charts %}
 <h2 style="font-size:17px;margin:32px 0 4px">Robot size vs difficulty</h2>
 <p class="muted" style="margin:0 0 12px">Each test as a point, split by whether
 the workspace has interior holes. <b>Switches</b> is what the solver proved
@@ -277,6 +278,7 @@ document.getElementById('costsize').innerHTML =
   overlay('States held vs robot size', 'states__', 'states', fmtK);
 </script>
 {% endraw %}
+{% endif %}
 
 {% if avg_time_chart %}
 <h2 style="font-size:17px;margin:32px 0 4px">Average reduction in solve time, vs the

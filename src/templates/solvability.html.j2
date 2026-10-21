@@ -1,0 +1,833 @@
+{#
+  solvability.html.j2
+  One case's solvability page: one section per function of SwapSolvability, in
+  the order the build runs them, each explained above its drawing. Rendered by
+  render_solvability.write_report with the full record inlined as JSON.
+
+  The build section replays the real algorithm: the browser runs the same
+  union-find over the recorded flood regions, and its final counts are checked
+  against the ones Python recorded — a mismatch renders in red.
+#}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ record.name }} — swap solvability</title>
+<style>
+  :root {
+    --wall: {{ record.palette.wall }};
+    --free: {{ record.palette.free }};
+    --gridline: {{ record.palette.grid }};
+    --a: {{ record.palette.a }};
+    --b: {{ record.palette.b }};
+    --ink: #1a1a1a; --muted: #6b7280; --line: #e5e7eb; --bad: #b91c1c; --ok: #15803d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 28px 16px; font: 14px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
+  main { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 21px; margin: 0 0 2px; }
+  h2 { font-size: 16px; margin: 40px 0 6px; }
+  p { max-width: 76ch; margin: 6px 0; }
+  .muted { color: var(--muted); }
+  a { color: #2563eb; text-decoration: none; }
+  code { background: #f3f4f6; padding: 1px 4px; border-radius: 3px; font-size: 13px; }
+  table.stats { border-collapse: collapse; margin: 14px 0; }
+  table.stats td, table.stats th { padding: 5px 12px 5px 0; text-align: left; border-bottom: 1px solid var(--line); }
+  table.stats th { font-weight: 600; }
+  .num { font-variant-numeric: tabular-nums; }
+  .ok { color: var(--ok); font-weight: 600; }
+  .bad { color: var(--bad); font-weight: 600; }
+  .boardbox { margin: 10px 0; }
+  .twoboards { display: flex; flex-wrap: wrap; gap: 18px; }
+  .twoboards figure { margin: 0; }
+  .twoboards figcaption { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  svg.board { max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--free); }
+  #state-matrix { border: 1px solid var(--line); border-radius: 4px; image-rendering: pixelated; max-width: 100%; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+  .controls button { font: inherit; padding: 4px 12px; border: 1px solid var(--line); border-radius: 4px; background: #f9fafb; cursor: pointer; }
+  .controls button:hover { background: #f3f4f6; }
+  .controls input[type=range] { width: 280px; }
+  .readout { font-variant-numeric: tabular-nums; padding: 8px 10px; background: #f9fafb; border: 1px solid var(--line); border-radius: 4px; margin: 8px 0; max-width: 76ch; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 0; color: var(--muted); font-size: 13px; }
+  .chip { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; border: 1px solid rgba(0,0,0,.2); }
+  .thumbrow { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; margin: 10px 0; }
+  .thumbrow figure { margin: 0; }
+  .thumb-label { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 9px; color: #fff; font-size: 12px; font-weight: 600; }
+  .thumbgrid { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 14px; }
+  canvas.thumb { border: 2px solid transparent; border-radius: 3px; image-rendering: pixelated; }
+  canvas.thumb.startmark { border-color: #111; }
+  canvas.thumb.goalmark { border-color: #111; border-style: dashed; }
+  canvas.thumb.rootmark { border-color: #b45309; }
+  .chainrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .chainrow figure { margin: 0; }
+  .chainlabel { min-width: 56px; font-weight: 600; }
+  .arrow { font-size: 20px; color: var(--muted); }
+  .slotno { font-size: 11px; color: var(--muted); text-align: center; margin-top: 2px; }
+  .islandhead { margin: 16px 0 2px; font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>{{ record.name }}</h1>
+  <p class="muted">{{ record.grid.rows }} &times; {{ record.grid.cols }} grid,
+  {{ record.n }}&times;{{ record.n }} robots &middot;
+  <a href="../index.html">all cases</a></p>
+
+  <table class="stats">
+    <tr>
+      <th>Existing solver, <code>bfs_mirror</code></th>
+      <td>
+        {% if record.solver.solvable %}
+        swap possible, minimum {{ record.solver.switches }} control switches
+        {% else %}
+        swap impossible
+        {% endif %}
+      </td>
+      <td class="num">{{ record.solver.cold_seconds | seconds }} cold,
+          {{ record.solver.warm_seconds | seconds }} warm</td>
+    </tr>
+    <tr>
+      <th><code>SwapSolvability</code></th>
+      <td>
+        {% if record.map.solvable == record.solver.solvable %}
+        <span class="ok">{{ 'swap possible' if record.map.solvable else 'swap impossible' }} — agrees</span>
+        {% else %}
+        <span class="bad">{{ 'swap possible' if record.map.solvable else 'swap impossible' }} — DISAGREES with the solver</span>
+        {% endif %}
+      </td>
+      <td class="num">{{ record.map.build_seconds | seconds }} to build,
+          {{ record.map.floods }} flood fills</td>
+    </tr>
+    <tr>
+      <th>State space</th>
+      <td colspan="2" class="num">{{ record.map.placements }} placements &middot;
+        {{ record.map.states | thousands }} states &middot;
+        {{ record.map.solvable_starts | thousands }} starts can swap &middot;
+        {{ record.map.swap_combinations | thousands }} swap combinations for this start
+        &middot; <span id="stat-islands"></span>
+        {% if record.solver.solvable %} &middot; {{ record.midway | length }} midway{% endif %}
+      </td>
+    </tr>
+  </table>
+
+  <h2>1 &middot; <code>for_workspace</code> / <code>__init__</code> — read the board</h2>
+  <p>The constructor takes the grid shape, the free cells and the robot size,
+  and nothing else. Dark cells are boundary walls, dark cells with a white dot
+  are interior holes, and both robots are drawn at the test's start.</p>
+  <div class="boardbox" id="board-read"></div>
+
+  <h2>2 &middot; <code>erode_window({{ record.n }})</code> — every place a robot fits</h2>
+  <p>A placement is a top-left corner whose whole
+  {{ record.n }}&times;{{ record.n }} square sits on free cells. One erosion of
+  the free mask answers every corner at once; each surviving corner is a dark
+  dot. This case has {{ record.map.placements }}. Hover a dot for its
+  coordinates.</p>
+  <div class="boardbox" id="board-fit"></div>
+
+  <h2>3 &middot; <code>_build</code> — park each placement, flood, join</h2>
+  <p>The build loop visits every placement once as the <em>parked</em> robot,
+  drawn solid grey. Three things happen per visit, and the board shows all
+  three:</p>
+  <p><strong>The usable set.</strong> The other robot may stand on every
+  placement except the block that would overlap the parked one — a square of
+  side {{ 2 * record.n - 1 }} around it, crossed out in red. Touching is
+  allowed; sharing a cell is not.</p>
+  <p><strong><code>_pieces</code> — the flood regions.</strong> The usable set
+  splits into connected regions, one flood fill each, one colour each. Inside a
+  region the roaming robot can slide anywhere while the parked one stands
+  still.</p>
+  <p><strong><code>_union</code> and <code>_find</code> — the joining.</strong>
+  Every placement in a region is joined to the region's first member, once with
+  the parked robot as B and once as A. States sharing a representative
+  afterwards are one island. The count below falls as the slider advances, and
+  this page computes it by running the same union-find on the same regions.</p>
+  <div class="controls">
+    <button id="step-prev">&larr; prev</button>
+    <input type="range" id="step-range" min="0" value="0">
+    <button id="step-next">next &rarr;</button>
+    <button id="step-end">to the end</button>
+  </div>
+  <div class="readout" id="step-readout"></div>
+  <div class="legend">
+    <span><span class="chip" style="background:#374151"></span>parked robot</span>
+    <span><span class="chip" style="background:#fca5a5"></span>excluded: would overlap</span>
+    <span><span class="chip" style="background:#2563eb"></span><span class="chip" style="background:#d97706"></span>flood regions</span>
+  </div>
+  <div class="boardbox" id="board-build"></div>
+  <p><strong>The whole array, one square per slot.</strong> Row = where robot A
+  stands, column = where robot B stands, so every square below is one state and
+  nothing is left out. Grey squares are illegal overlaps. Every other square is
+  coloured by its current group leader — the colours are arbitrary labels, what
+  matters is that two squares sharing a colour share a leader. At step 0 almost
+  every square has its own colour; drag the slider and watch the colours fuse
+  until the islands remain. The black-bordered squares marked S and G are the
+  start and the goal: the puzzle is solvable exactly when they end up the same
+  colour. Hover any square to read its slot number, its snapshot, what it
+  currently holds, and its leader.</p>
+  <div class="boardbox"><canvas id="state-matrix"></canvas></div>
+  <p class="muted">Under the board: the joining itself. Each region's pictures
+  are union-joined into one group — once with the parked robot playing B, once
+  playing A — and the step's effect on the island count is stated.</p>
+  <div id="step-cliques"></div>
+
+  <h2>4 &middot; The islands the build produced</h2>
+  <p>A state is one picture of the board: A somewhere, B somewhere. Two states
+  are on one island exactly when the robots can slide from one picture to the
+  other. So an island is shown here as what it is — a row of pictures. The
+  start picture has a solid black border, the goal picture a dashed one, and
+  each carries a badge naming its island.</p>
+  <div class="readout" id="island-summary"></div>
+  <div id="island-decide"></div>
+  <p>How the structure stores that: every state holds one pointer, and following
+  pointers always ends at the island's root. Below are the two chains that
+  decide this puzzle, drawn as the board pictures they are — the start's chain
+  and the goal's chain, the amber-bordered picture the root. <strong>An arrow
+  is a stored pointer, not a robot move</strong>: a member points at its
+  clique's representative, and a merge points one tree's root at another's, so
+  neighbouring pictures in a chain can be many slides apart. Hover an arrow to
+  see which parked position wrote that pointer. The chain certifies the route
+  exists; the route itself is made of section 3's regions.</p>
+  <div id="chain-view"></div>
+  <table class="stats" id="island-table">
+    <thead><tr><th></th><th>Island</th><th class="num">states</th><th>holds the start</th><th>holds the goal</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <div id="island-galleries"></div>
+  <p class="muted">One more view of the same islands: robot B parked at its
+  start, and every position robot A could stand on, coloured by the island that
+  picture belongs to. One colour everywhere means one island; a board split
+  into colours is the parked robot cutting the space apart.</p>
+  <div class="boardbox" id="board-islands"></div>
+
+  <h2>5 &middot; <code>_state</code> and <code>_exchange</code> — the start and its twin</h2>
+  <p><code>_state</code> turns the two positions into one number, refusing
+  anything illegal. <code>_exchange</code> swaps the number's two halves, which
+  is the same picture with the labels A and B exchanged — and the goal of the
+  puzzle is exactly the exchange of the start.</p>
+  <div class="twoboards">
+    <figure><div id="board-start"></div><figcaption>the start</figcaption></figure>
+    <figure><div id="board-goal"></div><figcaption>its exchange — the goal</figcaption></figure>
+  </div>
+
+  <h2>6 &middot; <code>solvable</code> — one comparison</h2>
+  <p>Look up the start's island, look up the goal's island, compare. No search.
+  The line below is that comparison, with the real state numbers and islands.</p>
+  <div class="readout" id="verdict-readout"></div>
+
+  <h2>7 &middot; <code>swap_combinations</code> — where a swap can pass</h2>
+  <p>A swap combination is any other state on the start's island whose exchange
+  is there too: the robots can reach it, and the route to its exchange, run
+  backwards with the labels swapped, carries them on to the goal.</p>
+  <div class="readout" id="combo-readout"></div>
+
+  <h2>8 &middot; Ask it yourself — <code>solvable</code> on any start</h2>
+  <p>Click a dotted corner to place robot A, click another for B — touching is
+  fine, overlapping is refused, a third click starts over. The verdict is the
+  same one-island comparison as above, run on your start. Faint dots then mark
+  every position the other robot could hold in a swap combination with your A
+  fixed where it is.</p>
+  <div class="controls">
+    <button id="q-start">use the test's start</button>
+    <button id="q-clear">clear</button>
+  </div>
+  <div class="readout" id="q-readout">No start chosen yet.</div>
+  <div class="boardbox" id="board-query"></div>
+
+  {% if record.solver.solvable %}
+  <h2>9 &middot; Midway swap combinations — read off the solver</h2>
+  <p>A best solution has two halves. First half: walk the robots from the start
+  to some picture X. Second half: take the route from the start to X's
+  exchanged twin, swap the two robots' roles on it, and walk it backwards —
+  that carries X on to the goal. The halves meet at X, as many switches from
+  the start as from the goal (one apart when the minimum is odd).</p>
+  <p>The pictures below are every such X on this board: every place a
+  minimum-switch swap can turn. Any swap combination from section 7 also
+  completes the swap, but turning anywhere else costs more than
+  {{ record.solver.switches }} switches. These come from
+  <code>bfs_mirror</code>'s own layer map, not from the island build.</p>
+  <div class="controls">
+    <button id="mid-prev">&larr; prev</button>
+    <span class="num" id="mid-label">1 / {{ record.midway | length }}</span>
+    <button id="mid-next">next &rarr;</button>
+  </div>
+  <div class="readout" id="mid-readout"></div>
+  <div class="boardbox" id="board-midway"></div>
+  {% endif %}
+
+  <script type="application/json" id="data">{{ data_json | safe }}</script>
+  <script>
+  "use strict";
+  const D = JSON.parse(document.getElementById("data").textContent);
+  const ROWS = D.grid.rows, COLS = D.grid.cols, N = D.n;
+  const RS = D.placement_rows, CS = D.placement_cols, MAXPOS = RS * CS;
+  const WALLS = D.grid.walls, HOLES = D.holes;
+  const CELL = 20;
+  const REGION_COLORS = ["#2563eb","#d97706","#059669","#db2777","#7c3aed","#0891b2","#ca8a04","#dc2626"];
+
+  const pr = i => [Math.floor(i / CS), i % CS];
+  const overlap = (a, b) => {
+    const ra = Math.floor(a / CS), ca = a % CS, rb = Math.floor(b / CS), cb = b % CS;
+    return Math.abs(ra - rb) < N && Math.abs(ca - cb) < N;
+  };
+  const exchange = s => (s % MAXPOS) * MAXPOS + Math.floor(s / MAXPOS);
+
+  const VALID = new Set(D.valid);
+  // Every legal ordered pair, exactly as _all_states yields them.
+  const STATES = [];
+  for (const a of D.valid) for (const b of D.valid) if (a !== b && !overlap(a, b)) STATES.push(a * MAXPOS + b);
+
+  // Union-find, mirroring _find / _union including path compression.
+  function makeUF() { const p = new Int32Array(MAXPOS * MAXPOS); for (let i = 0; i < p.length; i++) p[i] = i; return p; }
+  function find(p, x) {
+    let root = x;
+    while (p[root] !== root) root = p[root];
+    while (p[x] !== root) { const nxt = p[x]; p[x] = root; x = nxt; }
+    return root;
+  }
+  function union(p, x, y) { const rx = find(p, x), ry = find(p, y); if (rx !== ry) p[ry] = rx; }
+  function applyStep(p, st) {
+    for (const region of st.regions) {
+      const head = region[0];
+      for (let j = 1; j < region.length; j++) {
+        union(p, head * MAXPOS + st.parked, region[j] * MAXPOS + st.parked);
+        union(p, st.parked * MAXPOS + head, st.parked * MAXPOS + region[j]);
+      }
+    }
+  }
+  function islandCount(p) { const roots = new Set(); for (const s of STATES) roots.add(find(p, s)); return roots.size; }
+
+  // The finished map — the end state the slider reaches.
+  const FULL = makeUF();
+  for (const st of D.steps) applyStep(FULL, st);
+
+  // The islands of the finished map: size per representative, numbered by
+  // size, one colour each. S0 is the start state, G0 its exchange — the goal.
+  const S0 = D.start.a * MAXPOS + D.start.b, G0 = exchange(S0);
+  const sizeByRoot = new Map();
+  for (const s of STATES) { const r = find(FULL, s); sizeByRoot.set(r, (sizeByRoot.get(r) || 0) + 1); }
+  const ISLANDS = [...sizeByRoot.entries()].sort((x, y) => y[1] - x[1]);
+  const islandNo = new Map(); ISLANDS.forEach((e, i) => islandNo.set(e[0], i + 1));
+  const islandColor = root => REGION_COLORS[(islandNo.get(root) - 1) % REGION_COLORS.length];
+
+  // ── drawing ──────────────────────────────────────────────────────────
+  const SVGNS = "http://www.w3.org/2000/svg";
+  function el(name, attrs) { const e = document.createElementNS(SVGNS, name); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+  function makeBoard(containerId, pxCap, clickable) {
+    // Scale the board up to fill the column, capped so a wide grid fits and a
+    // tiny one does not balloon; the viewBox keeps the contents proportional.
+    const px = Math.min(pxCap || 880, Math.max(COLS * 32, 420));
+    const svg = el("svg", { class: "board", viewBox: "0 0 " + (COLS * CELL) + " " + (ROWS * CELL), width: px });
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const i = r * COLS + c;
+      const wall = WALLS[i] === "1", hole = HOLES[i] === "1";
+      const rect = el("rect", { x: c * CELL, y: r * CELL, width: CELL, height: CELL,
+        fill: wall ? "var(--wall)" : "var(--free)", stroke: "var(--gridline)", "stroke-width": 0.5 });
+      if (clickable) { rect.dataset.r = r; rect.dataset.c = c; rect.style.cursor = "pointer"; }
+      svg.appendChild(rect);
+      if (hole) svg.appendChild(el("circle", { cx: c * CELL + CELL / 2, cy: r * CELL + CELL / 2, r: 2.4, fill: "#ffffff", opacity: 0.9 }));
+    }
+    const overlay = el("g", {});
+    svg.appendChild(overlay);
+    document.getElementById(containerId).appendChild(svg);
+    return { svg, overlay };
+  }
+  function clearOverlay(b) { while (b.overlay.firstChild) b.overlay.removeChild(b.overlay.firstChild); }
+  function markCorner(b, idx, color, radius) {
+    const [r, c] = pr(idx);
+    const m = el("rect", { x: c * CELL + CELL / 2 - radius, y: r * CELL + CELL / 2 - radius,
+      width: radius * 2, height: radius * 2, rx: 1.5, fill: color });
+    const tip = el("title", {});
+    tip.textContent = "placement (" + r + ", " + c + ")";
+    m.appendChild(tip);
+    b.overlay.appendChild(m);
+  }
+  function drawRobot(b, idx, color, label) {
+    const [r, c] = pr(idx);
+    b.overlay.appendChild(el("rect", { x: c * CELL + 1, y: r * CELL + 1, width: N * CELL - 2, height: N * CELL - 2,
+      rx: 3, fill: color, opacity: 0.88, stroke: "#00000033" }));
+    const t = el("text", { x: c * CELL + N * CELL / 2, y: r * CELL + N * CELL / 2 + 4.5,
+      "text-anchor": "middle", "font-size": 12, "font-weight": 700, fill: "#ffffff" });
+    t.textContent = label;
+    b.overlay.appendChild(t);
+  }
+  const dots = b => { for (const v of D.valid) markCorner(b, v, "#374151", 2.6); };
+
+  // A state drawn as a small picture: the whole board on a canvas, both
+  // robots in place. Canvas, not SVG, so hundreds of thumbnails stay cheap.
+  const stateTitle = s => "A (" + pr(Math.floor(s / MAXPOS)) + "), B (" + pr(s % MAXPOS) + ")";
+  function thumb(s, mark) {
+    const a = Math.floor(s / MAXPOS), b = s % MAXPOS;
+    const cpx = COLS > 24 ? 4 : COLS > 14 ? 6 : 10;
+    const cv = document.createElement("canvas");
+    cv.width = COLS * cpx; cv.height = ROWS * cpx;
+    cv.className = "thumb" + (mark ? " " + mark : "");
+    cv.title = stateTitle(s);
+    const ctx = cv.getContext("2d");
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      ctx.fillStyle = WALLS[r * COLS + c] === "1" ? D.palette.wall : D.palette.free;
+      ctx.fillRect(c * cpx, r * cpx, cpx, cpx);
+    }
+    const block = (idx, color) => {
+      const rr = Math.floor(idx / CS), cc = idx % CS;
+      ctx.fillStyle = color;
+      ctx.fillRect(cc * cpx + 1, rr * cpx + 1, N * cpx - 2, N * cpx - 2);
+    };
+    block(a, D.palette.a);
+    block(b, D.palette.b);
+    return cv;
+  }
+
+  // ── 1: the board as read ─────────────────────────────────────────────
+  const bRead = makeBoard("board-read");
+  drawRobot(bRead, D.start.a, "var(--a)", "A");
+  drawRobot(bRead, D.start.b, "var(--b)", "B");
+
+  // ── 2: erode_window ──────────────────────────────────────────────────
+  const bFit = makeBoard("board-fit");
+  dots(bFit);
+
+  // ── 3: the build, stepped ────────────────────────────────────────────
+  const bBuild = makeBoard("board-build");
+  const range = document.getElementById("step-range");
+  range.max = D.steps.length;
+  const readout = document.getElementById("step-readout");
+
+  // The state matrix: the whole parent array as pixels, one square per state,
+  // coloured by its current leader, redrawn at every slider position.
+  const MPAL = ["#2563eb","#d97706","#059669","#db2777","#7c3aed","#0891b2","#ca8a04","#dc2626",
+                "#4f46e5","#0d9488","#be185d","#65a30d","#9333ea","#b91c1c","#0369a1","#a16207"];
+  const VIDX = new Map();
+  D.valid.forEach((v, i) => VIDX.set(v, i));
+  const NV = D.valid.length;
+  const MPX = Math.max(3, Math.min(12, Math.floor(640 / NV)));
+  const mcv = document.getElementById("state-matrix");
+  mcv.width = NV * MPX;
+  mcv.height = NV * MPX;
+  let MP = null;
+  function drawMatrix(p) {
+    MP = p;
+    const ctx = mcv.getContext("2d");
+    for (let i = 0; i < NV; i++) for (let j = 0; j < NV; j++) {
+      const a = D.valid[i], b = D.valid[j];
+      ctx.fillStyle = (a === b || overlap(a, b))
+        ? "#e5e7eb"
+        : MPAL[find(p, a * MAXPOS + b) % MPAL.length];
+      ctx.fillRect(j * MPX, i * MPX, MPX, MPX);
+    }
+    const mark = (s, label) => {
+      const i = VIDX.get(Math.floor(s / MAXPOS)), j = VIDX.get(s % MAXPOS);
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(j * MPX + 1, i * MPX + 1, MPX - 2, MPX - 2);
+      if (MPX >= 9) {
+        ctx.fillStyle = "#000";
+        ctx.font = "bold " + (MPX - 3) + "px sans-serif";
+        ctx.fillText(label, j * MPX + 2, i * MPX + MPX - 3);
+      }
+    };
+    mark(D.start.a * MAXPOS + D.start.b, "S");
+    mark(D.start.b * MAXPOS + D.start.a, "G");
+  }
+  mcv.addEventListener("mousemove", ev => {
+    if (!MP) return;
+    const box = mcv.getBoundingClientRect();
+    const j = Math.floor((ev.clientX - box.left) / box.width * NV);
+    const i = Math.floor((ev.clientY - box.top) / box.height * NV);
+    if (i < 0 || j < 0 || i >= NV || j >= NV) return;
+    const a = D.valid[i], b = D.valid[j];
+    if (a === b || overlap(a, b)) { mcv.title = "illegal: the robots would overlap"; return; }
+    const s = a * MAXPOS + b;
+    mcv.title = "slot " + s + ": A (" + pr(a) + "), B (" + pr(b) + ") — holds " + MP[s] +
+      ", leader " + find(MP, s);
+  });
+
+  function renderStep(k) {
+    const p = makeUF();
+    let unions = 0;
+    for (let i = 0; i < k - 1; i++) {
+      applyStep(p, D.steps[i]);
+      for (const reg of D.steps[i].regions) unions += 2 * Math.max(0, reg.length - 1);
+    }
+    // Island count just before this step's unions, so the step's own effect
+    // can be reported as before -> after.
+    const islandsBefore = islandCount(p);
+    if (k > 0) {
+      applyStep(p, D.steps[k - 1]);
+      for (const reg of D.steps[k - 1].regions) unions += 2 * Math.max(0, reg.length - 1);
+    }
+    clearOverlay(bBuild);
+    dots(bBuild);
+    let line = "";
+    if (k > 0) {
+      const st = D.steps[k - 1];
+      const [sr, sc] = pr(st.parked);
+      // Valid placements excluded for overlapping the parked robot — the
+      // (2n-1)-sided square _build subtracts, shown crossed out.
+      for (const v of D.valid) {
+        if (v !== st.parked && overlap(v, st.parked)) markCorner(bBuild, v, "#fca5a5", 4);
+      }
+      st.regions.forEach((reg, ri) => { for (const m of reg) markCorner(bBuild, m, REGION_COLORS[ri % REGION_COLORS.length], 4); });
+      drawRobot(bBuild, st.parked, "#374151", "P");
+      const usable = st.regions.reduce((acc, reg) => acc + reg.length, 0);
+      line = "Parked at (" + sr + ", " + sc + "): " + usable + " usable placements in " +
+        st.regions.length + " region(s). ";
+    }
+    const islands = islandCount(p);
+    drawMatrix(p);
+    const startState = D.start.a * MAXPOS + D.start.b;
+    const joined = find(p, startState) === find(p, exchange(startState));
+    line += "After " + k + " of " + D.steps.length + " parked positions: " +
+      unions.toLocaleString() + " unions, " + islands.toLocaleString() + " islands among " +
+      STATES.length.toLocaleString() + " states. Start and goal on one island: " + (joined ? "YES" : "not yet");
+    if (k === 0) line += ". Before any joining, every state counts as its own island — watch the number fall";
+    if (k === Number(range.max)) {
+      const agree = STATES.length === D.map.states && joined === D.map.solvable;
+      line += agree
+        ? " — matches what Python recorded."
+        : " — DOES NOT MATCH what Python recorded (" + D.map.states + " states, solvable=" + D.map.solvable + ").";
+      readout.className = agree ? "readout ok" : "readout bad";
+    } else {
+      readout.className = "readout";
+    }
+    readout.textContent = line;
+
+    // The joining, as pictures: this step's cliques and what they fused.
+    const panel = document.getElementById("step-cliques");
+    panel.innerHTML = "";
+    if (k > 0) {
+      const st = D.steps[k - 1];
+      const REG_CAP = 3, TH = COLS > 24 ? 6 : 10;
+      st.regions.slice(0, REG_CAP).forEach((reg, ri) => {
+        const color = REGION_COLORS[ri % REGION_COLORS.length];
+        const head = document.createElement("div");
+        head.className = "islandhead";
+        head.innerHTML = '<span class="chip" style="background:' + color + '"></span>Region of ' +
+          reg.length + " placement(s) — every picture below is union-joined into ONE group";
+        panel.appendChild(head);
+        const mkRow = (roamerIsA, label) => {
+          const wrap = document.createElement("div");
+          wrap.className = "thumbgrid";
+          const lab = document.createElement("span");
+          lab.className = "muted";
+          lab.style.minWidth = "180px";
+          lab.textContent = label;
+          wrap.appendChild(lab);
+          for (const m of reg.slice(0, TH)) {
+            wrap.appendChild(thumb(roamerIsA ? m * MAXPOS + st.parked : st.parked * MAXPOS + m));
+          }
+          if (reg.length > TH) {
+            const more = document.createElement("span");
+            more.className = "muted";
+            more.textContent = "+ " + (reg.length - TH) + " more";
+            wrap.appendChild(more);
+          }
+          panel.appendChild(wrap);
+        };
+        mkRow(true, "parked robot plays B, A roams:");
+        mkRow(false, "parked robot plays A, B roams:");
+      });
+      if (st.regions.length > REG_CAP) {
+        const more = document.createElement("div");
+        more.className = "muted";
+        more.textContent = "+ " + (st.regions.length - REG_CAP) +
+          " more region(s) this step, joined the same way.";
+        panel.appendChild(more);
+      }
+      const fused = document.createElement("div");
+      fused.className = "readout";
+      fused.textContent = "Islands before this step: " + islandsBefore.toLocaleString() +
+        " → after: " + islands.toLocaleString() +
+        (islandsBefore > islands
+          ? ". This step fused " + (islandsBefore - islands).toLocaleString() +
+            " group(s) together, because its cliques share pictures with earlier ones."
+          : ". No previously separate groups were fused by this step.");
+      panel.appendChild(fused);
+    } else {
+      panel.innerHTML = '<span class="muted">Advance the slider — each step shows here exactly which pictures get joined.</span>';
+    }
+  }
+  range.addEventListener("input", () => renderStep(Number(range.value)));
+  document.getElementById("step-prev").addEventListener("click", () => { range.value = Math.max(0, Number(range.value) - 1); renderStep(Number(range.value)); });
+  document.getElementById("step-next").addEventListener("click", () => { range.value = Math.min(Number(range.max), Number(range.value) + 1); renderStep(Number(range.value)); });
+  document.getElementById("step-end").addEventListener("click", () => { range.value = range.max; renderStep(Number(range.value)); });
+  renderStep(0);
+
+  // ── 4: the islands — summary line, table, and the parked-B slice ─────
+  {
+    document.getElementById("stat-islands").textContent = ISLANDS.length.toLocaleString() + " island(s)";
+    document.getElementById("island-summary").textContent =
+      ISLANDS.length.toLocaleString() + " island(s) over " + STATES.length.toLocaleString() +
+      " states" + (ISLANDS.length === 1 ? " — every picture can reach every other." : ".");
+    const tbody = document.querySelector("#island-table tbody");
+    const rootS = find(FULL, S0), rootG = find(FULL, G0);
+    const LIMIT = 12;
+    for (const entry of ISLANDS.slice(0, LIMIT)) {
+      const root = entry[0], size = entry[1];
+      const tr = document.createElement("tr");
+      tr.innerHTML = '<td><span class="chip" style="background:' + islandColor(root) + '"></span></td>' +
+        "<td>Island " + islandNo.get(root) + "</td>" +
+        '<td class="num">' + size.toLocaleString() + "</td>" +
+        "<td>" + (root === rootS ? "start &check;" : "&mdash;") + "</td>" +
+        "<td>" + (root === rootG ? "goal &check;" : "&mdash;") + "</td>";
+      tbody.appendChild(tr);
+    }
+    if (ISLANDS.length > LIMIT) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = '<td></td><td colspan="4" class="muted">+ ' + (ISLANDS.length - LIMIT) + " smaller islands</td>";
+      tbody.appendChild(tr);
+    }
+    const bIsl = makeBoard("board-islands");
+    for (const v of D.valid) {
+      if (v === D.start.b || overlap(v, D.start.b)) continue;
+      markCorner(bIsl, v, islandColor(find(FULL, v * MAXPOS + D.start.b)), 4);
+    }
+    drawRobot(bIsl, D.start.b, "var(--b)", "B");
+
+    // How the decision is made, as pictures: the start and the goal, each
+    // badged with its island. Matching badges IS the verdict.
+    const decide = document.getElementById("island-decide");
+    const mkFig = (s, label, root, mark) => {
+      const fig = document.createElement("figure");
+      fig.appendChild(thumb(s, mark));
+      const cap = document.createElement("figcaption");
+      cap.className = "thumb-label";
+      cap.innerHTML = label + ' &mdash; <span class="badge" style="background:' +
+        islandColor(root) + '">Island ' + islandNo.get(root) + "</span>";
+      fig.appendChild(cap);
+      return fig;
+    };
+    const row = document.createElement("div");
+    row.className = "thumbrow";
+    row.appendChild(mkFig(S0, "START: A and B as given", rootS, "startmark"));
+    row.appendChild(mkFig(G0, "GOAL: A and B exchanged", rootG, "goalmark"));
+    decide.appendChild(row);
+    const dv = document.createElement("div");
+    dv.className = "readout " + (rootS === rootG ? "ok" : "bad");
+    dv.textContent = rootS === rootG
+      ? "Both badges name the same island, so some chain of slides carries the start picture to the goal picture: the swap is possible."
+      : "The badges name different islands: no chain of slides connects the start to the goal, so the swap is impossible.";
+    decide.appendChild(dv);
+
+    // The pointer chains, drawn. A second parent array is built WITHOUT path
+    // compression, purely for display: the compressed one answers in one hop,
+    // which is efficient but shows nothing of the tree it flattened.
+    const RAW = new Int32Array(MAXPOS * MAXPOS);
+    for (let i = 0; i < RAW.length; i++) RAW[i] = i;
+    const rawRoot = x => { while (RAW[x] !== x) x = RAW[x]; return x; };
+    // Which parked position wrote each pointer, so the drawing can say why a
+    // hop exists rather than leaving it to look like a move.
+    const CAUSE = new Map();
+    for (const st of D.steps) for (const region of st.regions) {
+      const head = region[0];
+      for (let j = 1; j < region.length; j++) {
+        let a = rawRoot(head * MAXPOS + st.parked), b = rawRoot(region[j] * MAXPOS + st.parked);
+        if (a !== b) { RAW[b] = a; CAUSE.set(b, st.parked); }
+        a = rawRoot(st.parked * MAXPOS + head); b = rawRoot(st.parked * MAXPOS + region[j]);
+        if (a !== b) { RAW[b] = a; CAUSE.set(b, st.parked); }
+      }
+    }
+    const rawChain = s => { const out = [s]; while (RAW[s] !== s) { s = RAW[s]; out.push(s); } return out; };
+    const chainView = document.getElementById("chain-view");
+    const chainRow = (label, chain, mark) => {
+      const rowEl = document.createElement("div");
+      rowEl.className = "chainrow";
+      const lab = document.createElement("span");
+      lab.className = "chainlabel";
+      lab.textContent = label;
+      rowEl.appendChild(lab);
+      const MAXSHOW = 5;
+      const shown = chain.length <= MAXSHOW
+        ? chain
+        : chain.slice(0, MAXSHOW - 1).concat([chain[chain.length - 1]]);
+      const skipped = chain.length - shown.length;
+      shown.forEach((s, i) => {
+        if (i) {
+          const contiguous = !(skipped > 0 && i === shown.length - 1);
+          const a = document.createElement("span");
+          a.className = "arrow";
+          a.textContent = contiguous ? "→" : "…→";
+          if (contiguous) {
+            const wrote = CAUSE.get(shown[i - 1]);
+            if (wrote !== undefined) {
+              a.title = "pointer written while the build parked a robot at (" + pr(wrote) + ")";
+            }
+          } else {
+            a.title = skipped + " pointer hop(s) skipped for space";
+          }
+          rowEl.appendChild(a);
+        }
+        const isLast = i === shown.length - 1;
+        const fig = document.createElement("figure");
+        fig.appendChild(thumb(s, isLast ? "rootmark" : (i === 0 ? mark : null)));
+        const cap = document.createElement("div");
+        cap.className = "slotno";
+        cap.textContent = "slot " + s + (isLast ? " — the ROOT" : "");
+        fig.appendChild(cap);
+        rowEl.appendChild(fig);
+      });
+      return rowEl;
+    };
+    chainView.appendChild(chainRow("START", rawChain(S0), "startmark"));
+    chainView.appendChild(chainRow("GOAL", rawChain(G0), "goalmark"));
+    const chainNote = document.createElement("div");
+    chainNote.className = "readout " + (rootS === rootG ? "ok" : "bad");
+    chainNote.textContent = rootS === rootG
+      ? "Both chains arrive at the same root picture: one tree, one island, swap possible."
+      : "The chains arrive at two different root pictures: two separate trees, swap impossible.";
+    chainView.appendChild(chainNote);
+
+    // Every island as a row of its pictures — the start and goal first where
+    // they belong, then a sample, with the remainder counted honestly.
+    const SAMPLE = 36, GALLERY_ISLANDS = 8;
+    const members = new Map();
+    for (const s of STATES) {
+      const r = find(FULL, s);
+      let m = members.get(r);
+      if (!m) { m = []; members.set(r, m); }
+      if (m.length < SAMPLE && s !== S0 && s !== G0) m.push(s);
+    }
+    const gal = document.getElementById("island-galleries");
+    for (const entry of ISLANDS.slice(0, GALLERY_ISLANDS)) {
+      const root = entry[0], size = entry[1];
+      const head = document.createElement("div");
+      head.className = "islandhead";
+      head.innerHTML = '<span class="chip" style="background:' + islandColor(root) + '"></span>Island ' +
+        islandNo.get(root) + " &mdash; " + size.toLocaleString() + " state(s)";
+      gal.appendChild(head);
+      const grid = document.createElement("div");
+      grid.className = "thumbgrid";
+      let shown = 0;
+      if (root === rootS) { grid.appendChild(thumb(S0, "startmark")); shown++; }
+      if (root === rootG && G0 !== S0) { grid.appendChild(thumb(G0, "goalmark")); shown++; }
+      for (const s of members.get(root) || []) { grid.appendChild(thumb(s)); shown++; }
+      if (size > shown) {
+        const more = document.createElement("div");
+        more.className = "muted";
+        more.textContent = "+ " + (size - shown).toLocaleString() + " more states on this island";
+        grid.appendChild(more);
+      }
+      gal.appendChild(grid);
+    }
+    if (ISLANDS.length > GALLERY_ISLANDS) {
+      const more = document.createElement("div");
+      more.className = "muted";
+      more.textContent = "+ " + (ISLANDS.length - GALLERY_ISLANDS) + " smaller islands not shown as galleries.";
+      gal.appendChild(more);
+    }
+  }
+
+  // ── 5: the start and its exchange ────────────────────────────────────
+  const bStart = makeBoard("board-start", 440);
+  drawRobot(bStart, D.start.a, "var(--a)", "A");
+  drawRobot(bStart, D.start.b, "var(--b)", "B");
+  const bGoal = makeBoard("board-goal", 440);
+  drawRobot(bGoal, D.start.b, "var(--a)", "A");
+  drawRobot(bGoal, D.start.a, "var(--b)", "B");
+
+  // ── 6: the verdict, as the comparison it actually is ─────────────────
+  const canSwap = find(FULL, S0) === find(FULL, G0);
+  const vOut = document.getElementById("verdict-readout");
+  {
+    const iS = islandNo.get(find(FULL, S0)), iG = islandNo.get(find(FULL, G0));
+    const agree = canSwap === D.map.solvable && canSwap === D.solver.solvable;
+    vOut.className = "readout " + (agree ? "ok" : "bad");
+    vOut.textContent = "_state(start) = " + S0.toLocaleString() + ", on Island " + iS +
+      ".  _state(goal) = _exchange(start) = " + G0.toLocaleString() + ", on Island " + iG + ".  " +
+      (canSwap ? "Same island, so the swap IS possible." : "Different islands, so the swap is NOT possible.") +
+      (agree ? " Python's map and the solver both agree." :
+        " MISMATCH: Python's map says " + D.map.solvable + ", the solver says " + D.solver.solvable + ".");
+  }
+
+  // ── 7: swap combinations ─────────────────────────────────────────────
+  {
+    let combos = 0;
+    if (canSwap) {
+      const root = find(FULL, S0);
+      for (const t of STATES) if (t !== S0 && find(FULL, t) === root) combos++;
+    }
+    const cOut = document.getElementById("combo-readout");
+    const agree = combos === D.map.swap_combinations;
+    cOut.className = "readout " + (agree ? "ok" : "bad");
+    cOut.textContent = "Counted here in the browser: " + combos.toLocaleString() +
+      " swap combinations for this start. Python recorded " +
+      D.map.swap_combinations.toLocaleString() + (agree ? " — they match." : " — MISMATCH.");
+  }
+
+  // ── 8: ask it yourself — any start, same comparison ──────────────────
+  const bQuery = makeBoard("board-query", 880, true);
+  const qReadout = document.getElementById("q-readout");
+  let qA = null, qB = null;
+  function renderQuery() {
+    clearOverlay(bQuery);
+    dots(bQuery);
+    if (qA !== null && qB !== null) {
+      const s = qA * MAXPOS + qB;
+      const can = find(FULL, s) === find(FULL, exchange(s));
+      const root = find(FULL, s);
+      let combos = 0;
+      for (const t of STATES) {
+        if (t === s || find(FULL, t) !== root) continue;
+        combos++;
+        if (Math.floor(t / MAXPOS) === qA) markCorner(bQuery, t % MAXPOS, "var(--b)", 3);
+      }
+      const rootX = find(FULL, exchange(s));
+      qReadout.className = "readout " + (can ? "ok" : "bad");
+      qReadout.innerHTML = "Your start: A at (" + pr(qA) + "), B at (" + pr(qB) + ") &mdash; " +
+        '<span class="chip" style="background:' + islandColor(root) + '"></span>Island ' +
+        islandNo.get(root) + " of " + ISLANDS.length + ". Its exchanged picture: " +
+        '<span class="chip" style="background:' + islandColor(rootX) + '"></span>Island ' +
+        islandNo.get(rootX) + ". " +
+        (can
+          ? "Same island, so the swap IS possible. Swap combinations for this start: " + combos.toLocaleString() + "."
+          : "A different island, so the swap is NOT possible.");
+    } else {
+      qReadout.className = "readout";
+      qReadout.textContent = qA === null
+        ? "Click a dotted corner to place robot A."
+        : "Now click a corner for robot B — it may touch A, not overlap it.";
+    }
+    if (qA !== null) drawRobot(bQuery, qA, "var(--a)", "A");
+    if (qB !== null) drawRobot(bQuery, qB, "var(--b)", "B");
+  }
+  bQuery.svg.addEventListener("click", ev => {
+    const cell = ev.target;
+    if (!cell || cell.dataset === undefined || cell.dataset.r === undefined) return;
+    const r = Number(cell.dataset.r), c = Number(cell.dataset.c);
+    if (r >= RS || c >= CS) return;
+    const idx = r * CS + c;
+    if (!VALID.has(idx)) return;
+    if (qA === null || qB !== null) { qA = idx; qB = null; }
+    else if (idx !== qA && !overlap(qA, idx)) { qB = idx; }
+    renderQuery();
+  });
+  document.getElementById("q-start").addEventListener("click", () => { qA = D.start.a; qB = D.start.b; renderQuery(); });
+  document.getElementById("q-clear").addEventListener("click", () => { qA = null; qB = null; renderQuery(); });
+  renderQuery();
+
+  // ── 9: midway stepper ────────────────────────────────────────────────
+  if (D.midway.length && document.getElementById("board-midway")) {
+    const bMid = makeBoard("board-midway");
+    const midLabel = document.getElementById("mid-label");
+    let at = 0;
+    function showMid() {
+      clearOverlay(bMid);
+      drawRobot(bMid, D.midway[at][0], "var(--a)", "A");
+      drawRobot(bMid, D.midway[at][1], "var(--b)", "B");
+      midLabel.textContent = (at + 1) + " / " + D.midway.length;
+      const d = D.midway[at][2], S = D.solver.switches;
+      document.getElementById("mid-readout").textContent =
+        "Midway picture " + (at + 1) + " of " + D.midway.length + ": A at (" +
+        pr(D.midway[at][0]) + "), B at (" + pr(D.midway[at][1]) + "). The search reaches this " +
+        "picture in " + d + " switch(es) and its exchanged twin in " + (S - d) + ". " +
+        d + " + " + (S - d) + " = " + S + ", the minimum — a best swap can turn exactly here.";
+    }
+    document.getElementById("mid-prev").addEventListener("click", () => { at = (at - 1 + D.midway.length) % D.midway.length; showMid(); });
+    document.getElementById("mid-next").addEventListener("click", () => { at = (at + 1) % D.midway.length; showMid(); });
+    showMid();
+  }
+  </script>
+</main>
+</body>
+</html>

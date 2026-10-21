@@ -22,6 +22,10 @@ Usage:
     python run_tests.py --simplified             # + EVERY simplify recipe
     python run_tests.py --simplified uncrossable untouched_spaced   # a subset
     python run_tests.py 3x3 --simplified         # both filters at once
+
+--testcases-dir / --out-dir redirect discovery and output to a different pair
+of folders (e.g. testcases_building_blocks/ + plots/building_blocks/) without
+touching testcases/ or plots/tests/. The landing page is relinked either way.
 """
 
 from __future__ import annotations
@@ -30,6 +34,7 @@ import argparse
 import inspect
 import multiprocessing as mp
 import os
+import shutil
 import sys
 import time
 import traceback
@@ -37,7 +42,14 @@ import traceback
 from src.bfs import _clear_caches, configure_caches_for_grid
 from src.directories import get_plots_dir, get_testcases_dir
 from src.grid import Grid
-from src.report import build_run, control_turns, write_global_index, write_local_report, write_run
+from src.report import (
+    build_run,
+    control_turns,
+    write_global_index,
+    write_local_report,
+    write_run,
+    write_site_index,
+)
 from src.robot import Robot
 from src.simplify import RECIPES, describe_recipes, run_simplification
 from src.solver import Solver
@@ -79,14 +91,26 @@ def _build_workspace_from_tiles(tiles, ref_ws):
 # ── Test discovery and execution ────────────────────────────────────────
 
 
-def discover_test_cases() -> list[type]:
-    testcases_dir = get_testcases_dir()
-    sys.path.insert(0, testcases_dir)
+def _iter_testcase_modules(testcases_dir: str):
+    """(dirpath, module_name) for every non-underscore .py file under
+    testcases_dir, recursively — so a folder grouped into subfolders (e.g.
+    testcases_building_blocks/n1/, n2/) is still discovered."""
+    found = []
+    for dirpath, dirnames, filenames in os.walk(testcases_dir):
+        dirnames[:] = [d for d in dirnames if not d.startswith((".", "_"))]
+        for fname in filenames:
+            if fname.endswith(".py") and not fname.startswith("_"):
+                found.append((dirpath, fname[:-3]))
+    return sorted(found)
+
+
+def discover_test_cases(testcases_dir: str | None = None) -> list[type]:
+    """Every TestCase subclass found in `testcases_dir` (default testcases/)."""
+    testcases_dir = testcases_dir or get_testcases_dir()
     cases = []
-    for fname in sorted(os.listdir(testcases_dir)):
-        if not fname.endswith(".py") or fname.startswith("_"):
-            continue
-        module = __import__(fname[:-3])
+    for dirpath, mod_name in _iter_testcase_modules(testcases_dir):
+        sys.path.insert(0, dirpath)
+        module = __import__(mod_name)
         for _, obj in inspect.getmembers(module, inspect.isclass):
             if issubclass(obj, TestCase) and obj is not TestCase:
                 cases.append(obj)
@@ -136,34 +160,39 @@ def _write_recipe_index(simplified_dir, test_name, switches, statuses) -> None:
 def run_one(args) -> TestResult:
     """Run a single test by class name.
 
-    `args` is (cls_name, recipes, want_png, strategy) where `recipes` is a list
-    of names from simplify.RECIPES to run after the test passes (empty list =
-    skip), `want_png` keeps the matplotlib per-switch images alongside the HTML
-    report, and `strategy` is the Solver search to use. The strategy travels in
-    the payload rather than a module global because the pool spawns its
-    workers, which start from a fresh import.
+    `args` is (cls_name, recipes, want_png, strategy, testcases_dir, out_dir,
+    delete_failed): `recipes` are simplify.RECIPES names to run after the test
+    passes (empty = skip), `want_png` also renders the matplotlib per-switch
+    images, `strategy` is the Solver search, `testcases_dir`/`out_dir` default
+    to testcases/ and plots/tests/, `delete_failed` removes the test's source
+    file and report folder if it does not pass. Travels as a tuple, not a
+    module global, because the pool spawns fresh workers.
     """
-    cls_name, recipes, want_png, strategy = args
+    cls_name, recipes, want_png, strategy, testcases_dir, out_dir, delete_failed = args
+    testcases_dir = testcases_dir or get_testcases_dir()
+    out_dir = out_dir or os.path.join(get_plots_dir(), "tests")
     sys.path.insert(0, BASE_DIR)
-    sys.path.insert(0, get_testcases_dir())
 
-    from src.directories import get_testcases_dir as _get_testcases_dir
     from src.test_case import TestCase, TestResult
 
     cls = None
-    for fname in sorted(os.listdir(_get_testcases_dir())):
-        if not fname.endswith(".py") or fname.startswith("_"):
-            continue
-        module = __import__(fname[:-3])
+    src_path = None
+    for dirpath, mod_name in _iter_testcase_modules(testcases_dir):
+        sys.path.insert(0, dirpath)
+        module = __import__(mod_name)
         for _, obj in inspect.getmembers(module, inspect.isclass):
             if issubclass(obj, TestCase) and obj is not TestCase and obj.__name__ == cls_name:
                 cls = obj
+                src_path = os.path.join(dirpath, f"{mod_name}.py")
                 break
         if cls:
             break
 
     tc = cls()  # type: ignore
     result = TestResult(name=tc.name, passed=False)
+    # Known before anything is solved, so it is available for --delete-failed
+    # cleanup even on a path that returns before ever writing a report.
+    plot_dir = os.path.join(out_dir, tc.name.replace(" ", "_"))
 
     try:
         ws, goal_a, goal_b = tc.setup()
@@ -204,9 +233,6 @@ def run_one(args) -> TestResult:
         if not vr.valid:
             result.error = f"Path invalid: {vr.failed_reason}"
             return result
-
-        plots_tests_dir = os.path.join(get_plots_dir(), "tests")
-        plot_dir = os.path.join(plots_tests_dir, tc.name.replace(" ", "_"))
 
         snapshots = [[a, b] for a, b in vr.snapshots]
         if want_png:
@@ -281,6 +307,17 @@ def run_one(args) -> TestResult:
         result.error = f"{type(e).__name__}: {e}"
         traceback.print_exc()
 
+    if delete_failed and not result.passed:
+        deleted = []
+        if src_path and os.path.isfile(src_path):
+            os.remove(src_path)
+            deleted.append(src_path)
+        if os.path.isdir(plot_dir):
+            shutil.rmtree(plot_dir)
+            deleted.append(plot_dir)
+        if deleted:
+            result.deleted = deleted
+
     return result
 
 
@@ -353,23 +390,39 @@ def _print_result(r, verbose: bool = False) -> None:
     print(head, flush=True)
     if r.error:
         print(f"         error: {r.error}", flush=True)
+    if r.deleted:
+        for path in r.deleted:
+            print(f"         deleted: {_rel(path)}", flush=True)
     if r.simplification:
         _print_simplifications(r.simplification, verbose)
 
 
-def _write_index() -> None:
-    """Refresh plots/tests/index.html — the one page listing every run."""
-    dest = write_global_index(os.path.join(get_plots_dir(), "tests"))
+def _write_index(out_dir: str | None = None, size_charts: bool = True) -> None:
+    """Refresh <out_dir>/index.html (default plots/tests/) and relink the
+    landing page. `size_charts=False` skips the two robot-size charts (and
+    computing their data) — meaningless when many tests share one robot size."""
+    out_dir = out_dir or os.path.join(get_plots_dir(), "tests")
+    dest = write_global_index(out_dir, size_charts=size_charts)
     if dest:
         print(f"\nOpen: {_rel(dest)}", flush=True)
+    print(f"Linked: {_rel(write_site_index(get_plots_dir()))}", flush=True)
 
 
-def run_all(recipes, want_png=False, verbose=False, strategy="mirror"):
+def run_all(
+    recipes,
+    want_png=False,
+    verbose=False,
+    strategy="mirror",
+    testcases_dir=None,
+    out_dir=None,
+    size_charts=True,
+    delete_failed=False,
+):
     wall_start = time.time()
-    classes = discover_test_cases()
+    classes = discover_test_cases(testcases_dir)
 
     if not classes:
-        print("No test cases found in testcases/")
+        print(f"No test cases found in {testcases_dir or get_testcases_dir()}")
         return
 
     print(f"{len(classes)} test(s)", end="")
@@ -379,7 +432,10 @@ def run_all(recipes, want_png=False, verbose=False, strategy="mirror"):
     print("\n" + "=" * 60)
 
     results = []
-    jobs = [(cls.__name__, recipes, want_png, strategy) for cls in classes]
+    jobs = [
+        (cls.__name__, recipes, want_png, strategy, testcases_dir, out_dir, delete_failed)
+        for cls in classes
+    ]
     with mp.get_context("spawn").Pool(processes=min(8, mp.cpu_count())) as pool:
         for r in pool.imap_unordered(run_one, jobs):
             results.append(r)
@@ -395,6 +451,10 @@ def run_all(recipes, want_png=False, verbose=False, strategy="mirror"):
         for r in failed:
             print(f"  {r.name}: {r.error}")
 
+    if delete_failed:
+        deleted_paths = [p for r in results if r.deleted for p in r.deleted]
+        print(f"Deleted: {len(deleted_paths)} path(s) from {len(failed)} failed test(s)")
+
     # Sorted on the raw float. Ranking the formatted strings compared "9.7ms"
     # against "1.55s" lexicographically and called the millisecond run slower.
     timed = [r for r in results if r.seconds is not None]
@@ -403,7 +463,7 @@ def run_all(recipes, want_png=False, verbose=False, strategy="mirror"):
         fast = min(timed, key=lambda r: r.seconds)
         print(f"\nSlowest: {slow.name} {slow.time}   Fastest: {fast.name} {fast.time}")
     print(f"Total wall time: {round(time.time() - wall_start, 2)}s")
-    _write_index()
+    _write_index(out_dir, size_charts=size_charts)
 
 
 if __name__ == "__main__":
@@ -452,7 +512,38 @@ if __name__ == "__main__":
         "single-tree mirror search. Both are exact, so the switch counts must "
         "agree; the flag exists to check that they do.",
     )
+    parser.add_argument(
+        "--testcases-dir",
+        default=None,
+        metavar="DIR",
+        help="Scan DIR instead of testcases/ — for a separate series such as "
+        "testcases_building_blocks/. Default: testcases/.",
+    )
+    parser.add_argument(
+        "--out-dir",
+        default=None,
+        metavar="DIR",
+        help="Write reports into DIR instead of plots/tests/. Default: " "plots/tests/.",
+    )
+    parser.add_argument(
+        "--no-size-charts",
+        action="store_true",
+        help="Skip 'Robot size vs difficulty' and 'Solve cost vs robot size' "
+        "on the index page, and skip computing their data. Meaningless when "
+        "many tests share one robot size, as the building-block series does.",
+    )
+    parser.add_argument(
+        "--delete-failed",
+        action="store_true",
+        help="Delete a failing test's .py source file and its plots/ report "
+        "folder (if any) after solving. Requires --testcases-dir, so this "
+        "cannot silently delete a hand-authored case from testcases/.",
+    )
     args = parser.parse_args()
+
+    if args.delete_failed and not args.testcases_dir:
+        print("--delete-failed requires --testcases-dir (refusing to touch testcases/)")
+        sys.exit(1)
 
     if args.list_recipes:
         print(describe_recipes())
@@ -475,13 +566,37 @@ if __name__ == "__main__":
 
     if args.name:
         name = args.name.lower()
-        classes = discover_test_cases()
+        classes = discover_test_cases(args.testcases_dir)
         matched = [cls for cls in classes if name in cls().name.lower()]
         if not matched:
             print(f"No test case matching '{args.name}'")
             sys.exit(1)
+        deleted_paths = []
         for cls in matched:
-            _print_result(run_one((cls.__name__, recipes, args.png, strategy)), args.verbose)
-        _write_index()
+            job = (
+                cls.__name__,
+                recipes,
+                args.png,
+                strategy,
+                args.testcases_dir,
+                args.out_dir,
+                args.delete_failed,
+            )
+            r = run_one(job)
+            _print_result(r, args.verbose)
+            if r.deleted:
+                deleted_paths.extend(r.deleted)
+        if args.delete_failed:
+            print(f"Deleted: {len(deleted_paths)} path(s)")
+        _write_index(args.out_dir, size_charts=not args.no_size_charts)
     else:
-        run_all(recipes, want_png=args.png, verbose=args.verbose, strategy=strategy)
+        run_all(
+            recipes,
+            want_png=args.png,
+            verbose=args.verbose,
+            strategy=strategy,
+            testcases_dir=args.testcases_dir,
+            out_dir=args.out_dir,
+            size_charts=not args.no_size_charts,
+            delete_failed=args.delete_failed,
+        )

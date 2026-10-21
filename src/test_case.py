@@ -26,6 +26,7 @@ class TestResult:
     seconds: Optional[float] = None  # raw elapsed; sort and compare on THIS
     simplification: Optional[list] = None  # one status dict per recipe run
     report_path: Optional[str] = None  # the run's index.html (see src/report.py)
+    deleted: Optional[list] = None  # --delete-failed: paths removed (.py file, plots/ folder)
 
     def __repr__(self):
         status = "PASS" if self.passed else "FAIL"

@@ -1,0 +1,91 @@
+{#
+  solvability_index.html.j2
+  Index over every solvability page rendered in a run. Rendered by
+  render_solvability.write_index; one row per case, linking its own page.
+#}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swap solvability</title>
+<style>
+  :root {
+    --wall: {{ palette.wall }};
+    --free: {{ palette.free }};
+    --a: {{ palette.a }};
+    --b: {{ palette.b }};
+    --ink: #1a1a1a;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --bg: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 16px;
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+  }
+  main { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p.lead { color: var(--muted); margin: 0 0 24px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .agree { color: #15803d; }
+  .disagree { color: #b91c1c; font-weight: 600; }
+  .muted { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Swap solvability</h1>
+  <p class="lead">Can the two robots end up exchanged? Decided by connectivity,
+  not by searching for a path — each page replays how. The solver's own verdict
+  sits beside it as a cross-check.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Test case</th>
+        <th>Robot</th>
+        <th class="num">Placements</th>
+        <th class="num">States</th>
+        <th>Solver</th>
+        <th>Map</th>
+        <th class="num">Map built</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td><a href="{{ r.name.replace(' ', '_') }}/{{ report_filename }}">{{ r.name }}</a></td>
+        <td>{{ r.n }}&times;{{ r.n }}</td>
+        <td class="num">{{ r.map.placements }}</td>
+        <td class="num">{{ r.map.states | thousands }}</td>
+        <td>
+          {% if r.solver.solvable %}
+          swap in {{ r.solver.switches }}
+          {% else %}
+          <span class="muted">unsolvable</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if r.map.solvable == r.solver.solvable %}
+          <span class="agree">{{ 'solvable' if r.map.solvable else 'unsolvable' }} &check;</span>
+          {% else %}
+          <span class="disagree">DISAGREE</span>
+          {% endif %}
+        </td>
+        <td class="num">{{ r.map.build_seconds | seconds }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</main>
+</body>
+</html>

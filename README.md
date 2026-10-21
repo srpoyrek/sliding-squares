@@ -42,6 +42,7 @@ sliding-squares/
 │   ├── canonical.py        # Spatial symmetries, canonical keys, touching-placement enumeration, Canonicalizer
 │   ├── frontier.py         # The ring around a free region, as BitGrids (initial_frontier, extend_frontier)
 │   ├── solver.py           # Solver wrapping the BFS — mirror by default, switchable
+│   ├── solvability.py      # Swap solvability without a solve — configuration-graph components + the A↔B test
 │   ├── validator.py        # Step-by-step path execution and validation
 │   ├── simplify.py         # Workspace simplification — strip redundant walls, preserve switch count
 │   ├── visualizer.py       # Matplotlib visualization (grids, sequences, BFS frontiers, proof rendering)
@@ -66,15 +67,19 @@ sliding-squares/
 │   ├── 4x4_robot_holes.py
 │   └── 5x5_robot_no_holes.py
 ├── plots/                         # Generated reports — untracked, built by a run
+├── demo_solvability.py            # SwapSolvability's union-find printed: a toy board whole, the real cases in summary
 ├── demo_solver.py
 ├── demo_validator.py
 ├── tests/
 │   ├── fixtures.py                # Hand-built corner/edge/junction layouts + expectations
 │   ├── conftest.py
 │   ├── test_bitgrid.py            # BitGrid primitives against brute force: shift, rect, flood, erode
-│   └── test_simplify.py           # Proves the simplification passes' claims
+│   ├── test_simplify.py           # Proves the simplification passes' claims
+│   └── test_solvability.py        # SwapSolvability against the raw move graph, bfs_mirror and every shipped case
 ├── .github/workflows/pages.yml    # Verify, build reports, publish to Pages
 ├── find_hardest_workspace.py      # Parallel search for the workspace requiring the most switches
+├── render_solvability.py          # Interactive solvability pages: the island build replayed in the browser
+├── generate_building_blocks.py    # Building-block test cases: every canonical placement, no walls
 ├── benchmark_bfs.py               # Compare the three BFS searches (see BFS comparison)
 ├── make_gallery.py                # Recipe gallery: every fixture x every recipe
 ├── render_run.py                  # run.json -> PNGs, offline (see Reports)
@@ -119,6 +124,10 @@ python run_tests.py 4x4_robot_holes --simplified uncrossable untouched_spaced
 | `-v`, `--verbose` | off | Print every recipe's full result. Without it each test gets one summary line: how many recipes held, which left the fewest walls, and which failed |
 | `--png` | off | Also render the matplotlib images — the per-switch frames and each recipe's `summary.png`. Off by default: the HTML report (below) covers the same ground without paying matplotlib's per-frame cost, which dominates a run. Use it to cross-check the report against the images, or for paper figures |
 | `--bidirectional` | off | Solve with the older forward+backward search instead of the single-tree mirror search (see [Algorithm](#algorithm)). Both are exact, so the switch counts must agree; the flag exists to check that they do. It applies to the recipe re-solves too, so a comparison covers the simplified workspaces as well |
+| `--testcases-dir` | `testcases/` | Scan a different folder — e.g. `testcases_building_blocks/` (see [Building blocks](#building-blocks)) |
+| `--out-dir` | `plots/tests/` | Write reports into a different folder, paired with `--testcases-dir` so a separate series never touches `plots/tests/` |
+| `--no-size-charts` | off | Skip "Robot size vs difficulty" and "Solve cost vs robot size" on the index page, and skip computing their data — meaningless when many tests share one robot size, as the building-block series does |
+| `--delete-failed` | off | Delete a failing test's `.py` source file and its `plots/` report folder (if any). Requires `--testcases-dir`, so it cannot silently delete a hand-authored case from `testcases/` |
 
 Run `python run_tests.py --list-recipes` to print the recipes and what each one does. After a run, `plots/tests/<name>/simplified/README.txt` names every recipe folder and ranks them by how few walls survived.
 
@@ -165,6 +174,25 @@ delete a free cell, which is not lossless.
 
 Each recipe writes into its own folder, `plots/tests/<name>/simplified/<mode>/`, so strategies sit side by side instead of overwriting each other — `untouched_spaced`, `untouched_uncrossable`, `uncrossable`, and so on. Results are that recipe's own `run.json` and `index.html`, plus `simplification.txt`, which reads **PRESERVED** if the switch count held or **FAILED** if a removed wall turned out to be load-bearing.
 
+### Building blocks
+
+[`generate_building_blocks.py`](generate_building_blocks.py) writes one test case per canonically-distinct (grid shape, A/B placement, hole set), for every shape up to and including `--rows`x`--cols` and every hole count `0..--holes`. `--rows 2 --cols 2` sweeps `1x1`, `1x2`, `2x2` — a `1x2` grid rotated 90° is a `2x1` grid, the same object, so only one of each transpose pair is ever generated (`r<=c`); a square already gets this for free since transpose is one of the 8 D4 transforms `Canonicalizer` applies to it. `h=0` is the bare wall-free shape, deduped by placement alone (D4 + A↔B swap). `h>=1` tries every `h`-cell subset of the free cells outside both robots as holes, deduped by the *full* workspace's canonical key — needed because a placement symmetric under some transform can turn two different hole subsets into the same workspace; no cross-placement check is needed, since two full workspaces can only coincide if their placements alone already would have. Files land in `OUT/n{n}/bb_n{n}_{r}x{c}_h{h}_{idx}.py` — grouped by robot size, every shape and hole count solved for one robot size together. Written to a separate folder so `run_tests.py` and CI never see them unless pointed there (`discover_test_cases` scans recursively, so the subfolders are found):
+
+```bash
+python generate_building_blocks.py --rows 2 --cols 2 --n 1 --holes 1
+python run_tests.py --testcases-dir testcases_building_blocks --out-dir plots/building_blocks --simplified --no-size-charts
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `--rows`, `--cols` | `2`, `2` | Upper bound on grid shape — every `(r, c)` with `1<=r<=rows`, `1<=c<=cols` is swept, one per transpose pair |
+| `--n` | `1` | Robot edge length |
+| `--touching` | `none` | `none` = every valid placement anywhere on the grid; `edge` = full-edge-adjacent only; `all` = also corner/partial-edge |
+| `--holes` | `0` | Sweep hole count `0..K`. Combinatorial in the eligible-cell count — keep `K` and the grid small |
+| `--out` | `testcases_building_blocks/` | Output folder; files land in `OUT/n{n}/` |
+
+Solving and validating the generated cases is a separate, manual step — this script only writes files.
+
 ### Reports
 
 Every run writes `plots/tests/<name>/run.json` — the encoded record of that
@@ -207,8 +235,9 @@ xdg-open plots/tests/index.html   # Linux
 
 | File | What it is |
 |---|---|
-| `plots/index.html` | The landing page. Links the report trees; the BFS-comparison card appears once that page has been built. Rewritten by both `make_gallery.py` and `benchmark_bfs.py`, so it reflects what is on disk rather than the order they were run in |
+| `plots/index.html` | The landing page. Links the report trees; the BFS-comparison and building-blocks cards appear once those pages have been built. Rewritten by `run_tests.py`, `make_gallery.py` and `benchmark_bfs.py`, so it reflects what is on disk rather than the order they were run in |
 | `plots/benchmark/index.html` | The [BFS comparison](#bfs-comparison) |
+| `plots/building_blocks/index.html` | Only if you ran `run_tests.py --out-dir plots/building_blocks[/n{n}]` — see [Building blocks](#building-blocks). If run per robot size, this is an aggregator linking each `n{n}/index.html` |
 | `plots/tests/index.html` | Every run in one table — grid, robot size, switches, recipe verdicts, and the **best recipe** for that test: every recipe leaving the fewest walls *while preserving the switch count*, each linked to its own page. Recipes tie often, so all winners are listed rather than one being picked arbitrarily; they are ordered so the result with more walls freed by the placement rule reads first, those being lossless by construction. A failed recipe usually leaves fewer walls, but it has changed the problem, so it cannot win. Below the table, **Average reduction in solve time, vs the original** gives one bar per recipe: the mean of `(re-solve − original) / original` over the tests, each measured against *its own* original solve, so a single slow fixture cannot decide the ranking. The scale is symmetric about `±0%`, a bar to the left is a reduction (`−40%` = 40% less time than the original it replaced), and only the tests where the recipe held are averaged. Then **two charts per test** — solve time and states held — show each recipe's re-solve against that test's original solve as a signed percent change, with the absolute time or state count beside it and a dashed line at `±0%`; a bar ending left of it is a cheaper solve, negative is better, and a failed recipe is drawn hollow because its cheaper solve is for an easier problem. **Solve cost vs robot size** then overlays every recipe and the original on one chart for solve time and one for states held — solid for no-holes tests, dashed for holes, log axis since the cases span four orders of magnitude — so how each recipe's cost *scales* is visible, not only its size on one test. The **Recipes ranked** table adds the same two ratios per recipe across all tests (geometric mean over the runs it held) |
 | `plots/tests/<name>/index.html` | One run, end to end (below) |
 
@@ -297,6 +326,19 @@ python render_run.py plots/tests/3x3_robot_holes/run.json --out-dir figures/
 
 It writes to `<run-dir>/png_from_json/`, leaving any existing `switch_NN.png`
 untouched so the two can be compared side by side.
+
+### Solvability pages
+
+[`render_solvability.py`](render_solvability.py) writes one interactive page per
+test case under `plots/solvability/`, plus an index. Each page draws the board,
+replays `SwapSolvability`'s island build step by step (the browser runs the same
+union-find over the recorded flood regions, and its final counts are checked
+against the ones Python recorded), and answers click-placed starts. Pass a name
+substring to render a subset; `--out DIR` redirects the output.
+
+```bash
+python render_solvability.py
+```
 
 ### BFS comparison
 
@@ -452,6 +494,7 @@ A pull request gets the verify and build signal without replacing what is live.
 ```bash
 python demo_solver.py
 python demo_validator.py
+python demo_solvability.py   # the union-find structure behind SwapSolvability, printed whole
 ```
 
 ### Find the hardest workspace
@@ -499,10 +542,10 @@ Several pieces are factored into `src/` so other tools can import them:
 - [`src/canonical.py`](src/canonical.py) — touching-placement enumeration (`all_touching_placements` covers full-edge, partial-edge, and corner contacts; `all_adjacent_placements` is full-edge only), `pick_central_placements`, and the **`Canonicalizer`** class. `Canonicalizer(rows, cols, n)` turns a workspace (free cells + the two robot positions) into one key that is identical under D4 rotation/flip/mirror and the A↔B label swap; use `.dedup_placements(...)` or `.unique_touching(...)` to collapse symmetric duplicates.
 - [`src/frontier.py`](src/frontier.py) — `initial_frontier(free)` / `extend_frontier(frontier, dug, free_after)` for growing or digging a free region. Both take and return `BitGrid`s, so a search that carries its candidates as masks never inflates one into cells just to ask what it may dig next.
 - [`src/simplify.py`](src/simplify.py) — `run_simplification(...)`, the wall-removal pass behind `run_tests.py --simplified`.
-- [`src/report.py`](src/report.py) — `build_run(...)` / `write_run(...)` encode a solve as `run.json`; `write_local_report(...)` and `write_global_index(...)` render the HTML from it, and `write_site_index(...)` writes the landing page (called by both `make_gallery.py` and `benchmark_bfs.py`, so whichever runs last relinks correctly); `encode_grid`, `encode_sequence` and `palette()` are the pieces `simplify.py` and `render_run.py` reuse.
+- [`src/report.py`](src/report.py) — `build_run(...)` / `write_run(...)` encode a solve as `run.json`; `write_local_report(...)` and `write_global_index(...)` render the HTML from it, and `write_site_index(...)` writes the landing page (called by `run_tests.py`, `make_gallery.py` and `benchmark_bfs.py`, so whichever runs last relinks correctly); `encode_grid`, `encode_sequence` and `palette()` are the pieces `simplify.py` and `render_run.py` reuse.
 - [`src/benchmark.py`](src/benchmark.py) — `discover_cases(...)` / `run_benchmark(...)` measure the searches against each other one spawned process at a time, `write_benchmark(...)` / `write_benchmark_report(...)` emit `benchmark.json` and its page. `VARIANTS` and `VARIANT_DOCS` are the single definition of which searches exist and what each one does.
 - [`src/bfs.py`](src/bfs.py) — `bfs_mirror` / `bfs_bidirectional` / `bfs` are the three searches, all returning `{switches, path, visited, initial_mover}` so a caller can replay a path without guessing who moves first.
-- [`src/bitgrid.py`](src/bitgrid.py) — **`BitGrid`**, the project's one bitmask type: a `rows × cols` cell set as a single int (bit `r·cols + c`), immutable, hashable, with set algebra clipped to the grid, `rect`, `shift` (never wraps onto the next row), `dilate` (one ring outward in all four directions), `flood` (bit-parallel, cost follows the region's width not its area) and `erode_window(n)` (the cells at which an n×n window fits — the bridge from a cell grid to a placement grid). `BitGrid.coerce(rows, cols, x)` takes a grid, its bits, or an iterable of cells, so entry points accept whichever form a caller holds. `Grid.free`, every solver cache key, the flood fill and the dig search's regions, rings and queue keys are all `BitGrid`s or their bits.
+- [`src/solvability.py`](src/solvability.py) — **`SwapSolvability(rows, cols, free, n)`** (or `.for_workspace(ws)`) decides whether a swap *exists*, never in how many switches. It builds the connected components of the two-robot configuration graph once — one bit-parallel flood per connected piece of the placements usable around each parked position, one union-find link per state — and then answers `solvable(pos_a, pos_b)`, `is_swap_combination(start, candidate)`, `swap_combinations(pos_a, pos_b)` and `solvable_starts()` from lookups. A component is either closed under the A↔B relabelling, in which case every state in it is a swap combination — a state some swap passes through, the kind of state `bfs_mirror` meets at — and every start in it swaps, or disjoint from its image, in which case none does. Building it costs O(states) and covers every start pair at once, where one solve costs the start's component times the mean flood size.- [`src/bitgrid.py`](src/bitgrid.py) — **`BitGrid`**, the project's one bitmask type: a `rows × cols` cell set as a single int (bit `r·cols + c`), immutable, hashable, with set algebra clipped to the grid, `rect`, `shift` (never wraps onto the next row), `dilate` (one ring outward in all four directions), `flood` (bit-parallel, cost follows the region's width not its area) and `erode_window(n)` (the cells at which an n×n window fits — the bridge from a cell grid to a placement grid). `BitGrid.coerce(rows, cols, x)` takes a grid, its bits, or an iterable of cells, so entry points accept whichever form a caller holds. `Grid.free`, every solver cache key, the flood fill and the dig search's regions, rings and queue keys are all `BitGrid`s or their bits.
 - [`src/workspace.py`](src/workspace.py) — `Workspace.from_free_cells(...)` builds a wall-filled grid with only the given cells carved free, and `Workspace.valid_block_positions(...)` returns the n×n placements over that region as a placement `BitGrid`. Both take the free region as a `BitGrid`, its bits, or cells.
 
 ## Test Cases

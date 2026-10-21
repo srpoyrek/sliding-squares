@@ -58,6 +58,11 @@ REPORT_FILENAME = "index.html"
 #: module, which imports this one.
 BENCHMARK_DIRNAME = "benchmark"
 
+#: Sub-tree of plots/ holding the building-block series (run_tests.py
+#: --out-dir plots/building_blocks). Named here for the same reason as
+#: BENCHMARK_DIRNAME above.
+BUILDING_BLOCKS_DIRNAME = "building_blocks"
+
 #: The markup lives in real ``.html.j2`` files rather than Python strings, so an
 #: editor highlights and lints the HTML, CSS and JS, and Jinja's autoescaping
 #: covers every interpolation instead of each call site remembering to escape.
@@ -773,6 +778,38 @@ def _leaderboard(rows: list[dict]) -> list[dict]:
     return sorted(board, key=lambda a: (-a["avg_pct"], -a["kept"], a["mode"]))
 
 
+def _write_building_blocks_index(plots_dir: str) -> bool:
+    """Ensure plots/building_blocks/index.html exists; returns whether it does
+    once this call returns.
+
+    run_tests.py is commonly pointed at one robot size at a time
+    (--out-dir plots/building_blocks/n{n}), which writes that folder's own
+    index.html but never plots/building_blocks/index.html itself. This writes
+    that file as a small aggregator over every n*/index.html found -- rebuilt
+    on every call, not just when it is first missing, so a newly-added n{n}
+    appears the next time anything relinks the landing page. A flat run
+    (--out-dir plots/building_blocks with no per-n split) writes test folders
+    directly under plots/building_blocks/, each with its own run.json; that
+    index is authoritative and is left alone.
+    """
+    bb_dir = os.path.join(plots_dir, BUILDING_BLOCKS_DIRNAME)
+    dest = os.path.join(bb_dir, REPORT_FILENAME)
+    if glob.glob(os.path.join(bb_dir, "*", RUN_FILENAME)):
+        return os.path.exists(dest)
+    sub_indexes = sorted(glob.glob(os.path.join(bb_dir, "n*", REPORT_FILENAME)))
+    if not sub_indexes:
+        return os.path.exists(dest)
+    links = [os.path.basename(os.path.dirname(p)) for p in sub_indexes]
+    page = _ENV.get_template("building_blocks_index.html.j2").render(
+        links=links,
+        report_filename=REPORT_FILENAME,
+        generated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    )
+    with open(dest, "w", encoding="utf-8") as fh:
+        fh.write(page)
+    return True
+
+
 def write_site_index(plots_dir: str) -> str:
     """Write ``plots/index.html`` — the landing page linking the report trees.
 
@@ -787,6 +824,7 @@ def write_site_index(plots_dir: str) -> str:
     page = _ENV.get_template("site.html.j2").render(
         generated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
         has_benchmark=os.path.exists(os.path.join(plots_dir, BENCHMARK_DIRNAME, REPORT_FILENAME)),
+        has_building_blocks=_write_building_blocks_index(plots_dir),
     )
     dest = os.path.join(plots_dir, REPORT_FILENAME)
     with open(dest, "w", encoding="utf-8") as fh:
@@ -794,26 +832,36 @@ def write_site_index(plots_dir: str) -> str:
     return dest
 
 
-def write_global_index(tests_dir: str) -> str | None:
+def write_global_index(tests_dir: str, size_charts: bool = True) -> str | None:
     """Write ``plots/tests/index.html`` over every run.json found beneath it.
 
     Scans the whole tree rather than only this session's tests, so a filtered
     run still lands on a complete index; each row carries its own generation
     time so a stale entry is visible as stale instead of silently missing.
     Returns None when there is nothing to index.
+
+    `size_charts=False` skips both "Robot size vs difficulty" and "Solve cost
+    vs robot size" — meaningless when many tests share one robot size, as the
+    building-block series does — and skips computing `_chart_points` /
+    `_chart_modes` entirely rather than just hiding the result.
     """
     runs = sorted(glob.glob(os.path.join(tests_dir, "*", RUN_FILENAME)))
     if not runs:
         return None
     rows = [_index_row(p) for p in runs]
+    chart_json = modes_json = None
+    if size_charts:
+        # Marked safe in the template: it is JSON, not markup.
+        chart_json = json.dumps(_chart_points(rows), separators=(",", ":")).replace("</", "<\\/")
+        modes_json = json.dumps(_chart_modes(rows), separators=(",", ":")).replace("</", "<\\/")
     page = _ENV.get_template("index.html.j2").render(
         rows=rows,
         leaderboard=_leaderboard(rows),
         avg_time_chart=_average_time_chart(rows),
         cost_charts=_cost_charts(rows),
-        # Marked safe in the template: it is JSON, not markup.
-        chart_json=json.dumps(_chart_points(rows), separators=(",", ":")).replace("</", "<\\/"),
-        modes_json=json.dumps(_chart_modes(rows), separators=(",", ":")).replace("</", "<\\/"),
+        size_charts=size_charts,
+        chart_json=chart_json,
+        modes_json=modes_json,
         palette=palette(),
         report_filename=REPORT_FILENAME,
     )
