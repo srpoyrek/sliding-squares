@@ -114,7 +114,6 @@
         {{ record.map.solvable_starts | thousands }} starts can swap &middot;
         {{ record.map.swap_combinations | thousands }} swap combinations for this start
         &middot; <span id="stat-islands"></span>
-        {% if record.solver.solvable %} &middot; {{ record.midway | length }} midway{% endif %}
       </td>
     </tr>
   </table>
@@ -270,26 +269,6 @@
   </div>
   <div class="readout num" id="q-path" hidden></div>
 
-  {% if record.solver.solvable %}
-  <h2>9 &middot; Midway swap combinations — read off the solver</h2>
-  <p>A best solution has two halves. First half: walk the robots from the start
-  to some picture X. Second half: take the route from the start to X's
-  exchanged twin, swap the two robots' roles on it, and walk it backwards —
-  that carries X on to the goal. The halves meet at X, as many switches from
-  the start as from the goal (one apart when the minimum is odd).</p>
-  <p>The pictures below are every such X on this board: every place a
-  minimum-switch swap can turn. Any swap combination from section 7 also
-  completes the swap, but turning anywhere else costs more than
-  {{ record.solver.switches }} switches. These come from
-  <code>bfs_mirror</code>'s own layer map, not from the island build.</p>
-  <div class="controls">
-    <button id="mid-prev">&larr; prev</button>
-    <span class="num" id="mid-label">1 / {{ record.midway | length }}</span>
-    <button id="mid-next">next &rarr;</button>
-  </div>
-  <div class="readout" id="mid-readout"></div>
-  <div class="boardbox" id="board-midway"></div>
-  {% endif %}
 
   <script type="application/json" id="data">{{ data_json | safe }}</script>
   <script>
@@ -886,27 +865,6 @@
   document.getElementById("q-clear").addEventListener("click", () => { qA = null; qB = null; renderQuery(); });
   renderQuery();
 
-  // ── 9: midway stepper ────────────────────────────────────────────────
-  if (D.midway.length && document.getElementById("board-midway")) {
-    const bMid = makeBoard("board-midway");
-    const midLabel = document.getElementById("mid-label");
-    let at = 0;
-    function showMid() {
-      clearOverlay(bMid);
-      drawRobot(bMid, D.midway[at][0], "var(--a)", "A");
-      drawRobot(bMid, D.midway[at][1], "var(--b)", "B");
-      midLabel.textContent = (at + 1) + " / " + D.midway.length;
-      const d = D.midway[at][2], S = D.solver.switches;
-      document.getElementById("mid-readout").textContent =
-        "Midway picture " + (at + 1) + " of " + D.midway.length + ": A at (" +
-        pr(D.midway[at][0]) + "), B at (" + pr(D.midway[at][1]) + "). The search reaches this " +
-        "picture in " + d + " switch(es) and its exchanged twin in " + (S - d) + ". " +
-        d + " + " + (S - d) + " = " + S + ", the minimum — a best swap can turn exactly here.";
-    }
-    document.getElementById("mid-prev").addEventListener("click", () => { at = (at - 1 + D.midway.length) % D.midway.length; showMid(); });
-    document.getElementById("mid-next").addEventListener("click", () => { at = (at + 1) % D.midway.length; showMid(); });
-    showMid();
-  }
   </script>
 </main>
 </body>

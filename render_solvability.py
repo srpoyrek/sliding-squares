@@ -32,7 +32,7 @@ import time
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from run_tests import discover_test_cases
-from src.bfs import _make_mirror, _make_packers, bfs_mirror, configure_caches_for_grid
+from src.bfs import bfs_mirror, configure_caches_for_grid
 from src.directories import get_plots_dir
 from src.report import (
     REPORT_FILENAME,
@@ -47,7 +47,7 @@ from src.solvability import SwapSolvability, _pieces
 
 #: Bumped when the shape of solvability.json changes incompatibly, so a stale
 #: file fails loudly rather than rendering a subtly wrong page.
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 RECORD_FILENAME = "solvability.json"
 
@@ -107,32 +107,6 @@ def _build_trace(sol: SwapSolvability) -> list[dict]:
     return steps
 
 
-def _midway(ws, out: dict, n: int) -> list[list[int]]:
-    """The placements halfway along a minimum-switch swap, as [a, b, d] with d
-    the switches from the start to that picture (the exchange is then the
-    remaining minimum − d away).
-
-    Read off the search's own layer map: a state whose distance from the start
-    plus its relabelling's distance equals the minimum sits at the middle of a
-    shortest solution, which is where `bfs_mirror` joins its two halves. Which
-    robot moved last is dropped, so a placement pair counts once, keeping the
-    smallest qualifying distance.
-    """
-    _pack, unpack = _make_packers(ws, n)
-    mirror = _make_mirror(ws, n)
-    layers = out["visited"]
-    col_span = ws.grid.cols - n + 1
-    found: dict = {}
-    for sid, layer in layers.items():
-        twin = layers.get(mirror(sid))
-        if twin is not None and layer + twin == out["switches"]:
-            pos_a, pos_b, _ctrl = unpack(sid)
-            key = (pos_a[0] * col_span + pos_a[1], pos_b[0] * col_span + pos_b[1])
-            if key not in found or layer < found[key]:
-                found[key] = layer
-    return [[a, b, d] for (a, b), d in sorted(found.items())]
-
-
 def build_record(case) -> dict:
     """Assemble one case's record: the board, the build trace, both verdicts.
 
@@ -159,11 +133,6 @@ def build_record(case) -> dict:
     sol = SwapSolvability.for_workspace(ws)
     built = time.perf_counter() - t0
 
-    midway = []
-    if out is not None:
-        with_layers = bfs_mirror(ws, goal_a, goal_b, need_path=True)
-        midway = _midway(ws, with_layers, n)
-
     col_span = sol.valid.cols
     return {
         "schema": SCHEMA_VERSION,
@@ -179,7 +148,6 @@ def build_record(case) -> dict:
         },
         "valid": list(sol.valid.indices()),
         "steps": _build_trace(sol),
-        "midway": midway,
         "solver": {
             "solvable": out is not None,
             "switches": None if out is None else out["switches"],
