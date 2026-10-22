@@ -110,7 +110,7 @@ function applyView(box){
 // wheel zoom goes towards the pointer and button zoom towards the centre.
 function zoomAt(box, factor, cx, cy){
   const st = view(box.dataset.zk);
-  const nz = factor === null ? 1 : Math.max(0.25, Math.min(8, st.z*factor));
+  const nz = factor === null ? 1 : Math.max(0.25, Math.min(64, st.z*factor));
   st.x = cx - (cx - st.x) * (nz/st.z);
   st.y = cy - (cy - st.y) * (nz/st.z);
   st.z = nz;
